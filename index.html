@@ -2129,7 +2129,7 @@ input:focus-visible, textarea:focus-visible, select:focus-visible {
           </div>
         </div>
 
-        <button class="btn" onclick="saveNotifSettings()">Сохранить</button>
+        <button class="btn" onclick="saveNotifSettings()" data-i18n="btn_save">Сохранить</button>
       </div>
     </div>
   </div>
@@ -2221,9 +2221,9 @@ input:focus-visible, textarea:focus-visible, select:focus-visible {
         <div class="about-chip ideas" data-i18n="about_chip_ideas">Идеи</div>
       </div>
     </div>
-    <div class="about-footer2">Сделано с заботой о здоровье 🫀<br><span>CalSnap использует Gemini AI для анализа питания</span></div>
+    <div class="about-footer2" data-i18n-html="about_footer2">Сделано с заботой о здоровье 🫀<br><span>CalSnap использует Gemini AI для анализа питания</span></div>
     <div style="padding:0 20px 0">
-      <button class="btn" onclick="HFX.light();SFX.play('sheet_close');closeAbout()">Закрыть</button>
+      <button class="btn" onclick="HFX.light();SFX.play('sheet_close');closeAbout()" data-i18n="btn_close">Закрыть</button>
     </div>
   </div>
 </div>
@@ -2426,8 +2426,8 @@ input:focus-visible, textarea:focus-visible, select:focus-visible {
     <h3>🔑 API ключ Gemini</h3>
     <p style="font-size:13px;color:var(--t1);margin-bottom:16px;line-height:1.5">Получи бесплатный ключ на <a href="https://aistudio.google.com/apikey" target="_blank" style="color:var(--acc);font-weight:600">aistudio.google.com</a></p>
     <input class="inp" type="password" id="apiinp" placeholder="AIza...">
-    <button class="btn" onclick="HFX.medium();SFX.play('save');saveApi()">Сохранить</button>
-    <button class="btn2" onclick="HFX.light();SFX.play('sheet_close');closeApi()">Отмена</button>
+    <button class="btn" onclick="HFX.medium();SFX.play('save');saveApi()" data-i18n="btn_save">Сохранить</button>
+    <button class="btn2" onclick="HFX.light();SFX.play('sheet_close');closeApi()" data-i18n="btn_cancel">Отмена</button>
   </div>
 </div>
 
@@ -2436,8 +2436,8 @@ input:focus-visible, textarea:focus-visible, select:focus-visible {
   <div class="ed-sheet">
     <h3 id="edtitle">Редактировать</h3>
     <div id="edcont"></div>
-    <button class="btn" onclick="HFX.medium();SFX.play('save');saveEd()">Сохранить</button>
-    <button class="btn2" onclick="HFX.light();SFX.play('back');closeEd()">Отмена</button>
+    <button class="btn" onclick="HFX.medium();SFX.play('save');saveEd()" data-i18n="btn_save">Сохранить</button>
+    <button class="btn2" onclick="HFX.light();SFX.play('back');closeEd()" data-i18n="btn_cancel">Отмена</button>
   </div>
 </div>
 
@@ -2968,6 +2968,11 @@ const I18N = {
     btn_save: 'Сохранить',
     btn_cancel: 'Отмена',
     btn_delete: 'Удалить',
+    btn_close: 'Закрыть',
+    wlog_save: '💾 Сохранить',
+    notif_master_active: 'Активны',
+    notif_master_blocked: 'Заблокированы в браузере',
+    about_footer2: 'Сделано с заботой о здоровье 🫀<br><span>CalSnap использует Gemini AI для анализа питания</span>',
     btn_reset: 'Сбросить',
     about_sub: 'AI-трекер калорий нового поколения',
     about_ver: 'ВЕРСИЯ 1.4',
@@ -3297,6 +3302,11 @@ const I18N = {
     btn_save: 'Save',
     btn_cancel: 'Cancel',
     btn_delete: 'Delete',
+    btn_close: 'Close',
+    wlog_save: '💾 Save',
+    notif_master_active: 'Active',
+    notif_master_blocked: 'Blocked in browser',
+    about_footer2: 'Made with care for your health 🫀<br><span>CalSnap uses Gemini AI for nutrition analysis</span>',
     btn_reset: 'Reset',
     about_sub: 'A next-gen AI calorie tracker',
     about_ver: 'VERSION 1.4',
@@ -6314,7 +6324,7 @@ function _updateNotifMasterUI(on) {
   const sub = document.getElementById('notifMasterSub');
   const rows = document.getElementById('notifRows');
   if(tog) tog.classList.toggle('on', on);
-  if(sub) sub.textContent = on ? 'Активны' : (Notification?.permission==='denied' ? 'Заблокированы в браузере' : 'Нажми чтобы включить');
+  if(sub) sub.textContent = on ? t('notif_master_active','Активны') : (Notification?.permission==='denied' ? t('notif_master_blocked','Заблокированы в браузере') : t('notif_master_sub','Нажми чтобы включить'));
   if(rows) { rows.style.opacity = on ? '1' : '.5'; rows.style.pointerEvents = on ? '' : 'none'; }
 }
 
@@ -6753,8 +6763,8 @@ window.addEventListener('offline', () => {
       <button class="wlog-step-btn" onclick="HFX.tick();SFX.play('btn_tap');wlogStep(0.1)">+</button>
     </div>
     <div class="wlog-trend" id="wlogTrend"></div>
-    <button class="btn" onclick="saveWlog()" style="margin-bottom:10px">💾 Сохранить</button>
-    <button class="btn2" onclick="HFX.light();SFX.play('back');closeWlog()">Отмена</button>
+    <button class="btn" onclick="saveWlog()" style="margin-bottom:10px" data-i18n="wlog_save">💾 Сохранить</button>
+    <button class="btn2" onclick="HFX.light();SFX.play('back');closeWlog()" data-i18n="btn_cancel">Отмена</button>
   </div>
 </div>
 
