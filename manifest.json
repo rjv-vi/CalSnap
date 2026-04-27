@@ -3,12 +3,17 @@
   "short_name": "CalSnap",
   "description": "AI-счётчик калорий с анализом фото еды",
   "start_url": "./index.html",
+  "scope": "./",
+  "id": "calsnap",
   "display": "standalone",
+  "display_override": ["window-controls-overlay", "standalone"],
   "orientation": "portrait",
   "background_color": "#000000",
-  "theme_color": "#000000",
+  "theme_color": "#0F0E0C",
   "lang": "ru",
-  "categories": ["health", "fitness", "food"],
+  "dir": "ltr",
+  "categories": ["health", "fitness", "food", "lifestyle"],
+  "prefer_related_applications": false,
   "icons": [
     { "src": "icons/icon-72.png",  "sizes": "72x72",   "type": "image/png" },
     { "src": "icons/icon-96.png",  "sizes": "96x96",   "type": "image/png" },
@@ -27,12 +32,28 @@
       "icons": [{ "src": "icons/icon-96.png", "sizes": "96x96" }]
     },
     {
+      "name": "Сканировать штрихкод",
+      "short_name": "Штрихкод",
+      "url": "./index.html#scan",
+      "icons": [{ "src": "icons/icon-96.png", "sizes": "96x96" }]
+    },
+    {
       "name": "Виджеты",
       "short_name": "Виджеты",
       "url": "./widget.html",
       "icons": [{ "src": "icons/icon-96.png", "sizes": "96x96" }]
     }
   ],
+  "share_target": {
+    "action": "./index.html",
+    "method": "GET",
+    "params": {
+      "title": "share_title",
+      "text": "share_text",
+      "url": "share_url"
+    },
+    "enctype": "application/x-www-form-urlencoded"
+  },
   "widgets": [
     {
       "name": "CalSnap — Калории",
