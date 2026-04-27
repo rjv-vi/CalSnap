@@ -1,27 +1,38 @@
 // ═══════════════════════════════════════════════════
-// CALSNAP SERVICE WORKER v4
-// Background notifications when app is closed:
-//   • Periodic Background Sync (Chrome Android PWA)
-//   • Stored timestamps so SW fires at exact times
+// CALSNAP SERVICE WORKER v5
+// • Precache all sounds + icons + manifest
+// • Stale-while-revalidate for HTML/JSON
+// • Background notifications via Periodic Sync
+// • Push handler ready for future server push
+// • Notification click focuses existing tab
 // ═══════════════════════════════════════════════════
 
-const CACHE = 'calsnap-v4';
+const CACHE = 'calsnap-v5';
 const NOTIF_CACHE = 'calsnap-notif';
 
-const STATIC_ASSETS = [
+const ICONS = [
   './icons/icon-72.png',  './icons/icon-96.png',
   './icons/icon-128.png', './icons/icon-144.png',
   './icons/icon-152.png', './icons/icon-192.png',
   './icons/icon-384.png', './icons/icon-512.png',
-  './sounds/splash.mp3',  './sounds/welcome.mp3',
-  './sounds/tab_switch.mp3', './sounds/sheet_open.mp3',
-  './sounds/sheet_close.mp3', './sounds/drum_tick.mp3',
-  './sounds/drum_confirm.mp3', './sounds/ob_next.mp3',
-  './sounds/ob_finish.mp3', './sounds/add_food.mp3',
-  './sounds/scan_success.mp3', './sounds/btn_tap.mp3',
-  './sounds/toggle.mp3', './sounds/save.mp3',
-  './sounds/error.mp3', './sounds/ai_send.mp3',
-  './sounds/ai_reply.mp3',
+];
+
+const SOUNDS = [
+  'add_food','ai_error','ai_reply','ai_send','back','btn_tap','card_tap','copy',
+  'delete','drum_confirm','drum_tick','error','export_done','goal_reached',
+  'import_done','install','notif_ring','notif_save','ob_finish','ob_next',
+  'onboard_skip','photo_snap','reset_confirm','save','scan_success','select',
+  'sheet_close','sheet_open','splash','streak_up','tab_switch','toggle',
+  'water_add','water_goal','water_undo','weight_log','welcome',
+].map(n => `./sounds/${n}.mp3`);
+
+const STATIC_ASSETS = [
+  './',
+  './index.html',
+  './widget.html',
+  './manifest.json',
+  ...ICONS,
+  ...SOUNDS,
 ];
 
 // ── Install ──────────────────────────────────────
@@ -35,71 +46,101 @@ self.addEventListener('install', e => {
 
 // ── Activate ─────────────────────────────────────
 self.addEventListener('activate', e => {
-  e.waitUntil(
-    caches.keys()
-      .then(keys => Promise.all(
-        keys.filter(k => k.startsWith('calsnap-') && k !== CACHE && k !== NOTIF_CACHE)
-            .map(k => caches.delete(k))
-      ))
-      .then(() => self.clients.claim())
-  );
+  e.waitUntil((async () => {
+    const keys = await caches.keys();
+    await Promise.all(keys
+      .filter(k => k.startsWith('calsnap-') && k !== CACHE && k !== NOTIF_CACHE)
+      .map(k => caches.delete(k)));
+    await self.clients.claim();
+  })());
 });
 
 // ── Fetch ─────────────────────────────────────────
 self.addEventListener('fetch', e => {
-  const url = e.request.url;
+  const req = e.request;
+  if (req.method !== 'GET') return;
+  const url = req.url;
 
+  // Gemini API — network-only, graceful offline JSON
   if (url.includes('generativelanguage.googleapis.com')) {
-    e.respondWith(fetch(e.request).catch(() =>
+    e.respondWith(fetch(req).catch(() =>
       new Response('{"error":{"message":"Нет интернета","code":503}}',
-        { headers: { 'Content-Type': 'application/json' } })
+        { headers: { 'Content-Type': 'application/json' }, status: 503 })
     ));
     return;
   }
 
-  if (url.includes('connectivitycheck.gstatic.com')) {
-    e.respondWith(fetch(e.request).catch(() => new Response('', { status: 408 })));
-    return;
-  }
-
-  if (url.includes('fonts.googleapis.com') || url.includes('fonts.gstatic.com')) {
-    e.respondWith(
-      fetch(e.request).then(res => {
-        caches.open(CACHE).then(c => c.put(e.request, res.clone()));
-        return res;
-      }).catch(() => caches.match(e.request))
-    );
-    return;
-  }
-
-  if (e.request.mode === 'navigate' || url.endsWith('.html') || url.endsWith('manifest.json')) {
-    e.respondWith(
-      fetch(e.request).then(res => {
-        caches.open(CACHE).then(c => c.put(e.request, res.clone()));
-        return res;
-      }).catch(() => caches.match(e.request) || caches.match('./index.html'))
-    );
-    return;
-  }
-
-  e.respondWith(
-    caches.match(e.request).then(cached => {
-      if (cached) return cached;
-      return fetch(e.request).then(res => {
-        if (res.ok && e.request.method === 'GET') {
-          caches.open(CACHE).then(c => c.put(e.request, res.clone()));
+  // OpenFoodFacts — network with cache fallback (read-only public API)
+  if (url.includes('world.openfoodfacts.org') || url.includes('openfoodfacts.org')) {
+    e.respondWith((async () => {
+      try {
+        const res = await fetch(req);
+        if (res.ok) {
+          const c = await caches.open(CACHE);
+          c.put(req, res.clone()).catch(() => {});
         }
         return res;
-      }).catch(() => caches.match('./index.html'));
-    })
-  );
+      } catch {
+        const cached = await caches.match(req);
+        return cached || new Response('{"status":0}', {
+          headers: { 'Content-Type': 'application/json' }, status: 503,
+        });
+      }
+    })());
+    return;
+  }
+
+  // Connectivity check — pass-through
+  if (url.includes('connectivitycheck.gstatic.com')) {
+    e.respondWith(fetch(req).catch(() => new Response('', { status: 408 })));
+    return;
+  }
+
+  // Google Fonts — stale-while-revalidate
+  if (url.includes('fonts.googleapis.com') || url.includes('fonts.gstatic.com')) {
+    e.respondWith((async () => {
+      const cached = await caches.match(req);
+      const fetchP = fetch(req).then(res => {
+        if (res.ok) caches.open(CACHE).then(c => c.put(req, res.clone()));
+        return res;
+      }).catch(() => cached);
+      return cached || fetchP;
+    })());
+    return;
+  }
+
+  // HTML / manifest — network-first (always get latest), fallback to cache
+  if (req.mode === 'navigate' || url.endsWith('.html') || url.endsWith('manifest.json')) {
+    e.respondWith((async () => {
+      try {
+        const res = await fetch(req);
+        if (res.ok) caches.open(CACHE).then(c => c.put(req, res.clone()));
+        return res;
+      } catch {
+        return (await caches.match(req)) || (await caches.match('./index.html'));
+      }
+    })());
+    return;
+  }
+
+  // Everything else — cache-first
+  e.respondWith((async () => {
+    const cached = await caches.match(req);
+    if (cached) return cached;
+    try {
+      const res = await fetch(req);
+      if (res.ok) caches.open(CACHE).then(c => c.put(req, res.clone()));
+      return res;
+    } catch {
+      return (await caches.match('./index.html')) || new Response('', { status: 504 });
+    }
+  })());
 });
 
 // ── Messages from page ────────────────────────────
 self.addEventListener('message', async e => {
   if (e.data === 'skipWaiting') { self.skipWaiting(); return; }
 
-  // Page saves schedule so SW can fire when app is closed
   if (e.data?.type === 'SAVE_NOTIF_SCHEDULE') {
     try {
       const cache = await caches.open(NOTIF_CACHE);
@@ -110,7 +151,6 @@ self.addEventListener('message', async e => {
     return;
   }
 
-  // Page asks SW to show notification immediately (app open but backgrounded)
   if (e.data?.type === 'SHOW_NOTIF') {
     try {
       await self.registration.showNotification(e.data.title, {
@@ -124,18 +164,23 @@ self.addEventListener('message', async e => {
 });
 
 // ── Periodic Background Sync ──────────────────────
-// Fires even when app is closed (Chrome Android, installed PWA)
-self.addEventListener('periodicsync', async e => {
+self.addEventListener('periodicsync', e => {
   if (e.tag === 'calsnap-notifs') {
     e.waitUntil(checkScheduledNotifs());
   }
 });
 
-// ── Push (future) ─────────────────────────────────
+// ── Push (server-driven future use) ───────────────
 self.addEventListener('push', e => {
-  const data = e.data ? e.data.json() : {};
+  let data = {};
+  try { data = e.data ? e.data.json() : {}; } catch {}
   e.waitUntil(self.registration.showNotification(data.title || '🍎 CalSnap', {
-    body: data.body || '', icon: 'icons/icon-192.png', badge: 'icons/icon-72.png',
+    body: data.body || '',
+    icon: 'icons/icon-192.png',
+    badge: 'icons/icon-72.png',
+    vibrate: [100, 50, 100],
+    tag: data.tag || 'calsnap-push',
+    data: { url: data.url || './' },
   }));
 });
 
@@ -149,7 +194,6 @@ async function checkScheduledNotifs() {
     const schedule = await res.json();
     if (!schedule?.enabled) return;
 
-    // Don't show notifications if app is open and focused
     const allClients = await self.clients.matchAll({ type: 'window', includeUncontrolled: true });
     const appFocused = allClients.some(c => c.visibilityState === 'visible');
 
@@ -158,14 +202,20 @@ async function checkScheduledNotifs() {
     const nowMin = now.getHours() * 60 + now.getMinutes();
     let changed = false;
 
-    const MSGS = {
-      breakfast: { title: '🌅 Доброе утро!',  body: 'Время завтрака — не забудь записать!' },
+    // Choose locale-appropriate strings
+    const lang = schedule.lang || 'ru';
+    const MSGS = lang === 'en' ? {
+      breakfast: { title: '🌅 Good morning!', body: 'Time for breakfast — log it now!' },
+      lunch:     { title: '☀️ Lunch time',     body: 'Quick — log what you had (10s)' },
+      dinner:    { title: '🌙 Evening',        body: 'How was your day? Log dinner in CalSnap.' },
+      water:     { title: '💧 Drink some water', body: 'A glass of water helps reach your goal! 💪' },
+    } : {
+      breakfast: { title: '🌅 Доброе утро!',   body: 'Время завтрака — не забудь записать!' },
       lunch:     { title: '☀️ Обед',           body: 'Запиши что ел на обед — 10 секунд!' },
-      dinner:    { title: '🌙 Вечер',           body: 'Как прошёл день? Запиши ужин в CalSnap.' },
+      dinner:    { title: '🌙 Вечер',          body: 'Как прошёл день? Запиши ужин в CalSnap.' },
       water:     { title: '💧 Пора пить воды', body: 'Стакан воды помогает достичь цели! 💪' },
     };
 
-    // Meal reminders — fire within ±30 min window (covers hourly sync gaps)
     const meals = [
       { key: 'breakfast', time: schedule.breakfast || '08:30', on: schedule.breakfast_on !== false },
       { key: 'lunch',     time: schedule.lunch     || '13:00', on: schedule.lunch_on     !== false },
@@ -179,7 +229,6 @@ async function checkScheduledNotifs() {
       const diff = Math.abs(nowMin - targetMin);
       const lastKey = `last_${meal.key}_${todayStr}`;
 
-      // Fire if within ±30 min and not already shown today
       if (diff <= 30 && !schedule[lastKey]) {
         if (!appFocused) {
           const m = MSGS[meal.key];
@@ -193,11 +242,9 @@ async function checkScheduledNotifs() {
       }
     }
 
-    // Water reminder — every N hours
     if (schedule.water_on !== false) {
       const waterH = parseInt(schedule.waterInterval || '2');
       if (waterH > 0) {
-        // Slot = which Nth hour block we're in today
         const slot = Math.floor(nowMin / (waterH * 60));
         const lastWaterKey = `last_water_${todayStr}_${slot}`;
 
@@ -215,7 +262,7 @@ async function checkScheduledNotifs() {
       }
     }
 
-    // Cleanup: remove last_ keys older than today to prevent cache bloat
+    // Cleanup stale per-day flags
     for (const key of Object.keys(schedule)) {
       if (key.startsWith('last_') && !key.includes(todayStr)) {
         delete schedule[key];
@@ -223,24 +270,25 @@ async function checkScheduledNotifs() {
       }
     }
 
-    // Persist updated schedule
     if (changed) {
       await cache.put('schedule', new Response(JSON.stringify(schedule), {
         headers: { 'Content-Type': 'application/json' }
       }));
     }
   } catch(err) {
-    // Silently ignore
+    // silent
   }
 }
 
-// ── Notification click ────────────────────────────
+// ── Notification click — focus existing tab or open new one ─
 self.addEventListener('notificationclick', e => {
   e.notification.close();
-  e.waitUntil(
-    clients.matchAll({ type: 'window', includeUncontrolled: true }).then(cs => {
-      for (const c of cs) if (c.url && 'focus' in c) return c.focus();
-      if (clients.openWindow) return clients.openWindow('./');
-    })
-  );
+  const targetUrl = e.notification.data?.url || './';
+  e.waitUntil((async () => {
+    const cs = await clients.matchAll({ type: 'window', includeUncontrolled: true });
+    for (const c of cs) {
+      if ('focus' in c) return c.focus();
+    }
+    if (clients.openWindow) return clients.openWindow(targetUrl);
+  })());
 });

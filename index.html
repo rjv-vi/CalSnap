@@ -2,22 +2,37 @@
 <html lang="ru" data-theme="light">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="CalSnap">
-<meta id="tc-dark"  name="theme-color" content="#000000" media="(prefers-color-scheme: dark)">
-<meta id="tc-light" name="theme-color" content="#F5F5F5" media="(prefers-color-scheme: light)">
+<meta name="description" content="CalSnap — AI-счётчик калорий с распознаванием еды по фото, тексту и штрихкоду. Работает офлайн.">
+<meta name="color-scheme" content="light dark">
+<meta id="tc-meta" name="theme-color" content="#F2F0EB">
 <link rel="manifest" href="manifest.json">
 <link rel="apple-touch-icon" href="icons/icon-192.png">
-<title>CalSnap</title>
+<title>CalSnap — AI-счётчик калорий</title>
 <script>
-// Применяем тему сразу — до загрузки CSS, чтобы не было мигания
+// Применяем тему и язык сразу — до загрузки CSS/CSS, чтобы не было мигания
 (function(){
   try{
-    var t=localStorage.getItem('theme')||'light';
+    var t=localStorage.getItem('theme');
+    if(!t){
+      // Авто: уважаем системную тему по умолчанию для нового пользователя
+      try { t = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'; }
+      catch(e){ t='light'; }
+    }
     document.documentElement.setAttribute('data-theme',t);
+    var l=localStorage.getItem('lang');
+    if(!l){
+      var nl=(navigator.language||'ru').toLowerCase();
+      l = nl.startsWith('ru') || nl.startsWith('uk') || nl.startsWith('be') || nl.startsWith('kk') ? 'ru' : 'en';
+    }
+    document.documentElement.setAttribute('lang', l);
+    // Theme-color мета должен соответствовать актуальной теме
+    var tcm=document.getElementById('tc-meta');
+    if(tcm) tcm.setAttribute('content', t==='dark' ? '#0F0E0C' : '#F2F0EB');
   }catch(e){}
 })();
 </script>
@@ -425,6 +440,18 @@ canvas{display:block;max-width:100%;}
 #wempty{text-align:center;font-size:13px;color:var(--t2);padding:20px 0;}
 /* Week AI */
 .week-ai-card{margin:0 14px 14px;background:var(--bg1);border-radius:var(--r4);overflow:hidden;box-shadow:var(--s2),var(--si);border:.5px solid var(--b0);}
+.daily-ai-card{margin:0 14px 14px;background:linear-gradient(180deg,var(--bg1) 0%,var(--bg2) 100%);border-radius:var(--r4);overflow:hidden;box-shadow:var(--s2),var(--si);border:.5px solid var(--b0);}
+.daily-ai-header{padding:14px 18px;display:flex;align-items:center;gap:12px;}
+.daily-ai-icon{width:36px;height:36px;background:linear-gradient(145deg,#22c55e,#0ea5e9);border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0;box-shadow:var(--s1);}
+.daily-ai-title{font-size:15px;font-weight:800;letter-spacing:-.2px;color:var(--t0);}
+.daily-ai-sub{font-size:12px;color:var(--t1);margin-top:1px;}
+.daily-ai-close{width:28px;height:28px;border-radius:50%;border:none;background:var(--f1);color:var(--t1);font-size:14px;cursor:pointer;display:flex;align-items:center;justify-content:center;line-height:1;}
+.daily-ai-close:active{transform:scale(.85);}
+.daily-ai-body{padding:0 18px 16px;font-size:14px;line-height:1.55;color:var(--t0);}
+.daily-ai-body p{margin-bottom:8px;}
+.daily-ai-body .skel{height:12px;background:linear-gradient(90deg,var(--f1) 25%,var(--f2) 50%,var(--f1) 75%);background-size:200% 100%;border-radius:6px;animation:skel 1.4s ease-in-out infinite;}
+.daily-ai-body .skel + .skel{margin-top:8px;}
+@keyframes skel{0%{background-position:200% 0;}100%{background-position:-200% 0;}}
 .week-ai-header{padding:16px 18px 14px;display:flex;align-items:center;gap:10px;border-bottom:.5px solid var(--b1);}
 .week-ai-icon{width:38px;height:38px;background:var(--acc-g);border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0;box-shadow:var(--s1);}
 .week-ai-title{font-size:16px;font-weight:800;letter-spacing:-.3px;}
@@ -522,6 +549,10 @@ canvas{display:block;max-width:100%;}
 .ai-snd{width:44px;height:44px;background:var(--acc-g);border:none;border-radius:50%;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:transform .2s cubic-bezier(.22,1,.36,1);box-shadow:var(--s2),inset 0 1px 0 rgba(255,255,255,.10);}
 .ai-snd:active{transform:scale(.8);}
 .ai-snd svg{width:17px;height:17px;stroke:var(--bg0);fill:none;stroke-width:2.5;}
+.ai-mic{width:44px;height:44px;background:var(--bg1);border:1px solid var(--b0);border-radius:50%;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;color:var(--t0);transition:transform .2s cubic-bezier(.22,1,.36,1),background .2s,color .2s,box-shadow .2s;box-shadow:var(--s1);}
+.ai-mic:active{transform:scale(.85);}
+.ai-mic.listening{background:var(--err);color:#fff;border-color:var(--err);animation:micPulse 1.1s ease-in-out infinite;}
+@keyframes micPulse{0%,100%{box-shadow:0 0 0 0 rgba(198,38,38,.45);}50%{box-shadow:0 0 0 10px rgba(198,38,38,0);}}
 
 /* SETTINGS */
 #sett{padding-bottom:calc(var(--nav-h) + 16px);contain:paint;}
@@ -1676,6 +1707,19 @@ body.modal-open { overflow: hidden !important; touch-action: none; }
       <div class="h-sq" style="background:#EF4444"></div><span>Перебор</span>
     </div>
   </div>
+  <!-- DAILY AI SUMMARY -->
+  <div class="daily-ai-card card-enter card-enter-d4" id="dailyAiCard" style="display:none">
+    <div class="daily-ai-header">
+      <div class="daily-ai-icon">📊</div>
+      <div style="flex:1">
+        <div class="daily-ai-title" id="dailyAiTitle" data-i18n="daily_summary_title">📊 Итоги дня</div>
+        <div class="daily-ai-sub" id="dailyAiSub">—</div>
+      </div>
+      <button class="daily-ai-close" onclick="dismissDailyAi()" aria-label="Скрыть">✕</button>
+    </div>
+    <div class="daily-ai-body" id="dailyAiBody"></div>
+  </div>
+
   <div class="wt-card card-enter card-enter-d5">
     <div class="wt-top"><h4>Динамика веса</h4><button class="wt-btn" onclick="HFX.light();SFX.play('sheet_open');logW()">+ Записать</button></div>
     <canvas id="wc" height="110"></canvas>
@@ -1777,8 +1821,11 @@ body.modal-open { overflow: hidden !important; touch-action: none; }
   <div class="ai-msgs" id="aimsg" onclick="document.getElementById('aiinp').blur()"></div>
   <!-- Input bar -->
   <div class="ai-bar">
-    <input class="ai-inp" id="aiinp" placeholder="Спроси что-нибудь…"
+    <input class="ai-inp" id="aiinp" placeholder="Спроси что-нибудь…" data-i18n-placeholder="ai_input_placeholder"
       onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();aiSend();}">
+    <button class="ai-mic" id="aiMicBtn" onclick="aiVoiceToggle()" aria-label="Голосовой ввод" title="Голосовой ввод">
+      <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="2" width="6" height="12" rx="3"/><path d="M5 10v2a7 7 0 0 0 14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>
+    </button>
     <button class="ai-snd" onclick="aiSend()">
       <svg viewBox="0 0 24 24"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
     </button>
@@ -1803,8 +1850,13 @@ body.modal-open { overflow: hidden !important; touch-action: none; }
       </div>
       <div class="st-row" onclick="HFX.tick();SFX.play('toggle');toggleHfx()">
         <div class="sr-ico-wrap" style="background:linear-gradient(145deg,#a78bfa,#7c3aed)">📳</div>
-        <div class="sr-txt"><div class="sr-t">Вибрация</div><div class="sr-s">Тактильный отклик</div></div>
+        <div class="sr-txt"><div class="sr-t" data-i18n="set_haptics">Вибрация</div><div class="sr-s" data-i18n="set_haptics_sub">Тактильный отклик</div></div>
         <div class="toggle" id="hfxToggle"></div>
+      </div>
+      <div class="st-row" onclick="HFX.light();SFX.play('select');toggleLang()">
+        <div class="sr-ico-wrap" style="background:linear-gradient(145deg,#3b82f6,#1e40af);font-size:14px;font-weight:800;color:#fff">🌐</div>
+        <div class="sr-txt"><div class="sr-t" data-i18n="set_lang">Язык</div><div class="sr-s" data-i18n="set_lang_sub">Russian / English</div></div>
+        <span class="sr-v" id="slang">RU</span>
       </div>
     </div>
   </div>
@@ -2092,7 +2144,7 @@ body.modal-open { overflow: hidden !important; touch-action: none; }
     <div style="font-size:12px;color:var(--t1);margin-top:2px">Работает без интернета</div>
   </div>
   <button onclick="HFX.medium();SFX.play('install');installPWA()" style="background:var(--acc);color:#fff;border:none;border-radius:12px;padding:8px 16px;font-size:13px;font-weight:700;cursor:pointer">Установить</button>
-  <button onclick="HFX.light();SFX.play('btn_tap');document.getElementById('installBanner').style.display='none'" style="background:none;border:none;font-size:18px;cursor:pointer;color:var(--t1);padding:0 4px">✕</button>
+  <button onclick="HFX.light();SFX.play('btn_tap');dismissInstallBanner()" style="background:none;border:none;font-size:18px;cursor:pointer;color:var(--t1);padding:0 4px">✕</button>
 </div>
 <!-- BOTTOM NAV -->
 <nav id="nav">
@@ -2217,11 +2269,15 @@ body.modal-open { overflow: hidden !important; touch-action: none; }
     <div class="panel" id="tp-barcode">
       <div class="scan-box">
         <div class="scan-frame"><div class="scan-line"></div></div>
-        <h4 style="font-size:15px;font-weight:700;margin-bottom:6px;color:var(--t0)">Сканировать штрихкод</h4>
-        <p style="font-size:13px;color:var(--t1)">Gemini прочитает и найдёт данные</p>
+        <h4 style="font-size:15px;font-weight:700;margin-bottom:6px;color:var(--t0)" data-i18n="bc_title">Сканировать штрихкод</h4>
+        <p style="font-size:13px;color:var(--t1)" data-i18n="bc_sub">Поиск через OpenFoodFacts + AI</p>
         <div style="display:flex;gap:10px;margin-top:16px">
           <button onclick="document.getElementById('bc_cam').click()" style="flex:1;background:var(--t0);color:var(--bg0);border:none;border-radius:var(--r1);padding:13px;font-size:14px;font-weight:700;cursor:pointer;transition:opacity .12s" ontouchstart="this.style.opacity=.75" ontouchend="this.style.opacity=1">📷 Камера</button>
           <button onclick="document.getElementById('bc_gal').click()" style="flex:1;background:var(--f1);border:none;border-radius:12px;padding:13px;font-size:14px;font-weight:600;cursor:pointer;color:var(--t0)">🖼 Галерея</button>
+        </div>
+        <div style="display:flex;gap:8px;margin-top:10px;align-items:center">
+          <input id="bc_manual" type="tel" inputmode="numeric" pattern="[0-9]*" placeholder="Ввести код вручную (EAN-13)" style="flex:1;background:var(--f1);border:none;border-radius:12px;padding:11px 14px;font-size:14px;color:var(--t0);font-family:var(--ff);font-weight:500;letter-spacing:.5px">
+          <button onclick="doBarcodeManual()" style="background:var(--t0);color:var(--bg0);border:none;border-radius:12px;padding:11px 14px;font-size:13px;font-weight:700;cursor:pointer">→</button>
         </div>
         <input type="file" id="bc_cam" accept="image/*" capture="environment" onchange="doBarcode(event)" style="display:none">
         <input type="file" id="bc_gal" accept="image/*" onchange="doBarcode(event)" style="display:none">
@@ -2479,6 +2535,250 @@ const SFX = (() => {
 </script>
 
 <script>
+// ══════════════════════════════════════════════════
+// I18N — RU / EN
+// ══════════════════════════════════════════════════
+const I18N = {
+  ru: {
+    // Onboarding
+    ob_name_required: 'Введи имя',
+    text_required: 'Напиши что съел',
+    // Greetings
+    greet_morning: 'Доброе утро ☀️',
+    greet_day: 'Добрый день 🌤️',
+    greet_evening: 'Добрый вечер 🌙',
+    greet_night: 'Доброй ночи 🌙',
+    hi: 'Привет!',
+    // Days
+    today: 'Сегодня',
+    yesterday: 'Вчера',
+    days_ago: 'дней назад',
+    // Nav
+    nav_home: 'Дом',
+    nav_progress: 'Прогресс',
+    nav_ai: 'AI',
+    nav_settings: 'Настройки',
+    // Settings sections
+    set_appearance: 'Внешний вид',
+    set_dark: 'Тёмная тема',
+    set_sounds: 'Звуки',
+    set_sounds_sub: 'Звуки интерфейса',
+    set_haptics: 'Вибрация',
+    set_haptics_sub: 'Тактильный отклик',
+    set_lang: 'Язык',
+    set_lang_sub: 'Russian / English',
+    set_profile: 'Профиль',
+    set_name: 'Имя',
+    set_params: 'Возраст / Рост / Вес',
+    set_goal: 'Цель',
+    set_food: 'Питание',
+    set_kcal_norm: 'Норма калорий',
+    set_kcal_sub: 'Авторасчёт по параметрам',
+    set_prefs: 'Предпочтения и аллергии',
+    set_no_prefs: 'Не указаны',
+    set_api: 'API',
+    set_api_key: 'Gemini API ключ',
+    set_api_set: 'Установлен ✓',
+    set_api_unset: 'Не установлен',
+    set_model: 'Модель Gemini',
+    set_notifs: 'Уведомления',
+    set_reminders: 'Напоминания',
+    set_reminders_sub: 'Настрой время напоминаний',
+    set_data: 'Данные',
+    set_export_csv: 'Экспорт в CSV (Excel)',
+    set_export_json: 'Экспорт данных (JSON)',
+    set_import_json: 'Импорт данных (JSON)',
+    set_reset: 'Сбросить все данные',
+    set_about: 'О приложении',
+    set_widgets: 'Виджеты',
+    set_widgets_sub: 'Добавить на рабочий стол',
+    set_authors: 'Авторы CalSnap',
+    // Add modal
+    add_food_title: 'Добавить еду',
+    tab_photo: '📷 Фото',
+    tab_text: '✍️ Текст',
+    tab_barcode: '📦 Штрихкод',
+    tab_favs: '⭐ Избранное',
+    add_in_diary: '+ Добавить в дневник',
+    bc_title: 'Сканировать штрихкод',
+    bc_sub: 'Поиск через OpenFoodFacts + AI',
+    bc_manual_ph: 'Ввести код вручную (EAN-13)',
+    ai_input_placeholder: 'Спроси что-нибудь…',
+    // Misc
+    confirm: 'Подтвердить',
+    cancel: 'Отмена',
+    save: 'Сохранить',
+    delete: 'Удалить',
+    close: 'Закрыть',
+    retry: 'Повторить',
+    ok: 'Понятно',
+    back: 'Назад',
+    next: 'Продолжить',
+    saved: 'Сохранено',
+    // Toasts
+    toast_added: 'добавлено',
+    toast_offline: 'Нет интернета — AI-функции недоступны',
+    toast_install_for_notifs: 'Для уведомлений когда закрыто — установи приложение на экран',
+    toast_streak_freeze_used: '❄️ Использован стрик-фриз',
+    toast_no_voice: 'Голосовой ввод не поддерживается этим браузером',
+    toast_voice_listen: '🎙 Слушаю…',
+    toast_lang_changed: 'Язык изменён',
+    // AI
+    ai_offline: '⚠ Нет соединения. Проверь интернет.',
+    // Water
+    water_drink: 'Сколько выпил?',
+    water_custom: 'Свой объём',
+    water_ml: 'мл',
+    // Streak
+    streak_days: 'дней',
+    streak_freeze: '❄ Стрик-фриз доступен',
+    streak_freeze_active: '❄ Стрик-фриз активен',
+    // Daily summary
+    daily_summary_title: '📊 Итоги дня',
+    daily_summary_loading: 'AI подводит итоги дня…',
+    // Weight goal
+    wgoal_label: 'Прогноз достижения цели',
+    wgoal_unknown: 'Недостаточно данных для прогноза',
+    wgoal_already: 'Цель достигнута 🎉',
+    wgoal_format: '~ {date}',
+    wgoal_perweek: '{n} кг / нед',
+    // Long press menu
+    lp_duplicate: 'Дублировать',
+    lp_edit: 'Изменить',
+    lp_fav: 'В избранное',
+    lp_unfav: 'Убрать из избранного',
+    lp_delete: 'Удалить',
+    // Common UI
+    portion_count: 'Количество порций',
+    not_specified: '—',
+  },
+  en: {
+    ob_name_required: 'Please enter your name',
+    text_required: 'Tell me what you ate',
+    greet_morning: 'Good morning ☀️',
+    greet_day: 'Good day 🌤️',
+    greet_evening: 'Good evening 🌙',
+    greet_night: 'Good night 🌙',
+    hi: 'Hi there!',
+    today: 'Today',
+    yesterday: 'Yesterday',
+    days_ago: 'days ago',
+    nav_home: 'Home',
+    nav_progress: 'Progress',
+    nav_ai: 'AI',
+    nav_settings: 'Settings',
+    set_appearance: 'Appearance',
+    set_dark: 'Dark theme',
+    set_sounds: 'Sounds',
+    set_sounds_sub: 'UI sound effects',
+    set_haptics: 'Haptics',
+    set_haptics_sub: 'Tactile feedback',
+    set_lang: 'Language',
+    set_lang_sub: 'Russian / English',
+    set_profile: 'Profile',
+    set_name: 'Name',
+    set_params: 'Age / Height / Weight',
+    set_goal: 'Goal',
+    set_food: 'Nutrition',
+    set_kcal_norm: 'Calorie target',
+    set_kcal_sub: 'Calculated from your params',
+    set_prefs: 'Preferences and allergies',
+    set_no_prefs: 'Not specified',
+    set_api: 'API',
+    set_api_key: 'Gemini API key',
+    set_api_set: 'Set ✓',
+    set_api_unset: 'Not set',
+    set_model: 'Gemini model',
+    set_notifs: 'Notifications',
+    set_reminders: 'Reminders',
+    set_reminders_sub: 'Configure reminder times',
+    set_data: 'Data',
+    set_export_csv: 'Export to CSV (Excel)',
+    set_export_json: 'Export data (JSON)',
+    set_import_json: 'Import data (JSON)',
+    set_reset: 'Reset all data',
+    set_about: 'About',
+    set_widgets: 'Widgets',
+    set_widgets_sub: 'Add to home screen',
+    set_authors: 'CalSnap authors',
+    add_food_title: 'Add food',
+    tab_photo: '📷 Photo',
+    tab_text: '✍️ Text',
+    tab_barcode: '📦 Barcode',
+    tab_favs: '⭐ Favourites',
+    add_in_diary: '+ Add to diary',
+    bc_title: 'Scan barcode',
+    bc_sub: 'OpenFoodFacts + AI lookup',
+    bc_manual_ph: 'Enter code manually (EAN-13)',
+    ai_input_placeholder: 'Ask anything…',
+    confirm: 'Confirm',
+    cancel: 'Cancel',
+    save: 'Save',
+    delete: 'Delete',
+    close: 'Close',
+    retry: 'Retry',
+    ok: 'OK',
+    back: 'Back',
+    next: 'Continue',
+    saved: 'Saved',
+    toast_added: 'added',
+    toast_offline: 'No connection — AI features unavailable',
+    toast_install_for_notifs: 'For notifications when closed — install the app to home screen',
+    toast_streak_freeze_used: '❄️ Streak freeze used',
+    toast_no_voice: 'Voice input not supported by this browser',
+    toast_voice_listen: '🎙 Listening…',
+    toast_lang_changed: 'Language changed',
+    ai_offline: '⚠ No connection. Check your internet.',
+    water_drink: 'How much did you drink?',
+    water_custom: 'Custom amount',
+    water_ml: 'ml',
+    streak_days: 'days',
+    streak_freeze: '❄ Streak freeze available',
+    streak_freeze_active: '❄ Streak freeze active',
+    daily_summary_title: '📊 Daily summary',
+    daily_summary_loading: 'AI is wrapping up your day…',
+    wgoal_label: 'Goal prediction',
+    wgoal_unknown: 'Not enough data to predict',
+    wgoal_already: 'Goal reached 🎉',
+    wgoal_format: '~ {date}',
+    wgoal_perweek: '{n} kg / week',
+    lp_duplicate: 'Duplicate',
+    lp_edit: 'Edit',
+    lp_fav: 'Add to favourites',
+    lp_unfav: 'Remove from favourites',
+    lp_delete: 'Delete',
+    portion_count: 'Number of servings',
+    not_specified: '—',
+  },
+};
+function _getLang(){ try { return localStorage.getItem('lang') || (document.documentElement.lang === 'en' ? 'en' : 'ru'); } catch(e) { return 'ru'; } }
+let LANG = _getLang();
+function t(key, fallback){
+  const dict = I18N[LANG] || I18N.ru;
+  return dict[key] != null ? dict[key] : (fallback != null ? fallback : key);
+}
+function setLang(lang){
+  if (lang !== 'ru' && lang !== 'en') return;
+  LANG = lang;
+  try { localStorage.setItem('lang', lang); } catch(e) {}
+  document.documentElement.setAttribute('lang', lang);
+  applyI18n();
+  // Re-render screens to pick up new strings
+  try { rH && rH(); rSet && rSet(); rWater && rWater(); rCal && rCal(); } catch(e) {}
+  showToast(t('toast_lang_changed'));
+}
+function applyI18n(){
+  document.querySelectorAll('[data-i18n]').forEach(el => {
+    const key = el.getAttribute('data-i18n');
+    const txt = t(key, el.textContent);
+    if (el.children.length === 0) el.textContent = txt;
+  });
+  document.querySelectorAll('[data-i18n-placeholder]').forEach(el => {
+    const key = el.getAttribute('data-i18n-placeholder');
+    el.placeholder = t(key, el.placeholder);
+  });
+}
+
 // Storage
 const G=(k,d='')=>{try{return localStorage.getItem(k)||d}catch(e){return d}};
 const S=(k,v)=>{try{localStorage.setItem(k,v)}catch(e){}};
@@ -2508,11 +2808,25 @@ function init(){
   document.addEventListener('touchstart', _unlockVibration, {once:true, passive:true});
   document.addEventListener('click', _unlockVibration, {once:true});
 
+  // Применить переводы (если используется локаль EN)
+  try { applyI18n(); } catch(e) {}
+
+  // Drag-select для онбординга — вешаем для обоих веток (новый/существующий пользователь)
+  setTimeout(()=>{
+    try {
+      initDragSelect(document.querySelector('#os2 .gender-row'), '.gender-card', c => pickGender(c.id === 'gen_m' ? 'm' : 'f'));
+      initDragSelect(document.querySelector('#os3 .act-grid, .act-grid'), '.act-card', c => sa(c));
+      initDragSelect(document.querySelector('#os4 .goal-grid, .goal-grid'), '.goal-card', c => sg(c));
+    } catch(e) {}
+  }, 60);
+
   // DOB handled by drum picker
   if(!U){
     // Первый запуск — звук приветствия (с задержкой после сплэша)
     setTimeout(()=>SFX.play('welcome'), 2000);
-    ss('ob');return;
+    ss('ob');
+    // Прогресс онбординга обновляем через ob-prog
+    return;
   }
   document.getElementById('nav').style.display='flex';
   // Check notification status
@@ -2532,17 +2846,33 @@ function init(){
     _initPill('addTabPill','addTabs');
     initDragTabs('addTabs','addTabPill',[0,1,2,3]);
     initNavDrag();
-    // Drag-select for onboarding cards
-    initDragSelect(document.querySelector('#os2 .gender-row'), '.gender-card', c => pickGender(c.id === 'gen_m' ? 'm' : 'f'));
-    initDragSelect(document.querySelector('.act-grid'), '.act-card', c => sa(c));
-    initDragSelect(document.querySelector('.goal-grid'), '.goal-card', c => sg(c));
   },80);
 
+  // Обработка share-target из manifest (расшарить текст еды → сразу анализ)
+  try { _handleShareTarget(); } catch(e) {}
+  // Обработка hash-shortcut (#add, #scan)
+  try { _handleHashShortcut(); } catch(e) {}
+  // Daily AI summary (если уже сегодня показывали — пропускаем)
+  setTimeout(()=>{ try { _maybeShowDailySummary(); } catch(e){} }, 1500);
 }
 
 // Onboarding
 function os(n){HFX.light();SFX.play('onboard_skip');document.querySelectorAll('.ob-step').forEach(s=>s.classList.remove('on'));document.getElementById('os'+n).classList.add('on')}
-function on1(){const v=document.getElementById('obn').value.trim();if(!v){alert('Введи имя');return;}HFX.medium();SFX.play('ob_next');os(2)}
+function on1(){
+  const obn=document.getElementById('obn');
+  const v=obn?.value.trim()||'';
+  if(!v){
+    HFX.error(); SFX.play('error');
+    if(obn){
+      obn.style.borderColor='var(--err)';
+      obn.placeholder=t('ob_name_required','Введи имя');
+      obn.focus();
+      setTimeout(()=>{ obn.style.borderColor=''; }, 1600);
+    }
+    return;
+  }
+  HFX.medium();SFX.play('ob_next');os(2);
+}
 let obGender='m';
 function pickGender(g){
   HFX.light(); SFX.play('select');
@@ -2645,16 +2975,45 @@ const dlog=d=>log.filter(e=>e.date===d);
 const tot=es=>es.reduce((s,e)=>({k:s.k+(e.kcal||0),p:s.p+(e.prot||0),f:s.f+(e.fat||0),c:s.c+(e.carb||0)}),{k:0,p:0,f:0,c:0});
 const tnow=()=>new Date().toLocaleTimeString('ru',{hour:'2-digit',minute:'2-digit'});
 
-// Streak
+// Streak — с поддержкой стрик-фриза (1 пропуск/неделю)
 function streak(){
-  let s=0;const n=new Date();
+  let s=0;
+  const n=new Date();
+  const freezes = _getFreezes(); // {dateStr: true}
+  let usedFreezeThisWeek = _isFreezeUsedThisWeek(freezes);
   for(let i=0;;i++){
     const d=new Date(n);d.setDate(d.getDate()-i);
-    if(dlog(ds(d)).length)s++;
-    else if(i===0)continue; // today not logged yet — check yesterday
-    else break;
+    const dStr=ds(d);
+    if(dlog(dStr).length){ s++; continue; }
+    if(i===0){ continue; } // today not logged yet — check yesterday
+    // Если уже есть фриз в этом дне — учитываем
+    if(freezes[dStr]){ continue; }
+    // Авто-фриз: один пропуск в неделю можно «подморозить»
+    if(!usedFreezeThisWeek){
+      freezes[dStr] = true;
+      usedFreezeThisWeek = true;
+      try { localStorage.setItem('streak_freezes', JSON.stringify(freezes)); } catch(e){}
+      continue;
+    }
+    break;
   }
   return s;
+}
+function _getFreezes(){
+  try { return JSON.parse(localStorage.getItem('streak_freezes') || '{}') || {}; }
+  catch(e) { return {}; }
+}
+function _isFreezeUsedThisWeek(freezes){
+  const now = new Date();
+  const day = now.getDay() || 7; // ISO: Mon=1..Sun=7
+  const monday = new Date(now);
+  monday.setDate(now.getDate() - (day - 1));
+  monday.setHours(0,0,0,0);
+  for (const k in freezes) {
+    const d = new Date(k);
+    if (d >= monday && d < now) return true;
+  }
+  return false;
 }
 
 // HOME
@@ -2680,7 +3039,8 @@ const MEAL_META = {
 function rH(){
   if(!U)return;
   const hr=new Date().getHours();
-  document.getElementById('greet').textContent=hr<12?'Доброе утро ☀️':hr<18?'Добрый день 🌤️':'Добрый вечер 🌙';
+  const _gk = hr<6 ? 'greet_night' : hr<12 ? 'greet_morning' : hr<18 ? 'greet_day' : 'greet_evening';
+  document.getElementById('greet').textContent=t(_gk);
   document.getElementById('hname').textContent=U.name+'!';
   document.getElementById('abar').style.display=key?'none':'flex';
   const _sk=streak();
@@ -2690,7 +3050,7 @@ function rH(){
   rCal();
   
   const activeDayStr=selDay||ds();
-  const tl=dlog(activeDayStr),t=tot(tl),g=U.kcal||2000;
+  const tl=dlog(activeDayStr),tt=tot(tl),g=U.kcal||2000;
   // Update section label
   const lbl=document.getElementById('dayLabel');
   if(lbl){
@@ -2702,39 +3062,39 @@ function rH(){
     } else lbl.textContent='Сегодня';
   }
   const _pe=parseFloat(sessionStorage.getItem('_le')||'0');
-  if(t.k>=g&&_pe<g&&g>0){SFX.play('goal_reached');}
-  sessionStorage.setItem('_le',t.k);
-  const pct=Math.min(t.k/g,1);
+  if(tt.k>=g&&_pe<g&&g>0){SFX.play('goal_reached');}
+  sessionStorage.setItem('_le',tt.k);
+  const pct=Math.min(tt.k/g,1);
   const ring=document.getElementById('hring');
   const C=2*Math.PI*33;
   ring.style.strokeDasharray=C;
   ring.style.strokeDashoffset=C*(1-pct);
-  ring.style.stroke=t.k>g*1.05?'var(--err)':'var(--acc)';
+  ring.style.stroke=tt.k>g*1.05?'var(--err)':'var(--acc)';
   document.getElementById('hpct').textContent=Math.round(pct*100)+'%';
   // Animated calorie counter
   const kcalEl=document.getElementById('hkcal');
   const prevK=parseInt(kcalEl.dataset.val||'0')||0;
-  kcalEl.dataset.val=t.k;
-  if(prevK!==t.k){
+  kcalEl.dataset.val=tt.k;
+  if(prevK!==tt.k){
     const dur=500,st=performance.now();
     const animK=now=>{
       const p=Math.min((now-st)/dur,1),e=1-Math.pow(1-p,4);
-      kcalEl.textContent=Math.round(prevK+(t.k-prevK)*e);
-      if(p<1)requestAnimationFrame(animK); else kcalEl.textContent=t.k;
+      kcalEl.textContent=Math.round(prevK+(tt.k-prevK)*e);
+      if(p<1)requestAnimationFrame(animK); else kcalEl.textContent=tt.k;
     };
     requestAnimationFrame(animK);
-  } else { kcalEl.textContent=t.k; }
+  } else { kcalEl.textContent=tt.k; }
   document.getElementById('hgoal').textContent=g;
-  document.getElementById('hrem').textContent=t.k<=g?`Осталось ${g-t.k} ккал`:`Превышено на ${t.k-g} ккал`;
-  document.getElementById('hprot').textContent=Math.round(t.p)+'г';
-  document.getElementById('hcarb').textContent=Math.round(t.c)+'г';
-  document.getElementById('hfat').textContent=Math.round(t.f)+'г';
+  document.getElementById('hrem').textContent=tt.k<=g?`Осталось ${g-tt.k} ккал`:`Превышено на ${tt.k-g} ккал`;
+  document.getElementById('hprot').textContent=Math.round(tt.p)+'г';
+  document.getElementById('hcarb').textContent=Math.round(tt.c)+'г';
+  document.getElementById('hfat').textContent=Math.round(tt.f)+'г';
   document.getElementById('hpg').textContent=(U.pr||0)+'г';
   document.getElementById('hcg').textContent=(U.cb||0)+'г';
   document.getElementById('hfg').textContent=(U.ft||0)+'г';
-  document.getElementById('hpbar').style.width=Math.min(t.p/(U.pr||100)*100,100)+'%';
-  document.getElementById('hcbar').style.width=Math.min(t.c/(U.cb||100)*100,100)+'%';
-  document.getElementById('hfbar').style.width=Math.min(t.f/(U.ft||100)*100,100)+'%';
+  document.getElementById('hpbar').style.width=Math.min(tt.p/(U.pr||100)*100,100)+'%';
+  document.getElementById('hcbar').style.width=Math.min(tt.c/(U.cb||100)*100,100)+'%';
+  document.getElementById('hfbar').style.width=Math.min(tt.f/(U.ft||100)*100,100)+'%';
 
   // Mini water — always refresh
   _updateMiniWater();
@@ -3409,7 +3769,7 @@ function rWChart(){
 function initAi(){
   aiReady=true;
   const chatHistory=document.getElementById('aimsg')?.children?.length;
-  const tl=tlog(),t=tot(tl);
+  const tl=tlog(),tt=tot(tl);
   const _wArr=getWaterToday();
   const waterNow=_wArr.reduce((s,e)=>s+e.ml,0);
   const waterTarget=getWaterGoal().adjusted;
@@ -3419,15 +3779,15 @@ function initAi(){
   if(!chatHistory||chatHistory<=2){
   c.innerHTML='';
   // Welcome card
-  const wcard=document.createElement('div');
+  const wcard=documentt.createElement('div');
   wcard.className='ai-welcome';
   wcard.innerHTML=`
     <span class="ai-welcome-icon">🤖</span>
     <div class="ai-welcome-title">Привет, ${U?.name||''}!</div>
-    <div class="ai-welcome-sub">Сегодня: <b style="color:#FF8C00">${t.k} ккал</b> из ${U?.kcal||2000} · 💧 <b style="color:#3b82f6">${waterNow}мл</b> из ${waterTarget}мл${waterTimeline ? '<br><span style="font-size:11px;color:var(--t2)">' + waterTimeline + '</span>' : ''}<br>Цель: «${GL[U?.goal]||'—'}» · Осталось <b>${Math.max(0,(U?.kcal||2000)-t.k)}</b> ккал</div>
+    <div class="ai-welcome-sub">Сегодня: <b style="color:#FF8C00">${tt.k} ккал</b> из ${U?.kcal||2000} · 💧 <b style="color:#3b82f6">${waterNow}мл</b> из ${waterTarget}мл${waterTimeline ? '<br><span style="font-size:11px;color:var(--t2)">' + waterTimeline + '</span>' : ''}<br>Цель: «${GL[U?.goal]||'—'}» · Осталось <b>${Math.max(0,(U?.kcal||2000)-tt.k)}</b> ккал</div>
   `;
   c.appendChild(wcard);
-  const lbl=document.createElement('div');
+  const lbl=documentt.createElement('div');
   lbl.className='ai-chips-label';
   lbl.textContent='ПОПРОБУЙ СПРОСИТЬ';
   c.appendChild(lbl);
@@ -3439,13 +3799,69 @@ function clearAiChat(){
   });
 }
 function aiSug(el){document.getElementById('aiinp').value=el.textContent;aiSend();}
+
+// Voice input via Web Speech API (Chrome desktop/Android — webkit-prefixed in some)
+let _voiceRec = null, _voiceListening = false;
+function aiVoiceToggle(){
+  const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+  if (!SR) {
+    HFX.error(); SFX.play('error');
+    showToast(t('toast_no_voice'));
+    return;
+  }
+  if (_voiceListening) { try { _voiceRec && _voiceRec.stop(); } catch(e){} return; }
+  if (!_voiceRec) {
+    _voiceRec = new SR();
+    _voiceRec.interimResults = true;
+    _voiceRec.continuous = false;
+    _voiceRec.maxAlternatives = 1;
+  }
+  _voiceRec.lang = LANG === 'en' ? 'en-US' : 'ru-RU';
+  const inp = document.getElementById('aiinp');
+  const btn = document.getElementById('aiMicBtn');
+  let baseText = (inp?.value || '').trim();
+  if (baseText) baseText += ' ';
+  _voiceRec.onstart = () => {
+    _voiceListening = true;
+    btn?.classList.add('listening');
+    HFX.light(); SFX.play('btn_tap');
+    showToast(t('toast_voice_listen'), 1500);
+  };
+  _voiceRec.onresult = (ev) => {
+    let final = '', interim = '';
+    for (let i = ev.resultIndex; i < ev.results.length; i++) {
+      const r = ev.results[i];
+      if (r.isFinal) final += r[0].transcript;
+      else interim += r[0].transcript;
+    }
+    if (inp) inp.value = baseText + final + interim;
+  };
+  _voiceRec.onerror = (e) => {
+    _voiceListening = false;
+    btn?.classList.remove('listening');
+    if (e.error !== 'no-speech' && e.error !== 'aborted') {
+      HFX.error(); SFX.play('error');
+    }
+  };
+  _voiceRec.onend = () => {
+    _voiceListening = false;
+    btn?.classList.remove('listening');
+    HFX.light();
+    if (inp && inp.value.trim()) {
+      // Auto-send when voice transcript is non-trivial
+      // Comment out to disable auto-send
+    }
+  };
+  try { _voiceRec.start(); } catch(e) { /* already started */ }
+}
+
 async function aiSend(){
   const inp=document.getElementById('aiinp'),txt=inp.value.trim();
   if(!txt)return;if(!key){openApi();return;}
   inp.value='';HFX.medium();SFX.play('ai_send'); _aiThinkStart();aiMsg(txt,'user');
 
   // Rich context for AI
-  const tl=tlog(),t=tot(tl);
+  const tl=tlog(),tt=tot(tl);
   const waterToday=getWaterToday();
   const totalWaterMl=waterToday.reduce((s,e)=>s+e.ml,0);
   const waterGoal=getWaterGoal().adjusted;
@@ -3472,9 +3888,9 @@ async function aiSend(){
 
 СЕГОДНЯ (${new Date().toLocaleDateString('ru',{weekday:'long',day:'numeric',month:'long'})}):
 ${foodLog}
-Итого: ${t.k||0}ккал из ${U?.kcal||2000} (${Math.round((t.k||0)/(U?.kcal||2000)*100)}%)
-Макро: Б${Math.round(t.p||0)}г У${Math.round(t.c||0)}г Ж${Math.round(t.f||0)}г
-Осталось: ${Math.max(0,(U?.kcal||2000)-(t.k||0))}ккал
+Итого: ${tt.k||0}ккал из ${U?.kcal||2000} (${Math.round((tt.k||0)/(U?.kcal||2000)*100)}%)
+Макро: Б${Math.round(tt.p||0)}г У${Math.round(tt.c||0)}г Ж${Math.round(tt.f||0)}г
+Осталось: ${Math.max(0,(U?.kcal||2000)-(tt.k||0))}ккал
 Вода сегодня: ${totalWaterMl}мл из ${waterGoal}мл${waterToday.length ? ' ('+waterToday.map(e=>e.ml+'мл в '+e.t).join(', ')+')' : ''}
 
 ИСТОРИЯ НЕДЕЛИ: ${week7.length?week7.join(', '):'нет данных'}
@@ -3490,14 +3906,14 @@ ${foodLog}
 - НЕ повторяй данные которые пользователь уже знает`;
 
   // Show typing indicator
-  const lm=document.createElement('div');lm.className='msg msg-ai';
+  const lm=documentt.createElement('div');lm.className='msg msg-ai';
   lm.innerHTML='<div class="msg-ai-wrap"><div class="msg-ai-ava">🤖</div><div class="typing-indicator"><div class="typing-dot"></div><div class="typing-dot"></div><div class="typing-dot"></div></div></div>';
   const _c=document.getElementById('aimsg');_c.appendChild(lm);_c.scrollTop=_c.scrollHeight;
   try{
     const r=await gem([{text:txt}],sys);
     HFX.double();_aiThinkStop();
     SFX.play('ai_reply');
-    const _bbl=document.createElement('div');_bbl.className='bbl';_bbl.innerHTML=fmt(r);
+    const _bbl=documentt.createElement('div');_bbl.className='bbl';_bbl.innerHTML=fmt(r);
     lm.innerHTML='<div class="msg-ai-wrap"><div class="msg-ai-ava">🤖</div></div>';
     lm.querySelector('.msg-ai-wrap').appendChild(_bbl);
     _c.scrollTop=_c.scrollHeight;
@@ -3645,8 +4061,18 @@ async function doPhoto(){
 function fillTx(el){document.getElementById('txinp').value=el.textContent;}
 function rstText(){document.getElementById('txinp').value='';document.getElementById('txres').classList.remove('on');document.getElementById('txAddbtn').style.display='none';document.getElementById('txAbtn').style.display='block';}
 async function doText(){
-  const txt=document.getElementById('txinp').value.trim();
-  if(!txt){alert('Напиши что съел');return;}
+  const inp=document.getElementById('txinp');
+  const txt=inp?.value.trim()||'';
+  if(!txt){
+    HFX.error(); SFX.play('error');
+    if(inp){
+      inp.style.borderColor='var(--err)';
+      inp.focus();
+      setTimeout(()=>{ inp.style.borderColor=''; }, 1600);
+    }
+    showToast(t('text_required','Напиши что съел'));
+    return;
+  }
   document.getElementById('txAbtn').style.display='none';
   document.getElementById('txerr').classList.remove('on');
   document.getElementById('txldr').classList.add('on');
@@ -3679,6 +4105,94 @@ Now calculate for what the user ate and return JSON in same format:`;
 }
 
 // Barcode
+
+// OpenFoodFacts lookup — бесплатно, без ключа
+async function _offLookup(barcode){
+  try {
+    const lang = LANG === 'en' ? 'en' : 'ru';
+    const url = `https://world.openfoodfacts.org/api/v2/product/${encodeURIComponent(barcode)}.json?lc=${lang}&fields=product_name,product_name_ru,product_name_en,brands,quantity,serving_size,nutriments,image_front_small_url`;
+    const ctrl = new AbortController();
+    const tm = setTimeout(() => ctrl.abort(), 6000);
+    const res = await fetch(url, { signal: ctrl.signal });
+    clearTimeout(tm);
+    if (!res.ok) return null;
+    const data = await res.json();
+    if (!data || data.status !== 1 || !data.product) return null;
+    const p = data.product;
+    const n = p.nutriments || {};
+    const name = (lang === 'ru' ? p.product_name_ru : p.product_name_en) || p.product_name || p.brands || 'Продукт';
+    const portionRaw = p.serving_size || (n['energy-kcal_serving'] ? '1 порция' : (p.quantity || '100г'));
+    // Per-serving where available, else per-100g
+    const perServing = (n['energy-kcal_serving'] != null);
+    const get = (k) => perServing ? (n[k+'_serving'] ?? n[k+'_100g'] ?? 0) : (n[k+'_100g'] ?? n[k+'_serving'] ?? 0);
+    const kcal = Math.round(get('energy-kcal') || 0);
+    const prot = Math.round((get('proteins') || 0) * 10) / 10;
+    const fat  = Math.round((get('fat') || 0) * 10) / 10;
+    const carb = Math.round((get('carbohydrates') || 0) * 10) / 10;
+    if (!kcal && !prot && !fat && !carb) return null;
+    return {
+      food: (p.brands ? p.brands.split(',')[0].trim() + ' ' : '') + name,
+      portion: portionRaw,
+      calories: kcal, protein: prot, fat: fat, carbs: carb,
+      description: p.brands ? `${p.brands}` : '',
+      image_url: p.image_front_small_url || '',
+      _source: 'openfoodfacts',
+    };
+  } catch(e) { return null; }
+}
+
+// Try to extract barcode digits from Gemini OCR (used as a faster path before nutrition lookup)
+async function _ocrBarcode(b, mime){
+  try {
+    const p = 'Read the barcode digits on this product photo. Reply with ONLY the digits (8-14 digit EAN/UPC). If unreadable reply NONE.';
+    const raw = await gem([{ text: p }, { inline_data: { mime_type: mime, data: b } }]);
+    const digits = (raw || '').replace(/\D+/g, '');
+    if (digits.length >= 8 && digits.length <= 14) return digits;
+  } catch(e) {}
+  return null;
+}
+
+function _renderBarcodeResult(r){
+  cur.barcode = { food: r.food, portion: r.portion, kcal: r.calories||0, prot: r.protein||0, fat: r.fat||0, carb: r.carbs||0, time: tnow(), date: ds() };
+  document.getElementById('brn').textContent = r.food || 'Продукт';
+  document.getElementById('brp').textContent = r.portion || '';
+  document.getElementById('brk').innerHTML = (r.calories || 0) + ' <small>ккал</small>';
+  document.getElementById('brpr').textContent = (r.protein || 0) + 'г';
+  document.getElementById('brcr').textContent = (r.carbs || 0) + 'г';
+  document.getElementById('brfr').textContent = (r.fat || 0) + 'г';
+  document.getElementById('brd').textContent = (r._source === 'openfoodfacts' ? '🌍 OpenFoodFacts · ' : '') + (r.description || '');
+  document.getElementById('bcres').classList.add('on');
+  document.getElementById('bcAddbtn').style.display = 'block';
+  HFX.success(); SFX.play('scan_success');
+}
+
+async function doBarcodeManual(){
+  const inp = document.getElementById('bc_manual');
+  const code = (inp?.value || '').replace(/\D+/g,'');
+  if (code.length < 8 || code.length > 14) {
+    HFX.error(); SFX.play('error');
+    if (inp) {
+      inp.style.borderColor = 'var(--err)';
+      setTimeout(()=>{ inp.style.borderColor=''; }, 1600);
+    }
+    showToast('EAN: 8-14 цифр');
+    return;
+  }
+  HFX.light(); SFX.play('barcode_scan');
+  document.getElementById('bcerr').classList.remove('on');
+  document.getElementById('bcldr').classList.add('on');
+  try {
+    const r = await _offLookup(code);
+    if (r) { _renderBarcodeResult(r); return; }
+    showErr('bcerr', 'Продукт не найден в OpenFoodFacts. Попробуй фото.');
+  } catch(e) {
+    HFX.error(); SFX.play('ai_error');
+    showErr('bcerr', String(e.message || e || 'Ошибка анализа'));
+  } finally {
+    document.getElementById('bcldr').classList.remove('on');
+  }
+}
+
 async function doBarcode(e){
   const file=e.target.files[0];if(!file)return;
   HFX.light(); SFX.play('barcode_scan');
@@ -3686,25 +4200,25 @@ async function doBarcode(e){
   document.getElementById('bcldr').classList.add('on');
   try{
     const b=await b64(file),mime=file.type||'image/jpeg';
+    // 1) Try fast path: OCR digits → OpenFoodFacts
+    const code = await _ocrBarcode(b, mime);
+    if (code) {
+      const r = await _offLookup(code);
+      if (r) { _renderBarcodeResult(r); return; }
+    }
+    // 2) Fallback: Gemini full vision analysis
     const p=`You are a nutrition expert. This photo shows a product barcode or packaging. Identify the product and its nutrition info per serving or per 100g.
 Respond with ONLY a valid JSON object. No text before or after. No markdown. Example:
 {"food":"Чипсы Lay's Сметана","portion":"30г","calories":165,"protein":2,"fat":11,"carbs":15,"description":"Картофельные чипсы. Высококалорийный снек."}
 Return JSON for the product in this photo:`;
     const raw=await gem([{text:p},{inline_data:{mime_type:mime,data:b}}]);
     const r=pj(raw);
-    cur.barcode={food:r.food,portion:r.portion,kcal:r.calories||0,prot:r.protein||0,fat:r.fat||0,carb:r.carbs||0,time:tnow(),date:ds()};
-    document.getElementById('brn').textContent=r.food||'Продукт';
-    document.getElementById('brp').textContent=r.portion||'';
-    document.getElementById('brk').innerHTML=(r.calories||0)+' <small>ккал</small>';
-    document.getElementById('brpr').textContent=(r.protein||0)+'г';
-    document.getElementById('brcr').textContent=(r.carbs||0)+'г';
-    document.getElementById('brfr').textContent=(r.fat||0)+'г';
-    document.getElementById('brd').textContent=r.description||'';
-    document.getElementById('bcres').classList.add('on');
-    document.getElementById('bcAddbtn').style.display='block';
-    HFX.success();SFX.play('scan_success');
+    _renderBarcodeResult(r);
   }catch(e){HFX.error();SFX.play('ai_error');showErr('bcerr', String(e.message||e||'Ошибка анализа'));}
-  finally{document.getElementById('bcldr').classList.remove('on');}
+  finally{document.getElementById('bcldr').classList.remove('on');
+    // Reset file inputs so the same file can be selected again
+    try { document.getElementById('bc_cam').value=''; document.getElementById('bc_gal').value=''; } catch(e){}
+  }
 }
 
 // Detect if food item is a beverage and estimate ml
@@ -3970,18 +4484,21 @@ async function b64(file){
 function pj(raw){
   if(!raw||!raw.trim()) throw new Error('Пустой ответ');
   let c=raw.trim();
-  // Strip ALL variations of code fences (backticks, unicode backticks, etc)
-  c=c.replace(/[``]+json/gi,'').replace(/[``]+/g,'').trim();
+  // Strip markdown code fences (```json ... ``` or just ``` ... ```), incl. unicode backticks
+  c=c.replace(/[`\u2018\u2019\u201B\u02CB\uFF40]{3,}\s*json/gi,'')
+     .replace(/[`\u2018\u2019\u201B\u02CB\uFF40]{3,}/g,'')
+     .replace(/^[`\u2018\u2019\u201B\u02CB\uFF40]+|[`\u2018\u2019\u201B\u02CB\uFF40]+$/g,'')
+     .trim();
   // Find outermost JSON object
   const start=c.indexOf('{'), end=c.lastIndexOf('}');
   if(start===-1||end===-1) throw new Error('JSON не найден в ответе');
   let obj;
   try{ obj=JSON.parse(c.slice(start,end+1)); }
   catch(e){
-    // Try to fix common issues: unquoted values, trailing commas
+    // Try to fix common issues: trailing commas, smart quotes
     let fixed=c.slice(start,end+1)
       .replace(/,\s*}/g,'}').replace(/,\s*]/g,']')
-      .replace(/:([a-zA-Zа-яА-Я][^",}\]]*?)([,}])/g,':"$1"$2');
+      .replace(/[\u201C\u201D]/g,'"').replace(/[\u2018\u2019]/g,"'");
     try{ obj=JSON.parse(fixed); }
     catch(e2){ throw new Error('Не удалось разобрать JSON'); }
   }
@@ -4007,22 +4524,27 @@ function rSet(){
   document.getElementById('sgoal').textContent=GL[U.goal]||'—';
   document.getElementById('skcal').textContent=(U.kcal||0)+' ккал';
   const _sp=document.getElementById('sprefs');if(_sp){const _pc=(U.prefs||[]).length,_ac=U.allerg?1:0;_sp.textContent=(_pc+_ac)>0?(_pc?U.prefs.join(', '):'')+(_ac?(_pc?' · ':'')+U.allerg:''):'Не указаны';}
-  document.getElementById('sapi').textContent=key?'Установлен ✓':'Не установлен';
+  document.getElementById('sapi').textContent=key?t('set_api_set','Установлен ✓'):t('set_api_unset','Не установлен');
   const _mname=ALL_MODELS.find(m=>m.id===selModel)?.name||selModel;
   document.getElementById('smodel').textContent=_mname;
   const dark=document.documentElement.getAttribute('data-theme')==='dark';
   const tog=document.getElementById('themeToggle');if(tog)tog.classList.toggle('on',dark);
   const sfxTog=document.getElementById('sfxToggle');if(sfxTog)sfxTog.classList.toggle('on',SFX.isEnabled());
   const hfxTog=document.getElementById('hfxToggle');if(hfxTog)hfxTog.classList.toggle('on',HFX.isOn());
+  const sl=document.getElementById('slang');if(sl)sl.textContent = LANG === 'en' ? 'EN' : 'RU';
   // Notif status
   if(typeof Notification!=='undefined'&&Notification.permission==='granted') _updateNotifStatus(true);
 }
 
-function ed(t){
-  edType=t;
+function toggleLang(){
+  setLang(LANG === 'ru' ? 'en' : 'ru');
+}
+
+function ed(type){
+  edType=type;
   const tl=document.getElementById('edtitle'),ct=document.getElementById('edcont');
-  if(t==='name'){tl.textContent='Имя';ct.innerHTML=`<input class="inp" id="ed_v" value="${U.name||''}">`;}
-  else if(t==='params'){
+  if(type==='name'){tl.textContent='Имя';ct.innerHTML=`<input class="inp" id="ed_v" value="${U.name||''}">`;}
+  else if(type==='params'){
     tl.textContent='Параметры';
     const curDob=U.dob||'';
     const curAge=curDob?calcAgeFromDob(curDob):U.age;
@@ -4043,8 +4565,8 @@ function ed(t){
       <input class="inp" type="number" id="ed_w" placeholder="Вес (кг)" value="${U.w||''}" inputmode="decimal">
     `;
   }
-  else if(t==='goal'){tl.textContent='Цель';ct.innerHTML=`<div class="goal-grid">${Object.entries(GL).map(([k,v])=>`<div class="goal-card ${U.goal===k?'on':''}" data-g="${k}" onclick="HFX.tick();SFX.play('select');document.querySelectorAll('[data-g]').forEach(e=>e.classList.remove('on'));this.classList.add('on')"><div class="gn">${v}</div></div>`).join('')}</div>`;}
-  else if(t==='prefs'){
+  else if(type==='goal'){tl.textContent='Цель';ct.innerHTML=`<div class="goal-grid">${Object.entries(GL).map(([k,v])=>`<div class="goal-card ${U.goal===k?'on':''}" data-g="${k}" onclick="HFX.tick();SFX.play('select');document.querySelectorAll('[data-g]').forEach(e=>e.classList.remove('on'));this.classList.add('on')"><div class="gn">${v}</div></div>`).join('')}</div>`;}
+  else if(type==='prefs'){
     tl.textContent='Предпочтения';
     const PREF_OPTS=[{p:'no_meat',l:'🚫🥩 Без мяса'},{p:'no_gluten',l:'🚫🌾 Без глютена'},{p:'no_lactose',l:'🚫🥛 Без лактозы'},{p:'no_sugar',l:'🚫🍭 Без сахара'},{p:'vegan',l:'🌱 Веган'},{p:'keto',l:'🥑 Кето'},{p:'halal',l:'☪️ Халяль'},{p:'no_eggs',l:'🚫🥚 Без яиц'}];
     const curPrefs=U.prefs||[];
@@ -4052,14 +4574,14 @@ function ed(t){
     <div style="font-size:13px;font-weight:600;color:var(--t1);margin-bottom:6px">Аллергии</div>
     <input class="inp" id="ed_allerg" value="${U.allerg||''}" placeholder="Арахис, морепродукты...">`;
   }
-  else if(t==='kcal'){tl.textContent='Норма калорий';ct.innerHTML=`<input class="inp" type="number" id="ed_v" value="${U.kcal||2000}">`;}
+  else if(type==='kcal'){tl.textContent='Норма калорий';ct.innerHTML=`<input class="inp" type="number" id="ed_v" value="${U.kcal||2000}">`;}
   document.getElementById('edOv').classList.add('on');
   document.body.style.overflow='hidden';
   // Drag-select for edit modal cards
-  if(t==='params') setTimeout(()=>{
+  if(type==='params') setTimeout(()=>{
     initDragSelect(ct.querySelector('.gender-row'), '.gender-card', c => edPickGender(c.id.includes('_m') ? 'm' : 'f'));
   }, 50);
-  if(t==='goal') setTimeout(()=>{
+  if(type==='goal') setTimeout(()=>{
     initDragSelect(ct.querySelector('.goal-grid'), '.goal-card', c => {
       ct.querySelectorAll('.goal-card').forEach(e=>e.classList.remove('on')); c.classList.add('on');
     });
@@ -4217,21 +4739,38 @@ function importJSON(input){
   reader.readAsText(file);
 }
 
-function showToast(msg){
-  let t=document.getElementById('_toast');
-  if(!t){
-    t=document.createElement('div');t.id='_toast';
-    t.style.cssText='position:fixed;bottom:calc(var(--nav-h)+20px);left:50%;transform:translateX(-50%) translateY(8px);background:var(--t0);color:var(--bg0);padding:11px 20px;border-radius:28px;font-size:14px;font-weight:600;z-index:9999;white-space:nowrap;box-shadow:0 8px 32px rgba(0,0,0,.22),0 2px 8px rgba(0,0,0,.14),inset 0 1px 0 rgba(255,255,255,.09);transition:opacity .32s cubic-bezier(.22,1,.36,1),transform .32s cubic-bezier(.22,1,.36,1);font-family:var(--ff);opacity:0;pointer-events:none;-webkit-backdrop-filter:blur(16px);backdrop-filter:blur(16px);';
+// Toast — очередь до 3 одновременно, чтобы не перетирать важные сообщения
+const _toastQueue = [];
+let _toastShowing = false;
+function showToast(msg, duration){
+  duration = duration || 2400;
+  _toastQueue.push({ msg, duration });
+  if (!_toastShowing) _drainToastQueue();
+}
+function _drainToastQueue(){
+  if (!_toastQueue.length) { _toastShowing = false; return; }
+  _toastShowing = true;
+  const { msg, duration } = _toastQueue.shift();
+  let t = document.getElementById('_toast');
+  if (!t) {
+    t = document.createElement('div'); t.id = '_toast';
+    t.style.cssText = 'position:fixed;bottom:calc(var(--nav-h)+20px);left:50%;transform:translateX(-50%) translateY(8px);background:var(--t0);color:var(--bg0);padding:11px 20px;border-radius:28px;font-size:14px;font-weight:600;z-index:9999;max-width:calc(100% - 32px);text-align:center;box-shadow:0 8px 32px rgba(0,0,0,.22),0 2px 8px rgba(0,0,0,.14),inset 0 1px 0 rgba(255,255,255,.09);transition:opacity .32s cubic-bezier(.22,1,.36,1),transform .32s cubic-bezier(.22,1,.36,1);font-family:var(--ff);opacity:0;pointer-events:none;-webkit-backdrop-filter:blur(16px);backdrop-filter:blur(16px);';
     document.body.appendChild(t);
   }
-  t.textContent=msg;
-  t.style.opacity='1';
-  t.style.transform='translateX(-50%) translateY(0)';
+  t.textContent = msg;
+  // Reset transition state
+  t.style.opacity = '0';
+  t.style.transform = 'translateX(-50%) translateY(8px)';
+  requestAnimationFrame(() => {
+    t.style.opacity = '1';
+    t.style.transform = 'translateX(-50%) translateY(0)';
+  });
   clearTimeout(t._t);
-  t._t=setTimeout(()=>{
-    t.style.opacity='0';
-    t.style.transform='translateX(-50%) translateY(6px)';
-  },2400);
+  t._t = setTimeout(() => {
+    t.style.opacity = '0';
+    t.style.transform = 'translateX(-50%) translateY(6px)';
+    setTimeout(() => _drainToastQueue(), 240);
+  }, duration);
 }
 
 function clrAll(){
@@ -4252,9 +4791,12 @@ function toggleTheme(){
   const next=dark?'light':'dark';
   document.documentElement.setAttribute('data-theme',next);
   S('theme',next);
-  document.getElementById('themeToggle').classList.toggle('on',next==='dark');
-  document.getElementById('tc-dark').content='#000000';
-  document.getElementById('tc-light').content=next==='dark'?'#0F0E0C':'#F5F5F5';
+  document.getElementById('themeToggle')?.classList.toggle('on',next==='dark');
+  // Обновляем meta theme-color (Android URL bar / iOS PWA status)
+  const tcm=document.getElementById('tc-meta');
+  if(tcm) tcm.setAttribute('content', next==='dark' ? '#0F0E0C' : '#F2F0EB');
+  // Возвращающий рендер UI с новой темой
+  try { rH && rH(); rSet && rSet(); } catch(e){}
 }
 
 function toggleSfx(){
@@ -4266,9 +4808,21 @@ function toggleSfx(){
 
 function showErr(id,msg){const e=document.getElementById(id);e.textContent='⚠️ '+(msg||'Неизвестная ошибка');e.classList.add('on');}
 
-// Тема применена в <head> — здесь только обновляем meta theme-color
-const savedTheme=G('theme','light');
-if(savedTheme==='dark'){try{document.getElementById('tc-light').content='#0F0E0C';}catch(e){}}
+// Тема применена в <head>; здесь только следим за системными изменениями темы (если юзер не выбрал явно)
+try {
+  const _mq = window.matchMedia('(prefers-color-scheme: dark)');
+  if (_mq && _mq.addEventListener) {
+    _mq.addEventListener('change', e => {
+      // Только если у пользователя нет явного выбора темы
+      if (!localStorage.getItem('theme')) {
+        const next = e.matches ? 'dark' : 'light';
+        document.documentElement.setAttribute('data-theme', next);
+        const tcm = document.getElementById('tc-meta');
+        if (tcm) tcm.setAttribute('content', next === 'dark' ? '#0F0E0C' : '#F2F0EB');
+      }
+    });
+  }
+} catch (e) {}
 
 // ══════════════════════════════════════════════════════
 // DRUM DATE PICKER
@@ -4611,6 +5165,71 @@ function undoLastWater() {
   rWater();
 }
 
+// Custom water amount via slider modal
+function openWaterCustom(){
+  HFX.light(); SFX.play('sheet_open');
+  let ov = document.getElementById('waterCustomOv');
+  if (!ov) {
+    ov = document.createElement('div');
+    ov.id = 'waterCustomOv';
+    ov.className = 'modal-ov';
+    ov.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.45);display:flex;align-items:flex-end;justify-content:center;z-index:9000;-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px);opacity:0;transition:opacity .22s';
+    ov.innerHTML = `
+      <div id="waterCustomCard" style="width:100%;max-width:480px;background:var(--bg1);border-top-left-radius:24px;border-top-right-radius:24px;padding:22px 22px calc(22px + env(safe-area-inset-bottom));transform:translateY(20px);transition:transform .26s cubic-bezier(.22,.68,0,1);box-shadow:var(--s4)">
+        <div style="display:flex;justify-content:center;margin-bottom:14px"><div style="width:42px;height:4px;border-radius:2px;background:var(--t3)"></div></div>
+        <div style="font-size:18px;font-weight:800;color:var(--t0);margin-bottom:4px">${t('water_custom')}</div>
+        <div style="font-size:13px;color:var(--t1);margin-bottom:18px">${t('water_drink')}</div>
+        <div style="display:flex;align-items:baseline;justify-content:center;gap:6px;margin-bottom:8px">
+          <div id="waterCustomVal" style="font-size:48px;font-weight:900;color:var(--t0);letter-spacing:-1.5px">250</div>
+          <div style="font-size:18px;color:var(--t1);font-weight:700">${t('water_ml')}</div>
+        </div>
+        <input id="waterCustomSlider" type="range" min="50" max="1000" step="10" value="250" style="width:100%;margin:6px 0 18px;accent-color:var(--blue,#1D4ED8)">
+        <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:18px">
+          ${[100,200,300,500,750].map(v=>`<button onclick="_setWaterCustom(${v})" style="flex:1;min-width:64px;background:var(--f1);border:none;border-radius:12px;padding:10px;font-size:13px;font-weight:700;color:var(--t0);cursor:pointer">${v}</button>`).join('')}
+        </div>
+        <div style="display:flex;gap:10px">
+          <button class="btn2" onclick="closeWaterCustom()" style="flex:1">${t('cancel')}</button>
+          <button class="btn" onclick="addWaterCustom()" style="flex:1.5">${t('add_in_diary')}</button>
+        </div>
+      </div>`;
+    document.body.appendChild(ov);
+    ov.querySelector('#waterCustomSlider').addEventListener('input', (e)=>{
+      document.getElementById('waterCustomVal').textContent = e.target.value;
+    });
+    ov.addEventListener('click', (e)=>{ if(e.target===ov) closeWaterCustom(); });
+  }
+  requestAnimationFrame(()=>{
+    ov.style.opacity = '1';
+    document.getElementById('waterCustomCard').style.transform = 'translateY(0)';
+  });
+  document.body.style.overflow = 'hidden';
+}
+function _setWaterCustom(v){
+  document.getElementById('waterCustomSlider').value = String(v);
+  document.getElementById('waterCustomVal').textContent = String(v);
+  HFX.light(); SFX.play('select');
+}
+function closeWaterCustom(){
+  const ov = document.getElementById('waterCustomOv'); if(!ov) return;
+  HFX.light(); SFX.play('sheet_close');
+  ov.style.opacity = '0';
+  document.getElementById('waterCustomCard').style.transform = 'translateY(20px)';
+  document.body.style.overflow = '';
+  setTimeout(()=>{ ov.remove(); }, 240);
+}
+function addWaterCustom(){
+  const v = parseInt(document.getElementById('waterCustomSlider').value || '250');
+  const arr = getWaterToday();
+  arr.push({ id: 'water', ml: v, t: tnow() });
+  S('water_'+ds(), JSON.stringify(arr));
+  const _prevW = arr.reduce((s,x)=>s+(x.ml||0),0) - v;
+  const _wGoal = getWaterGoal().goal;
+  if(_prevW + v >= _wGoal && _prevW < _wGoal){ HFX.success(); SFX.play('water_goal'); }
+  else { HFX.success(); SFX.play('water_add'); }
+  closeWaterCustom();
+  rWater();
+}
+
 function rWater() {
   if(!U) return;
   const { goal, hasSalt, adjusted } = getWaterGoal();
@@ -4655,14 +5274,14 @@ function rWater() {
   // Salt hint
   const hint = document.getElementById('waterSaltHint');
   if(hint) {
-    hint.classList.toggle('on', hasSalt);
+    hintt.classList.toggle('on', hasSalt);
     hint.textContent = `🧂 Солёная еда — норма воды +20% (${adjusted} мл)`;
   }
 
   // Drink buttons
   const dc = document.getElementById('waterDrinks');
   if(dc) {
-    dc.innerHTML = DRINKS.map(d => {
+    const items = DRINKS.map(d => {
       const count = arr.filter(e=>e.id===d.id).length;
       return `<div class="water-btn${count>0?' hit':''}" onclick="addWater('${d.id}')">
         ${count>0?`<div class="water-count">${count}</div>`:''}
@@ -4671,6 +5290,12 @@ function rWater() {
         <span class="water-btn-ml">+${d.ml}</span>
       </div>`;
     }).join('');
+    const customBtn = `<div class="water-btn" onclick="openWaterCustom()" style="border-style:dashed">
+      <span class="water-btn-icon">➕</span>
+      <span class="water-btn-name">${t('water_custom')}</span>
+      <span class="water-btn-ml" style="opacity:.6">${t('water_ml')}</span>
+    </div>`;
+    dc.innerHTML = items + customBtn;
   }
 
   // History timeline
@@ -4720,8 +5345,8 @@ async function loadWeekAnalysis(force=false) {
   const days7 = [];
   for(let i=0;i<7;i++){
     const d=new Date(); d.setDate(d.getDate()-i);
-    const dl=dlog(ds(d)), t=tot(dl);
-    if(dl.length) days7.push({day:d.toLocaleDateString('ru',{weekday:'short',day:'numeric',month:'short'}), kcal:t.k, prot:Math.round(t.p), carb:Math.round(t.c), fat:Math.round(t.f), count:dl.length});
+    const dl=dlog(ds(d)), tt=tot(dl);
+    if(dl.length) days7.push({day:d.toLocaleDateString('ru',{weekday:'short',day:'numeric',month:'short'}), kcal:tt.k, prot:Math.round(tt.p), carb:Math.round(tt.c), fat:Math.round(tt.f), count:dl.length});
   }
   if(days7.length<2){ document.getElementById('weekAiBody').innerHTML='<div class="week-ai-empty">Нужно минимум 2 дня данных для анализа. Записывай еду каждый день!</div>'; if(btn){btn.disabled=false;btn.textContent='Анализ';} _weekLoading=false; return; }
 
@@ -4759,6 +5384,41 @@ function _updatePaceCard() {
   if (!card || !U) return;
   if (wts.length < 2) { card.style.display = 'none'; return; }
   card.style.display = '';
+
+  // If user has a target weight set, show goal-reach prediction (overrides default messaging)
+  if (U.targetW && U.targetW > 0 && wts.length >= 3) {
+    const _curW = wts[0].v;
+    const _diff = _curW - U.targetW;
+    if (Math.abs(_diff) < 0.3) {
+      iconEl.textContent = '🎉'; titleEl.textContent = t('wgoal_already', 'Цель достигнута 🎉');
+      subEl.textContent = `${_curW} → ${U.targetW} кг`;
+      return;
+    }
+    // Linear regression on last 14 days for stability
+    const recent = wts.slice(0, Math.min(wts.length, 14));
+    const oldest = recent[recent.length - 1], newest = recent[0];
+    const days = Math.max(1, (new Date(newest.d) - new Date(oldest.d)) / 86400000);
+    const wPerDay = (newest.v - oldest.v) / days;
+    // Trend in correct direction?
+    const correctDir = (U.goal === 'lose' && wPerDay < -0.005) || (U.goal === 'gain' && wPerDay > 0.005);
+    if (!correctDir) {
+      iconEl.textContent = '🎯'; titleEl.textContent = t('wgoal_label', 'Прогноз достижения цели');
+      subEl.textContent = t('wgoal_unknown', 'Недостаточно данных для прогноза');
+      return;
+    }
+    const daysToGoal = Math.abs(_diff / wPerDay);
+    if (!isFinite(daysToGoal) || daysToGoal > 365 * 3) {
+      iconEl.textContent = '🎯'; titleEl.textContent = t('wgoal_label', 'Прогноз достижения цели');
+      subEl.textContent = t('wgoal_unknown', 'Недостаточно данных для прогноза');
+      return;
+    }
+    const goalDate = new Date(); goalDate.setDate(goalDate.getDate() + Math.round(daysToGoal));
+    const dateStr = goalDate.toLocaleDateString(LANG === 'en' ? 'en-US' : 'ru', { day: 'numeric', month: 'long', year: 'numeric' });
+    const wkStr = (wPerDay * 7).toFixed(2);
+    iconEl.textContent = '🎯'; titleEl.textContent = t('wgoal_label', 'Прогноз достижения цели');
+    subEl.textContent = `~ ${dateStr} · ${wkStr} ${t('streak_days', 'кг')}/нед`;
+    return;
+  }
 
   const goal = U.goal || 'maintain';
   const curW = wts[0].v;
@@ -4819,6 +5479,99 @@ function renderWeekAnalysis(data) {
       ${data.warn?`<div class="week-ai-section warn"><div class="week-ai-section-title">⚠ Стоит улучшить</div><div class="week-ai-section-text">${data.warn}</div></div>`:''}
       ${data.tip?`<div class="week-ai-section tip"><div class="week-ai-section-title">💡 Совет на неделю</div><div class="week-ai-section-text">${data.tip}</div></div>`:''}
     </div>`;
+}
+
+// ══════════════════════════════════════════════════
+// DAILY AI SUMMARY — вечером после 19:00
+// ══════════════════════════════════════════════════
+function dismissDailyAi(){
+  const c = document.getElementById('dailyAiCard');
+  if(c) c.style.display = 'none';
+  try { localStorage.setItem('daily_ai_dismissed_'+ds(), '1'); } catch(e){}
+}
+async function _maybeShowDailySummary(){
+  if (!U || !key) return;
+  const today = ds();
+  // Show only after 18:00 local time
+  const hr = new Date().getHours();
+  if (hr < 18) return;
+  // Already shown today?
+  if (G('daily_ai_'+today)) {
+    _renderDailyAi(JSON.parse(G('daily_ai_'+today)));
+    return;
+  }
+  if (G('daily_ai_dismissed_'+today)) return;
+  // Need at least 1 logged item today
+  const todayLog = log.filter(e => e.date === today);
+  if (todayLog.length < 2) return;
+  const card = document.getElementById('dailyAiCard');
+  if (!card) return;
+  card.style.display = '';
+  const body = document.getElementById('dailyAiBody');
+  if (body) body.innerHTML = '<div class="skel" style="width:90%"></div><div class="skel" style="width:75%"></div><div class="skel" style="width:60%"></div>';
+  document.getElementById('dailyAiSub').textContent = t('daily_summary_loading');
+  try {
+    const tot_ = tot(todayLog);
+    const water = (getWaterToday().reduce((s,e)=>s+e.ml,0)) || 0;
+    const norm = U.kcal || 2000;
+    const goal = U.goal || 'maintain';
+    const isEn = LANG === 'en';
+    const prompt = isEn
+      ? `Summarize the user's day in 2-3 friendly sentences (max ~250 chars). Goal: ${goal}. Today's intake: ${tot_.k} kcal of target ${norm}, P ${tot_.p}g, F ${tot_.f}g, C ${tot_.c}g. Water: ${water} ml. Items: ${todayLog.map(e=>e.food).slice(0,8).join(', ')}. Be specific, mention 1 strength and 1 thing to improve. No markdown, no JSON.`
+      : `Подведи итог дня для пользователя в 2-3 дружелюбных предложениях (~250 симв). Цель: ${goal}. Съедено: ${tot_.k} ккал из ${norm}, Б ${tot_.p}г, Ж ${tot_.f}г, У ${tot_.c}г. Вода: ${water} мл. Блюда: ${todayLog.map(e=>e.food).slice(0,8).join(', ')}. Будь конкретным, отметь 1 плюс и 1 что улучшить. Без markdown, без JSON.`;
+    const raw = await gem([{ text: prompt }]);
+    const txt = (raw || '').replace(/^[\s\S]*?\n\n/, '').trim().slice(0, 400) || raw;
+    const data = { text: txt, date: new Date().toLocaleTimeString(LANG==='en'?'en-US':'ru',{hour:'2-digit',minute:'2-digit'}) };
+    try { localStorage.setItem('daily_ai_'+today, JSON.stringify(data)); } catch(e){}
+    _renderDailyAi(data);
+  } catch(e) {
+    document.getElementById('dailyAiSub').textContent = '—';
+    if (body) body.innerHTML = `<p style="color:var(--t1);font-size:13px">${t('ai_offline')}</p>`;
+  }
+}
+function _renderDailyAi(data){
+  const card = document.getElementById('dailyAiCard');
+  if (!card) return;
+  card.style.display = '';
+  document.getElementById('dailyAiSub').textContent = data.date || '';
+  const body = document.getElementById('dailyAiBody');
+  if (body) body.innerHTML = `<p>${(data.text||'').replace(/</g,'&lt;')}</p>`;
+}
+
+// ══════════════════════════════════════════════════
+// SHARE TARGET / HASH SHORTCUT
+// ══════════════════════════════════════════════════
+function _handleShareTarget(){
+  try {
+    const params = new URLSearchParams(location.search);
+    const text = params.get('share_text') || params.get('share_title') || '';
+    if (!text) return;
+    // Open Add modal in text tab and prefill
+    setTimeout(() => {
+      try {
+        if (typeof openAdd === 'function') openAdd();
+        const tab2 = document.getElementById('addTab1');
+        if (tab2) tab2.click();
+        const inp = document.getElementById('txinp');
+        if (inp) { inp.value = text; inp.focus(); }
+      } catch(e) {}
+      // Clear params from URL
+      try { history.replaceState(null, '', location.pathname); } catch(e){}
+    }, 600);
+  } catch(e){}
+}
+function _handleHashShortcut(){
+  try {
+    const h = (location.hash || '').toLowerCase();
+    if (!h) return;
+    if (h === '#add') setTimeout(() => { typeof openAdd === 'function' && openAdd(); history.replaceState(null,'',location.pathname); }, 500);
+    else if (h === '#scan') setTimeout(() => {
+      typeof openAdd === 'function' && openAdd();
+      const tab = document.getElementById('addTab2');
+      if (tab) tab.click();
+      history.replaceState(null,'',location.pathname);
+    }, 500);
+  } catch(e){}
 }
 
 // ══════════════════════════════════════════════════
@@ -5156,19 +5909,30 @@ function retryConnection() {
   });
 }
 
-// Восстановление соединения
+// Восстановление / потеря соединения — единый обработчик
+function _applyOfflineUI(offline) {
+  _isOfflineMode = offline;
+  document.getElementById('offlBar')?.classList.toggle('on', offline);
+  document.querySelectorAll('.nb').forEach(b => {
+    if (b.getAttribute('onclick')?.includes("'ai'")) {
+      b.style.opacity = offline ? '.35' : '';
+      b.style.pointerEvents = offline ? 'none' : '';
+    }
+  });
+  const addBtn = document.querySelector('.nb-add');
+  if (addBtn) {
+    addBtn.style.opacity = offline ? '.35' : '';
+    addBtn.style.pointerEvents = offline ? 'none' : '';
+  }
+}
 window.addEventListener('online', () => {
   setTimeout(() => {
-    checkConnection().then(ok => {
-      if(ok && _isOfflineMode) {
-        _isOfflineMode = false;
-        document.getElementById('offlBar').classList.remove('on');
-        document.querySelectorAll('.nb').forEach(b => { b.style.opacity=''; b.style.pointerEvents=''; });
-        const addBtn = document.querySelector('.nb-add');
-        if(addBtn){ addBtn.style.opacity=''; addBtn.style.pointerEvents=''; }
-      }
-    });
+    checkConnection().then(ok => { if (ok) _applyOfflineUI(false); });
   }, 500);
+});
+window.addEventListener('offline', () => {
+  _applyOfflineUI(true);
+  showToast(t('toast_offline'));
 });
 
 
@@ -5237,12 +6001,23 @@ window.addEventListener('online', () => {
     window.addEventListener('beforeinstallprompt', e => {
       e.preventDefault();
       deferredPrompt = e;
+      // Если пользователь раньше закрыл — не показываем 7 дней
+      const dis = parseInt(localStorage.getItem('install_dismissed_at') || '0');
+      if (dis && (Date.now() - dis < 7 * 86400 * 1000)) return;
+      // Не показываем установленным
+      if (window.matchMedia('(display-mode: standalone)').matches) return;
       setTimeout(() => { if (deferredPrompt) showInstallBanner(); }, 3000);
     });
 
     function showInstallBanner() {
       const banner = document.getElementById('installBanner');
       if (banner) banner.style.display = 'flex';
+    }
+
+    function dismissInstallBanner() {
+      const banner = document.getElementById('installBanner');
+      if (banner) banner.style.display = 'none';
+      try { localStorage.setItem('install_dismissed_at', String(Date.now())); } catch(e){}
     }
 
     function installPWA() {
@@ -5254,6 +6029,12 @@ window.addEventListener('online', () => {
         document.getElementById('installBanner').style.display = 'none';
       });
     }
+
+    window.addEventListener('appinstalled', () => {
+      try { localStorage.setItem('install_dismissed_at', String(Date.now())); } catch(e){}
+      const banner = document.getElementById('installBanner');
+      if (banner) banner.style.display = 'none';
+    });
   </script>
 
   <!-- БАННЕР ОБНОВЛЕНИЯ -->
