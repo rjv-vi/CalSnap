@@ -109,10 +109,10 @@
   color-scheme: light dark;
   --ff:'DM Sans',-apple-system,BlinkMacSystemFont,sans-serif;
   --bg0:#F2F0EB;--bg1:#FFFFFF;--bg2:#F7F5F1;--bg3:#EEECEA;
-  --bg-nav:rgba(242,240,235,.84);
-  --t0:#141210;--t1:rgba(20,18,16,.60);--t2:rgba(20,18,16,.36);--t3:rgba(20,18,16,.16);
+  --bg-nav:rgba(242,240,235,.86);
+  --t0:#141210;--t1:rgba(20,18,16,.70);--t2:rgba(20,18,16,.52);--t3:rgba(20,18,16,.30);
   --f1:rgba(20,18,16,.065);--f2:rgba(20,18,16,.040);--f3:rgba(20,18,16,.022);
-  --b0:rgba(20,18,16,.11);--b1:rgba(20,18,16,.065);--b2:rgba(20,18,16,.036);
+  --b0:rgba(20,18,16,.14);--b1:rgba(20,18,16,.085);--b2:rgba(20,18,16,.045);
   --streak:#FF5500;--streak-bg:rgba(255,85,0,.10);--streak-b:rgba(255,85,0,.22);
   --ok:#16A34A;--ok2:rgba(22,163,74,.10);
   --warn:#B45309;--warn2:rgba(180,83,9,.10);
@@ -132,10 +132,10 @@
 [data-theme="light"] {
   color-scheme: only light;
   --bg0:#F2F0EB;--bg1:#FFFFFF;--bg2:#F7F5F1;--bg3:#EEECEA;
-  --bg-nav:rgba(242,240,235,.84);
-  --t0:#141210;--t1:rgba(20,18,16,.60);--t2:rgba(20,18,16,.36);--t3:rgba(20,18,16,.16);
+  --bg-nav:rgba(242,240,235,.86);
+  --t0:#141210;--t1:rgba(20,18,16,.70);--t2:rgba(20,18,16,.52);--t3:rgba(20,18,16,.30);
   --f1:rgba(20,18,16,.065);--f2:rgba(20,18,16,.040);--f3:rgba(20,18,16,.022);
-  --b0:rgba(20,18,16,.11);--b1:rgba(20,18,16,.065);--b2:rgba(20,18,16,.036);
+  --b0:rgba(20,18,16,.14);--b1:rgba(20,18,16,.085);--b2:rgba(20,18,16,.045);
   --streak:#FF5500;--streak-bg:rgba(255,85,0,.10);--streak-b:rgba(255,85,0,.22);
   --ok:#16A34A;--ok2:rgba(22,163,74,.10);
   --warn:#B45309;--warn2:rgba(180,83,9,.10);
@@ -154,10 +154,10 @@
   [data-theme="light"] {
     color-scheme: only light;
     --bg0:#F2F0EB;--bg1:#FFFFFF;--bg2:#F7F5F1;--bg3:#EEECEA;
-    --bg-nav:rgba(242,240,235,.84);
-    --t0:#141210;--t1:rgba(20,18,16,.60);--t2:rgba(20,18,16,.36);--t3:rgba(20,18,16,.16);
+    --bg-nav:rgba(242,240,235,.86);
+    --t0:#141210;--t1:rgba(20,18,16,.70);--t2:rgba(20,18,16,.52);--t3:rgba(20,18,16,.30);
     --f1:rgba(20,18,16,.065);--f2:rgba(20,18,16,.040);--f3:rgba(20,18,16,.022);
-    --b0:rgba(20,18,16,.11);--b1:rgba(20,18,16,.065);--b2:rgba(20,18,16,.036);
+    --b0:rgba(20,18,16,.14);--b1:rgba(20,18,16,.085);--b2:rgba(20,18,16,.045);
     --streak:#FF5500;--streak-bg:rgba(255,85,0,.10);--streak-b:rgba(255,85,0,.22);
     --ok:#16A34A;--ok2:rgba(22,163,74,.10);
     --warn:#B45309;--warn2:rgba(180,83,9,.10);
@@ -177,10 +177,10 @@
 }
 [data-theme="dark"] {
   --bg0:#0F0E0C;--bg1:#1A1916;--bg2:#231F1B;--bg3:#2C2825;
-  --bg-nav:rgba(15,14,12,.90);
-  --t0:#F4F2EE;--t1:rgba(244,242,238,.58);--t2:rgba(244,242,238,.32);--t3:rgba(244,242,238,.14);
+  --bg-nav:rgba(15,14,12,.92);
+  --t0:#F4F2EE;--t1:rgba(244,242,238,.74);--t2:rgba(244,242,238,.50);--t3:rgba(244,242,238,.28);
   --f1:rgba(244,242,238,.08);--f2:rgba(244,242,238,.046);--f3:rgba(244,242,238,.026);
-  --b0:rgba(244,242,238,.11);--b1:rgba(244,242,238,.065);--b2:rgba(244,242,238,.036);
+  --b0:rgba(244,242,238,.14);--b1:rgba(244,242,238,.085);--b2:rgba(244,242,238,.046);
   --streak:#FF6618;--streak-bg:rgba(255,102,24,.12);--streak-b:rgba(255,102,24,.28);
   --ok:#22C55E;--ok2:rgba(34,197,94,.10);
   --warn:#D97706;--warn2:rgba(217,119,6,.10);
@@ -1544,13 +1544,13 @@ body.modal-open { overflow: hidden !important; touch-action: none; }
       <div class="h-name" id="hname">Привет!</div>
     </div>
     <div class="streak" onclick="HFX.light();SFX.play('btn_tap');goS('prog',document.querySelectorAll('.nb')[1])">
-      <span class="sf">🔥</span><span class="sn" id="snum">0</span><span class="sl">дней</span>
+      <span class="sf">🔥</span><span class="sn" id="snum">0</span><span class="sl" data-i18n="streak_days">дней</span>
     </div>
   </div>
 
   <div class="api-bar" id="abar" onclick="HFX.light();SFX.play('sheet_open');openApi()" style="display:none">
     <span class="ab-ico">🔑</span>
-    <div><div class="ab-t">Нужен API ключ Gemini</div><div class="ab-s">Нажми → получи бесплатно за 1 мин</div></div>
+    <div><div class="ab-t" data-i18n="api_bar_title">Нужен API ключ Gemini</div><div class="ab-s" data-i18n="api_bar_sub">Нажми → получи бесплатно за 1 мин</div></div>
     <span style="color:var(--acc);font-size:20px">›</span>
   </div>
 
@@ -1565,7 +1565,7 @@ body.modal-open { overflow: hidden !important; touch-action: none; }
         </svg>
         <div class="cc-ring-label">
           <span class="cc-pct" id="hpct">0%</span>
-          <span class="cc-pct-s">СЪЕДЕНО</span>
+          <span class="cc-pct-s" data-i18n="hcc_pct_sub">СЪЕДЕНО</span>
         </div>
       </div>
       <div class="cc-nums">
@@ -1573,7 +1573,7 @@ body.modal-open { overflow: hidden !important; touch-action: none; }
         <span class="cc-slash">/</span>
         <span class="cc-goal" id="hgoal">2000</span>
       </div>
-      <div class="cc-label">Калорий съедено</div>
+      <div class="cc-label" data-i18n="hcc_label">Калорий съедено</div>
       <div class="cc-remain" id="hrem">Осталось 2000 ккал</div>
     </div>
     <div style="height:16px"></div>
@@ -1581,17 +1581,17 @@ body.modal-open { overflow: hidden !important; touch-action: none; }
       <div class="mac mac-p">
         <div class="mac-top"><span class="mac-val" id="hprot">0г</span><span class="mac-goal" id="hpg">—г</span></div>
         <div class="mac-bar"><div class="mac-fill" id="hpbar" style="width:0%"></div></div>
-        <div class="mac-name">Белки</div>
+        <div class="mac-name" data-i18n="macro_protein">Белки</div>
       </div>
       <div class="mac mac-c">
         <div class="mac-top"><span class="mac-val" id="hcarb">0г</span><span class="mac-goal" id="hcg">—г</span></div>
         <div class="mac-bar"><div class="mac-fill" id="hcbar" style="width:0%"></div></div>
-        <div class="mac-name">Углеводы</div>
+        <div class="mac-name" data-i18n="macro_carbs">Углеводы</div>
       </div>
       <div class="mac mac-f">
         <div class="mac-top"><span class="mac-val" id="hfat">0г</span><span class="mac-goal" id="hfg">—г</span></div>
         <div class="mac-bar"><div class="mac-fill" id="hfbar" style="width:0%"></div></div>
-        <div class="mac-name">Жиры</div>
+        <div class="mac-name" data-i18n="macro_fat">Жиры</div>
       </div>
     </div>
     <!-- Mini water row -->
@@ -1602,22 +1602,22 @@ body.modal-open { overflow: hidden !important; touch-action: none; }
     </div>
   </div>
 
-  <div class="sec-hdr"><h3 id="dayLabel">Сегодня</h3></div>
+  <div class="sec-hdr"><h3 id="dayLabel" data-i18n="label_today">Сегодня</h3></div>
   <div id="hlog"></div>
   <div style="height:8px"></div>
 </div>
 
 <!-- PROGRESS -->
 <div class="screen" id="prog">
-  <div class="pg-hdr"><h2>Прогресс</h2><span id="pgMonth" style="font-size:13px;color:var(--t1);font-weight:600"></span></div>
+  <div class="pg-hdr"><h2 data-i18n="nav_progress">Прогресс</h2><span id="pgMonth" style="font-size:13px;color:var(--t1);font-weight:600"></span></div>
   <div class="streak-big-card card-enter card-enter-d1">
     <div class="sbc-left">
       <span class="sbc-fire">🔥</span>
       <div class="sbc-days" id="pstr">0</div>
-      <div class="sbc-lbl">дней стрик</div>
+      <div class="sbc-lbl" data-i18n="streak_label">дней стрик</div>
     </div>
     <div class="sbc-right">
-      <p>Эта неделя</p>
+      <p data-i18n="this_week">Эта неделя</p>
       <div class="wk-dots" id="wkd"></div>
     </div>
   </div>
@@ -1625,9 +1625,9 @@ body.modal-open { overflow: hidden !important; touch-action: none; }
   <!-- BMI CARD -->
   <div class="bmi-card card-enter card-enter-d2" id="bmiCard">
     <div class="bmi-left">
-      <div class="bmi-label">Индекс массы тела</div>
+      <div class="bmi-label" data-i18n="bmi_label">Индекс массы тела</div>
       <div class="bmi-value" id="bmiVal">—</div>
-      <div class="bmi-cat" id="bmiCat">Нет данных</div>
+      <div class="bmi-cat" id="bmiCat" data-i18n="bmi_no_data">Нет данных</div>
     </div>
     <div class="bmi-right">
       <div class="bmi-scale" id="bmiScale">
@@ -1643,10 +1643,10 @@ body.modal-open { overflow: hidden !important; touch-action: none; }
   </div>
 
   <div class="stat-grid">
-    <div class="sc"><div class="sc-lbl">Ср. калории</div><div class="sc-val" id="pavg">—</div><div class="sc-sub">за 7 дней</div></div>
-    <div class="sc"><div class="sc-lbl">Лучший день</div><div class="sc-val" id="pbest">—</div><div class="sc-sub">ближе всего к цели</div></div>
-    <div class="sc"><div class="sc-lbl">Записей</div><div class="sc-val" id="ptot">0</div><div class="sc-sub">всего приёмов</div></div>
-    <div class="sc"><div class="sc-lbl">Дней с данными</div><div class="sc-val" id="pdays">0</div><div class="sc-sub">из 30</div></div>
+    <div class="sc"><div class="sc-lbl" data-i18n="stat_avg_kcal">Ср. калории</div><div class="sc-val" id="pavg">—</div><div class="sc-sub" data-i18n="stat_for_7_days">за 7 дней</div></div>
+    <div class="sc"><div class="sc-lbl" data-i18n="stat_best_day">Лучший день</div><div class="sc-val" id="pbest">—</div><div class="sc-sub" data-i18n="stat_closest_to_goal">ближе всего к цели</div></div>
+    <div class="sc"><div class="sc-lbl" data-i18n="stat_records">Записей</div><div class="sc-val" id="ptot">0</div><div class="sc-sub" data-i18n="stat_total_meals">всего приёмов</div></div>
+    <div class="sc"><div class="sc-lbl" data-i18n="stat_days_with_data">Дней с данными</div><div class="sc-val" id="pdays">0</div><div class="sc-sub" data-i18n="stat_of_30">из 30</div></div>
   </div>
 
   <!-- WATER BALANCE — moved here from home -->
@@ -1655,12 +1655,12 @@ body.modal-open { overflow: hidden !important; touch-action: none; }
     <div class="water-hero">
       <div class="water-row1">
         <div class="water-left">
-          <div class="water-label">Водный баланс</div>
+          <div class="water-label" data-i18n="water_label">Водный баланс</div>
           <div class="water-amount">
             <div class="water-num" id="waterConsumedMl">0</div>
-            <div class="water-unit">мл</div>
+            <div class="water-unit" data-i18n="water_ml">мл</div>
           </div>
-          <div class="water-goal-of">из <span id="waterGoalMl">2000</span> мл</div>
+          <div class="water-goal-of"><span data-i18n="water_of">из</span> <span id="waterGoalMl">2000</span> <span data-i18n="water_ml">мл</span></div>
         </div>
         <!-- Ring -->
         <div class="water-ring">
@@ -1671,7 +1671,7 @@ body.modal-open { overflow: hidden !important; touch-action: none; }
           </svg>
           <div class="water-ring-pct">
             <span id="waterPct">0%</span>
-            <span>цель</span>
+            <span data-i18n="water_goal_word">цель</span>
           </div>
         </div>
       </div>
@@ -1687,9 +1687,9 @@ body.modal-open { overflow: hidden !important; touch-action: none; }
     <!-- Timeline -->
     <div class="water-timeline">
       <div class="water-timeline-hdr">
-        <div class="water-timeline-lbl">История сегодня</div>
+        <div class="water-timeline-lbl" data-i18n="water_history_today">История сегодня</div>
         <button class="water-undo-btn" id="waterUndoBtn" onclick="undoLastWater()" style="display:none">
-          ↩ Отменить
+          <span aria-hidden="true">↩</span> <span data-i18n="water_undo">Отменить</span>
         </button>
       </div>
       <div id="waterEvents" class="water-events"></div>
@@ -1697,7 +1697,7 @@ body.modal-open { overflow: hidden !important; touch-action: none; }
   </div>
 
   <div class="heat-card card-enter card-enter-d4">
-    <h4>Активность за 28 дней</h4>
+    <h4 data-i18n="heatmap_title">Активность за 28 дней</h4>
     <div class="hgrid" id="hgrid"></div>
     <div class="h-legend">
       <div class="h-sq" style="background:var(--bg0);border:1px solid var(--b0)"></div><span>Нет</span>
@@ -1742,13 +1742,13 @@ body.modal-open { overflow: hidden !important; touch-action: none; }
     <div class="week-ai-header">
       <div class="week-ai-icon">🤖</div>
       <div>
-        <div class="week-ai-title">Анализ недели</div>
-        <div class="week-ai-sub" id="weekAiSub">AI анализирует питание за 7 дней</div>
+        <div class="week-ai-title" data-i18n="week_ai_title">Анализ недели</div>
+        <div class="week-ai-sub" id="weekAiSub" data-i18n="week_ai_default_sub">AI анализирует питание за 7 дней</div>
       </div>
-      <button class="week-ai-btn" id="weekAiBtn" onclick="HFX.light();SFX.play('btn_tap');loadWeekAnalysis(true)">Анализ</button>
+      <button class="week-ai-btn" id="weekAiBtn" data-i18n="week_ai_btn" onclick="HFX.light();SFX.play('btn_tap');loadWeekAnalysis(true)">Анализ</button>
     </div>
     <div class="week-ai-body" id="weekAiBody">
-      <div class="week-ai-empty">Нажми «Анализ» — AI посмотрит твоё питание за 7 дней и даст обратную связь</div>
+      <div class="week-ai-empty" data-i18n="week_ai_intro">Нажми «Анализ» — AI посмотрит твоё питание за 7 дней и даст обратную связь</div>
     </div>
   </div>
   <div style="height:20px"></div>
@@ -1834,7 +1834,7 @@ body.modal-open { overflow: hidden !important; touch-action: none; }
 
 <!-- SETTINGS -->
 <div class="screen" id="sett">
-  <div class="st-hdr"><h2>Настройки</h2></div>
+  <div class="st-hdr"><h2 data-i18n="nav_settings">Настройки</h2></div>
   <div class="st-sec">
     <div class="st-lbl">Внешний вид</div>
     <div class="st-card">
@@ -2151,22 +2151,22 @@ body.modal-open { overflow: hidden !important; touch-action: none; }
   <div id="nav-pill"></div>
   <button class="nb on" onclick="goS('home',this)">
     <svg viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
-    <span>Дом</span>
+    <span data-i18n="nav_home">Дом</span>
   </button>
   <button class="nb" onclick="goS('prog',this)">
     <svg viewBox="0 0 24 24"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
-    <span>Прогресс</span>
+    <span data-i18n="nav_progress">Прогресс</span>
   </button>
   <button class="nb-add" onclick="openAdd()">
     <svg viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
   </button>
   <button class="nb" onclick="goS('ai',this)">
     <svg viewBox="0 0 24 24"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>
-    <span>AI</span>
+    <span data-i18n="nav_ai">AI</span>
   </button>
   <button class="nb" onclick="goS('sett',this)">
     <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-2 2 2 2 0 01-2-2v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83 0 2 2 0 010-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 01-2-2 2 2 0 012-2h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 010-2.83 2 2 0 012.83 0l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 012-2 2 2 0 012 2v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 0 2 2 0 010 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 012 2 2 2 0 01-2 2h-.09a1.65 1.65 0 00-1.51 1z"/></svg>
-    <span>Настройки</span>
+    <span data-i18n="nav_settings">Настройки</span>
   </button>
 </nav>
 
@@ -2651,6 +2651,123 @@ const I18N = {
     // Common UI
     portion_count: 'Количество порций',
     not_specified: '—',
+    // Units
+    unit_kcal: 'ккал',
+    unit_g: 'г',
+    unit_kg: 'кг',
+    unit_cm: 'см',
+    unit_pcs: 'шт',
+    // Macros
+    macro_p_short: 'Б',
+    macro_c_short: 'У',
+    macro_f_short: 'Ж',
+    macro_protein: 'Белки',
+    macro_carbs: 'Углеводы',
+    macro_fat: 'Жиры',
+    // Home
+    h_remaining: 'Осталось {n} ккал',
+    h_exceeded: 'Превышено на {n} ккал',
+    h_tap_plus: 'Нажми <b>+</b> чтобы добавить<br>первый приём пищи',
+    h_meal_kcal: '{n} ккал',
+    h_dish: 'Блюдо',
+    h_qty_pcs: '{n} шт',
+    h_open_progress: 'Открыть прогресс',
+    add_to_fav: 'В избранное',
+    delete_action: 'Удалить',
+    // Meals
+    meal_breakfast: 'Завтрак',
+    meal_lunch: 'Обед',
+    meal_snack: 'Перекус',
+    meal_dinner: 'Ужин',
+    // Goals
+    goal_lose: 'Похудеть',
+    goal_maintain: 'Держать вес',
+    goal_gain: 'Набрать массу',
+    // Drinks
+    drink_water: 'Вода',
+    drink_tea: 'Чай',
+    drink_coffee: 'Кофе',
+    drink_juice: 'Сок',
+    drink_milk: 'Молоко',
+    drink_other: 'Другое',
+    // Water
+    water_salt_hint: '🧂 Солёная еда — норма воды +20%',
+    water_empty: '💧 Добавь первый стакан воды',
+    water_history: 'История',
+    water_undo: 'Отменить',
+    water_added_toast: '💧 Добавлено в водный баланс: {ml} мл',
+    // Weekdays (Mon..Sun for stats; Sun..Sat for calendar)
+    wd_mon: 'Пн',
+    wd_tue: 'Вт',
+    wd_wed: 'Ср',
+    wd_thu: 'Чт',
+    wd_fri: 'Пт',
+    wd_sat: 'Сб',
+    wd_sun: 'Вс',
+    // Day labels
+    label_today: 'Сегодня',
+    label_yesterday: 'Вчера',
+    // Toasts
+    toast_added_to_fav: '⭐ Добавлено в избранное',
+    toast_removed_from_fav: '☆ Удалено из избранного',
+    toast_added_with_name: '✅ {name} добавлено',
+    toast_export_error: '❌ Ошибка экспорта',
+    toast_export_error_msg: '❌ Ошибка экспорта: {msg}',
+    toast_error_msg: '❌ Ошибка: {msg}',
+    toast_install_for_notifs_short: '📲 Для уведомлений когда закрыто — установи приложение на экран',
+    toast_weight_saved: '✓ Сохранено!',
+    toast_weight_no_change: 'Вес не изменился',
+    toast_weight_no_change_full: 'Вес не изменился с прошлого раза',
+    toast_weight_first: 'Первое измерение',
+    toast_weight_up: '↑ +{n} кг с последнего измерения',
+    toast_weight_down: '↓ {n} кг с последнего измерения',
+    // Favourites
+    fav_empty_title: 'Избранное пусто',
+    fav_empty_sub: 'Нажми ☆ на любом блюде<br>в дневнике — оно появится здесь',
+    fav_add_btn: '+ Добавить',
+    // Weekly AI
+    week_ai_min_days: 'Нужно минимум 2 дня данных для анализа. Записывай еду каждый день!',
+    week_ai_no_key: 'Добавь API ключ Gemini в Настройках',
+    week_ai_loading: '🤖 AI анализирует питание за 7 дней...',
+    week_ai_analyzing: 'Анализирую...',
+    week_ai_load_error: 'Ошибка загрузки. Проверь API ключ.',
+    week_ai_btn: 'Анализ',
+    week_ai_refresh: 'Обновить',
+    week_ai_default_sub: 'AI анализ питания за 7 дней',
+    week_ai_title: 'Анализ недели',
+    week_ai_intro: 'Нажми «Анализ» — AI посмотрит твоё питание за 7 дней и даст обратную связь',
+    // Goal subtitles
+    goal_lose_sub: 'Создай дефицит 300–500 ккал/день для похудения',
+    goal_gain_sub: 'Добавь 300–500 ккал сверх нормы для набора массы',
+    // Detail
+    detail_ingr: 'СОСТАВ',
+    // Home
+    hcc_pct_sub: 'СЪЕДЕНО',
+    hcc_label: 'Калорий съедено',
+    // Progress
+    streak_label: 'дней стрик',
+    this_week: 'Эта неделя',
+    bmi_label: 'Индекс массы тела',
+    bmi_no_data: 'Нет данных',
+    stat_avg_kcal: 'Ср. калории',
+    stat_for_7_days: 'за 7 дней',
+    stat_best_day: 'Лучший день',
+    stat_closest_to_goal: 'ближе всего к цели',
+    stat_records: 'Записей',
+    stat_total_meals: 'всего приёмов',
+    stat_days_with_data: 'Дней с данными',
+    stat_of_30: 'из 30',
+    heatmap_title: 'Активность за 28 дней',
+    // Water
+    water_label: 'Водный баланс',
+    water_of: 'из',
+    water_goal_word: 'цель',
+    water_history_today: 'История сегодня',
+    streak_days: 'дней',
+    api_bar_title: 'Нужен API ключ Gemini',
+    api_bar_sub: 'Нажми → получи бесплатно за 1 мин',
+    // Misc
+    not_set: 'Не указаны',
   },
   en: {
     ob_name_required: 'Please enter your name',
@@ -2749,6 +2866,122 @@ const I18N = {
     lp_delete: 'Delete',
     portion_count: 'Number of servings',
     not_specified: '—',
+    // Units
+    unit_kcal: 'kcal',
+    unit_g: 'g',
+    unit_kg: 'kg',
+    unit_cm: 'cm',
+    unit_pcs: 'pcs',
+    // Macros
+    macro_p_short: 'P',
+    macro_c_short: 'C',
+    macro_f_short: 'F',
+    macro_protein: 'Protein',
+    macro_carbs: 'Carbs',
+    macro_fat: 'Fat',
+    // Home
+    h_remaining: '{n} kcal left',
+    h_exceeded: '{n} kcal over',
+    h_tap_plus: 'Tap <b>+</b> to add<br>your first meal',
+    h_meal_kcal: '{n} kcal',
+    h_dish: 'Dish',
+    h_qty_pcs: '{n} pcs',
+    h_open_progress: 'Open progress',
+    add_to_fav: 'Add to favourites',
+    delete_action: 'Delete',
+    // Meals
+    meal_breakfast: 'Breakfast',
+    meal_lunch: 'Lunch',
+    meal_snack: 'Snack',
+    meal_dinner: 'Dinner',
+    // Goals
+    goal_lose: 'Lose weight',
+    goal_maintain: 'Maintain',
+    goal_gain: 'Gain mass',
+    // Drinks
+    drink_water: 'Water',
+    drink_tea: 'Tea',
+    drink_coffee: 'Coffee',
+    drink_juice: 'Juice',
+    drink_milk: 'Milk',
+    drink_other: 'Other',
+    // Water
+    water_salt_hint: '🧂 Salty food — water target +20%',
+    water_empty: '💧 Add your first glass of water',
+    water_history: 'History',
+    water_undo: 'Undo',
+    water_added_toast: '💧 Added to water balance: {ml} ml',
+    // Weekdays
+    wd_mon: 'Mon',
+    wd_tue: 'Tue',
+    wd_wed: 'Wed',
+    wd_thu: 'Thu',
+    wd_fri: 'Fri',
+    wd_sat: 'Sat',
+    wd_sun: 'Sun',
+    // Day labels
+    label_today: 'Today',
+    label_yesterday: 'Yesterday',
+    // Toasts
+    toast_added_to_fav: '⭐ Added to favourites',
+    toast_removed_from_fav: '☆ Removed from favourites',
+    toast_added_with_name: '✅ {name} added',
+    toast_export_error: '❌ Export error',
+    toast_export_error_msg: '❌ Export error: {msg}',
+    toast_error_msg: '❌ Error: {msg}',
+    toast_install_for_notifs_short: '📲 For notifications when closed — install the app to the home screen',
+    toast_weight_saved: '✓ Saved!',
+    toast_weight_no_change: 'No change',
+    toast_weight_no_change_full: 'No change since last time',
+    toast_weight_first: 'First measurement',
+    toast_weight_up: '↑ +{n} kg since last measurement',
+    toast_weight_down: '↓ {n} kg since last measurement',
+    // Favourites
+    fav_empty_title: 'No favourites yet',
+    fav_empty_sub: 'Tap ☆ on any dish<br>in the diary — it will appear here',
+    fav_add_btn: '+ Add',
+    // Weekly AI
+    week_ai_min_days: 'Need at least 2 days of data to analyse. Log food every day!',
+    week_ai_no_key: 'Add a Gemini API key in Settings',
+    week_ai_loading: '🤖 AI is analysing the last 7 days…',
+    week_ai_analyzing: 'Analysing…',
+    week_ai_load_error: 'Loading error. Check your API key.',
+    week_ai_btn: 'Analyse',
+    week_ai_refresh: 'Refresh',
+    week_ai_default_sub: 'AI nutrition analysis for the past 7 days',
+    week_ai_title: 'Weekly analysis',
+    week_ai_intro: 'Tap “Analyse” — AI will review your nutrition for the past 7 days and give you feedback',
+    // Goal subtitles
+    goal_lose_sub: 'Create a 300–500 kcal/day deficit to lose weight',
+    goal_gain_sub: 'Add 300–500 kcal above your target to gain mass',
+    // Detail
+    detail_ingr: 'INGREDIENTS',
+    // Home
+    hcc_pct_sub: 'EATEN',
+    hcc_label: 'Calories eaten',
+    // Progress
+    streak_label: 'day streak',
+    this_week: 'This week',
+    bmi_label: 'Body Mass Index',
+    bmi_no_data: 'No data',
+    stat_avg_kcal: 'Avg. calories',
+    stat_for_7_days: 'last 7 days',
+    stat_best_day: 'Best day',
+    stat_closest_to_goal: 'closest to goal',
+    stat_records: 'Entries',
+    stat_total_meals: 'total meals',
+    stat_days_with_data: 'Days logged',
+    stat_of_30: 'out of 30',
+    heatmap_title: '28-day activity',
+    // Water
+    water_label: 'Water balance',
+    water_of: 'of',
+    water_goal_word: 'goal',
+    water_history_today: "Today's history",
+    api_bar_title: 'Gemini API key needed',
+    api_bar_sub: 'Tap → get a free key in 1 min',
+    // Misc
+    not_set: 'Not set',
   },
 };
 function _getLang(){ try { return localStorage.getItem('lang') || (document.documentElement.lang === 'en' ? 'en' : 'ru'); } catch(e) { return 'ru'; } }
@@ -2757,14 +2990,33 @@ function t(key, fallback){
   const dict = I18N[LANG] || I18N.ru;
   return dict[key] != null ? dict[key] : (fallback != null ? fallback : key);
 }
+// String interpolation helper: tf('Hi {name}', {name:'World'})
+function tf(key, params){
+  let s = t(key);
+  if (params){
+    for (const k in params) s = s.split('{'+k+'}').join(params[k]);
+  }
+  return s;
+}
+function _localeTag(){ return LANG === 'en' ? 'en-US' : 'ru-RU'; }
 function setLang(lang){
   if (lang !== 'ru' && lang !== 'en') return;
   LANG = lang;
   try { localStorage.setItem('lang', lang); } catch(e) {}
   document.documentElement.setAttribute('lang', lang);
   applyI18n();
-  // Re-render screens to pick up new strings
-  try { rH && rH(); rSet && rSet(); rWater && rWater(); rCal && rCal(); } catch(e) {}
+  // Re-render every screen so all dynamic strings pick up the new language.
+  try { typeof rH==='function' && U && rH(); } catch(e) {}
+  try { typeof rCal==='function' && U && rCal(); } catch(e) {}
+  try { typeof rSet==='function' && U && rSet(); } catch(e) {}
+  try { typeof rWater==='function' && U && rWater(); } catch(e) {}
+  try { typeof rP==='function' && U && rP(); } catch(e) {}
+  try { typeof renderFavs==='function' && renderFavs(); } catch(e) {}
+  // Update the language indicator in Settings.
+  try {
+    const sl = document.getElementById('slang');
+    if (sl) sl.textContent = LANG === 'en' ? 'EN' : 'RU';
+  } catch(e) {}
   showToast(t('toast_lang_changed'));
 }
 function applyI18n(){
@@ -2793,7 +3045,9 @@ let U=JSON.parse(G('u','null')),
     aiReady=false,
     obAct=1.2,obGoal='maintain';
 
-const GL={lose:'Похудеть',maintain:'Держать вес',gain:'Набрать массу'};
+// Goals — labels follow current language via t()
+function getGL(){ return { lose: t('goal_lose'), maintain: t('goal_maintain'), gain: t('goal_gain') }; }
+const GL = new Proxy({}, { get(_,k){ return getGL()[k]; }, ownKeys(){ return ['lose','maintain','gain']; }, getOwnPropertyDescriptor(){ return { enumerable:true, configurable:true }; } });
 
 // INIT
 function init(){
@@ -3029,12 +3283,16 @@ function getMealType(timeStr) {
   if (mins >= 1080)               return 'dinner';    // 18:00+
   return 'snack';
 }
-const MEAL_META = {
-  breakfast: { label: 'Завтрак',  icon: '🌅', color: 'var(--acc)' },
-  lunch:     { label: 'Обед',     icon: '☀️', color: '#f97316' },
-  snack:     { label: 'Перекус',  icon: '🍎', color: '#22c55e' },
-  dinner:    { label: 'Ужин',     icon: '🌙', color: '#818cf8' },
-};
+function mealMeta(){
+  return {
+    breakfast: { label: t('meal_breakfast'), icon: '🌅', color: 'var(--acc)' },
+    lunch:     { label: t('meal_lunch'),     icon: '☀️', color: '#f97316' },
+    snack:     { label: t('meal_snack'),     icon: '🍎', color: '#22c55e' },
+    dinner:    { label: t('meal_dinner'),    icon: '🌙', color: '#818cf8' },
+  };
+}
+// Backward-compat getter (some legacy code references MEAL_META object)
+const MEAL_META = new Proxy({}, { get(_,k){ return mealMeta()[k]; } });
 
 function rH(){
   if(!U)return;
@@ -3058,8 +3316,8 @@ function rH(){
       const _sd=new Date(selDay);
       const _yd=new Date();_yd.setDate(_yd.getDate()-1);
       const _isYest=ds(_yd)===selDay;
-      lbl.textContent=_isYest?'Вчера':_sd.toLocaleDateString('ru',{weekday:'short',day:'numeric',month:'long'});
-    } else lbl.textContent='Сегодня';
+      lbl.textContent=_isYest?t('label_yesterday'):_sd.toLocaleDateString(_localeTag(),{weekday:'short',day:'numeric',month:'long'});
+    } else lbl.textContent=t('label_today');
   }
   const _pe=parseFloat(sessionStorage.getItem('_le')||'0');
   if(tt.k>=g&&_pe<g&&g>0){SFX.play('goal_reached');}
@@ -3085,13 +3343,14 @@ function rH(){
     requestAnimationFrame(animK);
   } else { kcalEl.textContent=tt.k; }
   document.getElementById('hgoal').textContent=g;
-  document.getElementById('hrem').textContent=tt.k<=g?`Осталось ${g-tt.k} ккал`:`Превышено на ${tt.k-g} ккал`;
-  document.getElementById('hprot').textContent=Math.round(tt.p)+'г';
-  document.getElementById('hcarb').textContent=Math.round(tt.c)+'г';
-  document.getElementById('hfat').textContent=Math.round(tt.f)+'г';
-  document.getElementById('hpg').textContent=(U.pr||0)+'г';
-  document.getElementById('hcg').textContent=(U.cb||0)+'г';
-  document.getElementById('hfg').textContent=(U.ft||0)+'г';
+  document.getElementById('hrem').textContent=tt.k<=g?tf('h_remaining',{n:g-tt.k}):tf('h_exceeded',{n:tt.k-g});
+  const _g = t('unit_g');
+  document.getElementById('hprot').textContent=Math.round(tt.p)+_g;
+  document.getElementById('hcarb').textContent=Math.round(tt.c)+_g;
+  document.getElementById('hfat').textContent=Math.round(tt.f)+_g;
+  document.getElementById('hpg').textContent=(U.pr||0)+_g;
+  document.getElementById('hcg').textContent=(U.cb||0)+_g;
+  document.getElementById('hfg').textContent=(U.ft||0)+_g;
   document.getElementById('hpbar').style.width=Math.min(tt.p/(U.pr||100)*100,100)+'%';
   document.getElementById('hcbar').style.width=Math.min(tt.c/(U.cb||100)*100,100)+'%';
   document.getElementById('hfbar').style.width=Math.min(tt.f/(U.ft||100)*100,100)+'%';
@@ -3099,7 +3358,7 @@ function rH(){
   // Mini water — always refresh
   _updateMiniWater();
   const logEl=document.getElementById('hlog');
-  if(!tl.length){logEl.innerHTML=`<div class="empty"><span class="ei">🥗</span><p>Нажми <b>+</b> чтобы добавить<br>первый приём пищи</p></div>`;return;}
+  if(!tl.length){logEl.innerHTML=`<div class="empty"><span class="ei">🥗</span><p>${t('h_tap_plus')}</p></div>`;return;}
 
   // ── Group by meal type ──
   const mealOrder = ['breakfast','lunch','snack','dinner'];
@@ -3121,7 +3380,7 @@ function rH(){
       <div class="meal-group-hdr">
         <span class="meal-group-icon">${meta.icon}</span>
         <span class="meal-group-name">${meta.label}</span>
-        <span class="meal-group-kcal">${mealKcal} ккал</span>
+        <span class="meal-group-kcal">${mealKcal} ${t('unit_kcal')}</span>
       </div>`;
     items.forEach(item => {
       const idx = log.indexOf(item);
@@ -3130,20 +3389,20 @@ function rH(){
       html += `<div class="logitem" onclick="openFd(${idx})">
         ${item.img?`<img class="li-img" src="${item.img}" onerror="this.outerHTML='<div class=\\'li-img\\'>${em}</div>'">`:`<div class="li-img">${em}</div>`}
         <div class="li-info">
-          <div class="li-name">${item.food||'Блюдо'}${qty>1?`<span class="li-qty">${qty} шт</span>`:''}${item.isDrink?'<span class="li-drink-tag">💧</span>':''}</div>
+          <div class="li-name">${item.food||t('h_dish')}${qty>1?`<span class="li-qty">${qty} ${t('unit_pcs')}</span>`:''}${item.isDrink?'<span class="li-drink-tag">💧</span>':''}</div>
           <div class="li-sub">${item.time}${item.portion?' · '+item.portion:''}</div>
           <div class="li-macs">
-            <span class="li-mac p">Б:${Math.round(item.prot||0)}г</span>
-            <span class="li-mac c">У:${Math.round(item.carb||0)}г</span>
-            <span class="li-mac f">Ж:${Math.round(item.fat||0)}г</span>
+            <span class="li-mac p">${t('macro_p_short')}:${Math.round(item.prot||0)}${t('unit_g')}</span>
+            <span class="li-mac c">${t('macro_c_short')}:${Math.round(item.carb||0)}${t('unit_g')}</span>
+            <span class="li-mac f">${t('macro_f_short')}:${Math.round(item.fat||0)}${t('unit_g')}</span>
           </div>
         </div>
         <div class="li-right">
           <div class="li-kcal">${item.kcal||0}</div>
-          <div class="li-unit">ккал</div>
+          <div class="li-unit">${t('unit_kcal')}</div>
         </div>
-        <button class="li-star ${isFav(item)?'on':''}" onclick="event.stopPropagation();toggleFav(${idx})" title="В избранное">${isFav(item)?'⭐':'☆'}</button>
-      <button class="li-del" onclick="event.stopPropagation();HFX.light();SFX.play('delete');delL(${idx})" title="Удалить"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6M14 11v6"/></svg></button>
+        <button class="li-star ${isFav(item)?'on':''}" onclick="event.stopPropagation();toggleFav(${idx})" title="${t('add_to_fav')}">${isFav(item)?'⭐':'☆'}</button>
+      <button class="li-del" onclick="event.stopPropagation();HFX.light();SFX.play('delete');delL(${idx})" title="${t('delete_action')}"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6M14 11v6"/></svg></button>
       </div>`;
     });
     html += '</div>';
@@ -3166,13 +3425,13 @@ function toggleFav(idx){
   if(fi>=0){
     favs.splice(fi,1);
     HFX.light();SFX.play('toggle');
-    showToast('☆ Удалено из избранного');
+    showToast(t('toast_removed_from_fav'));
   } else {
     const fav={food:item.food,portion:item.portion,kcal:item.kcal,prot:item.prot,fat:item.fat,carb:item.carb,img:item.img||null};
     favs.unshift(fav);
     if(favs.length>30)favs=favs.slice(0,30);
     HFX.medium();SFX.play('save');
-    showToast('⭐ Добавлено в избранное');
+    showToast(t('toast_added_to_fav'));
   }
   saveFavs(favs);rH();
 }
@@ -3181,17 +3440,17 @@ function renderFavs(){
   const el=document.getElementById('favsList');
   if(!el)return;
   if(!favs.length){
-    el.innerHTML='<div class="fav-empty"><span class="fav-empty-ico">⭐</span><b>Избранное пусто</b><br>Нажми ☆ на любом блюде<br>в дневнике — оно появится здесь</div>';
+    el.innerHTML=`<div class="fav-empty"><span class="fav-empty-ico">⭐</span><b>${t('fav_empty_title')}</b><br>${t('fav_empty_sub')}</div>`;
     return;
   }
   el.innerHTML=favs.map((f,fi)=>`<div class="fav-item">
     <div class="fav-icon">${f.img?`<img src="${f.img}" style="width:40px;height:40px;border-radius:12px;object-fit:cover">`:emo(f.food||'')}</div>
     <div class="fav-info">
-      <div class="fav-name">${f.food||'Блюдо'}</div>
-      <div class="fav-kcal">${f.kcal} ккал${f.portion?' · '+f.portion:''}</div>
+      <div class="fav-name">${f.food||t('h_dish')}</div>
+      <div class="fav-kcal">${f.kcal} ${t('unit_kcal')}${f.portion?' · '+f.portion:''}</div>
     </div>
-    <button class="fav-del-btn" onclick="removeFav(${fi})" title="Удалить">✕</button>
-    <button class="fav-add-btn" onclick="addFavToLog(${fi})">+ Добавить</button>
+    <button class="fav-del-btn" onclick="removeFav(${fi})" title="${t('delete_action')}">✕</button>
+    <button class="fav-add-btn" onclick="addFavToLog(${fi})">${t('fav_add_btn')}</button>
   </div>`).join('');
 }
 function addFavToLog(fi){
@@ -3200,7 +3459,7 @@ function addFavToLog(fi){
   const entry={...f,time:tnow(),date:ds(),qty:1};
   log.unshift(entry);S('log',JSON.stringify(log));
   HFX.success();SFX.play('add_food');
-  showToast('✅ ' + f.food + ' добавлено');
+  showToast(tf('toast_added_with_name',{name:f.food}));
   rH();closeAdd();
 }
 function removeFav(fi){
@@ -3361,18 +3620,18 @@ function openFd(i){
   const wrap=document.getElementById('fdImgWrap');
   if(item.img) wrap.innerHTML=`<img class="fd-img" src="${item.img}" onerror="this.outerHTML='<div class=\'fd-nophoto\'>${emo(item.food||'')}</div>'">`;
   else wrap.innerHTML=`<div class="fd-nophoto">${emo(item.food||'')}</div>`;
-  document.getElementById('fdName').textContent=item.food||'Блюдо';
+  document.getElementById('fdName').textContent=item.food||t('h_dish');
   document.getElementById('fdPortion').textContent=item.portion||'';
   document.getElementById('fdKcal').textContent=item.kcal||0;
-  document.getElementById('fdProt').textContent=Math.round(item.prot||0)+'г';
-  document.getElementById('fdCarb').textContent=Math.round(item.carb||0)+'г';
-  document.getElementById('fdFat').textContent=Math.round(item.fat||0)+'г';
+  document.getElementById('fdProt').textContent=Math.round(item.prot||0)+t('unit_g');
+  document.getElementById('fdCarb').textContent=Math.round(item.carb||0)+t('unit_g');
+  document.getElementById('fdFat').textContent=Math.round(item.fat||0)+t('unit_g');
   document.getElementById('fdDesc').textContent=item.desc||'';
   // Show ingredients if available
   const ingrEl=document.getElementById('fdIngr');
   if(ingrEl){
     if(item.ingr&&item.ingr.length>0){
-      ingrEl.innerHTML='<div class="ingr-hdr">СОСТАВ</div>'+item.ingr.map(i=>`<div class="ingr-i"><span class="ingr-n">${i.name}</span><span class="ingr-c">${i.calories}ккал</span></div>`).join('');
+      ingrEl.innerHTML=`<div class="ingr-hdr">${t('detail_ingr')}</div>`+item.ingr.map(i=>`<div class="ingr-i"><span class="ingr-n">${i.name}</span><span class="ingr-c">${i.calories} ${t('unit_kcal')}</span></div>`).join('');
       ingrEl.style.display='block';
     } else {
       ingrEl.style.display='none';
@@ -3433,12 +3692,12 @@ function saveEditFd(){
   rH();
   closeEditFd();
   // Update detail sheet
-  document.getElementById('fdName').textContent=item.food||'Блюдо';
+  document.getElementById('fdName').textContent=item.food||t('h_dish');
   document.getElementById('fdKcal').textContent=item.kcal;
-  document.getElementById('fdProt').textContent=Math.round(item.prot)+'г';
-  document.getElementById('fdCarb').textContent=Math.round(item.carb)+'г';
-  document.getElementById('fdFat').textContent=Math.round(item.fat)+'г';
-  showToast('✏️ Запись обновлена');
+  document.getElementById('fdProt').textContent=Math.round(item.prot)+t('unit_g');
+  document.getElementById('fdCarb').textContent=Math.round(item.carb)+t('unit_g');
+  document.getElementById('fdFat').textContent=Math.round(item.fat)+t('unit_g');
+  showToast(t('toast_record_updated','✏️ Запись обновлена'));
 }
 function closeFd(){HFX.light();SFX.play('sheet_close');document.getElementById('fdOv').classList.remove('on');document.body.style.overflow='';fdIdx=null;}
 function delFd(){
@@ -3457,7 +3716,7 @@ function delFd(){
 // Calendar strip
 let selDay=null; // null = today
 function rCal(){
-  const el=document.getElementById('cals'),n=new Date(),dns=['Вс','Пн','Вт','Ср','Чт','Пт','Сб'],g=U?.kcal||2000;
+  const el=document.getElementById('cals'),n=new Date(),dns=[t('wd_sun'),t('wd_mon'),t('wd_tue'),t('wd_wed'),t('wd_thu'),t('wd_fri'),t('wd_sat')],g=U?.kcal||2000;
   let h='';
   for(let i=13;i>=0;i--){
     const d=new Date(n);d.setDate(d.getDate()-i);
@@ -3500,9 +3759,9 @@ function changeQty(delta){
     setTimeout(()=>{if(qtyEl){qtyEl.style.transform='scale(1)';}},180);
   }
   document.getElementById('fdKcal').textContent=item.kcal;
-  document.getElementById('fdProt').textContent=Math.round(item.prot)+'г';
-  document.getElementById('fdCarb').textContent=Math.round(item.carb)+'г';
-  document.getElementById('fdFat').textContent=Math.round(item.fat)+'г';
+  document.getElementById('fdProt').textContent=Math.round(item.prot)+t('unit_g');
+  document.getElementById('fdCarb').textContent=Math.round(item.carb)+t('unit_g');
+  document.getElementById('fdFat').textContent=Math.round(item.fat)+t('unit_g');
   HFX.light();
   rH();
 }
@@ -3520,11 +3779,11 @@ function rP(){
   if(!U)return;
   // Update month in header
   const _pgMonth=document.getElementById('pgMonth');
-  if(_pgMonth)_pgMonth.textContent=new Date().toLocaleDateString('ru',{month:'long',year:'numeric'});
+  if(_pgMonth)_pgMonth.textContent=new Date().toLocaleDateString(_localeTag(),{month:'long',year:'numeric'});
   const s=streak();
   document.getElementById('pstr').textContent=s;
   // Week
-  const n=new Date(),dns=['Пн','Вт','Ср','Чт','Пт','Сб','Вс'];
+  const n=new Date(),dns=[t('wd_mon'),t('wd_tue'),t('wd_wed'),t('wd_thu'),t('wd_fri'),t('wd_sat'),t('wd_sun')];
   document.getElementById('wkd').innerHTML=Array.from({length:7},(_,i)=>{
     const d=new Date(n);d.setDate(d.getDate()-(6-i));
     const today=d.toDateString()===n.toDateString();
@@ -3538,7 +3797,7 @@ function rP(){
   document.getElementById('pavg').textContent=avg||'—';
   const g=U.kcal||2000;
   let bd='—',bd2=Infinity;
-  for(let i=0;i<30;i++){const d=new Date(n);d.setDate(d.getDate()-i);const es=dlog(ds(d));if(!es.length)continue;const diff=Math.abs(tot(es).k-g);if(diff<bd2){bd2=diff;bd=d.toLocaleDateString('ru',{day:'numeric',month:'short'});}}
+  for(let i=0;i<30;i++){const d=new Date(n);d.setDate(d.getDate()-i);const es=dlog(ds(d));if(!es.length)continue;const diff=Math.abs(tot(es).k-g);if(diff<bd2){bd2=diff;bd=d.toLocaleDateString(_localeTag(),{day:'numeric',month:'short'});}}
   document.getElementById('pbest').textContent=bd;
   document.getElementById('ptot').textContent=log.length;
   let td=0;for(let i=0;i<30;i++){const d=new Date(n);d.setDate(d.getDate()-i);if(dlog(ds(d)).length)td++;}
@@ -3559,7 +3818,7 @@ function rP(){
       else if(r>0.3) c='c2';
       else c='c1';
     }
-    return `<div class="hcell ${c}" title="${d.toLocaleDateString('ru')}: ${tk} ккал"></div>`;
+    return `<div class="hcell ${c}" title="${d.toLocaleDateString(_localeTag())}: ${tk} ${t('unit_kcal')}"></div>`;
   }).join('');
   // Weight chart
   rWChart();
@@ -3585,10 +3844,10 @@ function logW(){
   const trendEl=document.getElementById('wlogTrend');
   if(wts.length>0&&trendEl){
     const diff=Math.round((_wlogVal-wts[0].v)*10)/10;
-    if(diff>0){trendEl.className='wlog-trend up';trendEl.textContent='↑ +'+diff+' кг с последнего измерения';}
-    else if(diff<0){trendEl.className='wlog-trend down';trendEl.textContent='↓ '+diff+' кг с последнего измерения';}
-    else{trendEl.className='wlog-trend same';trendEl.textContent='Вес не изменился с прошлого раза';}
-  } else if(trendEl){trendEl.textContent='Первое измерение';}
+    if(diff>0){trendEl.className='wlog-trend up';trendEl.textContent=tf('toast_weight_up',{n:diff});}
+    else if(diff<0){trendEl.className='wlog-trend down';trendEl.textContent=tf('toast_weight_down',{n:diff});}
+    else{trendEl.className='wlog-trend same';trendEl.textContent=t('toast_weight_no_change_full');}
+  } else if(trendEl){trendEl.textContent=t('toast_weight_first');}
   document.getElementById('wlogOv').classList.add('on');
   SFX.play('sheet_open');
   document.body.style.overflow='hidden';
@@ -3618,9 +3877,9 @@ function wlogStep(d){
   const trendEl=document.getElementById('wlogTrend');
   if(trendEl&&wts.length>0){
     const diff=Math.round((_wlogVal-wts[0].v)*10)/10;
-    if(diff>0){trendEl.className='wlog-trend up';trendEl.textContent='↑ +'+diff+' кг с последнего измерения';}
-    else if(diff<0){trendEl.className='wlog-trend down';trendEl.textContent='↓ '+diff+' кг с последнего измерения';}
-    else{trendEl.className='wlog-trend same';trendEl.textContent='Вес не изменился';}
+    if(diff>0){trendEl.className='wlog-trend up';trendEl.textContent=tf('toast_weight_up',{n:diff});}
+    else if(diff<0){trendEl.className='wlog-trend down';trendEl.textContent=tf('toast_weight_down',{n:diff});}
+    else{trendEl.className='wlog-trend same';trendEl.textContent=t('toast_weight_no_change');}
   }
   HFX.tick();
 }
@@ -3642,7 +3901,7 @@ function saveWlog(){
   rWChart();
   // Show brief success feedback
   const btn=document.querySelector('.wt-btn');
-  if(btn){const orig=btn.textContent;btn.textContent='✓ Сохранено!';btn.style.background='var(--ok)';btn.style.color='#fff';setTimeout(()=>{btn.textContent=orig;btn.style.background='';btn.style.color='';},2000);}
+  if(btn){const orig=btn.textContent;btn.textContent=t('toast_weight_saved');btn.style.background='var(--ok)';btn.style.color='#fff';setTimeout(()=>{btn.textContent=orig;btn.style.background='';btn.style.color='';},2000);}
 }
 
 function rWChart(){
@@ -4264,7 +4523,7 @@ function addRes(t){
     arr.push({ id: bev.drinkId, ml: bev.ml, t: item.time || tnow(), fromFood: true });
     S('water_'+ds(), JSON.stringify(arr));
     rWater();
-    showToast('💧 Добавлено в водный баланс: ' + bev.ml + 'мл');
+    showToast(tf('water_added_toast',{ml:bev.ml}));
   }
   rH(); closeAdd();
   if(t==='photo') rstPhoto();
@@ -4522,8 +4781,8 @@ function rSet(){
   document.getElementById('sname').textContent=U.name||'—';
   if(U.dob){const _a=calcAgeFromDob(U.dob);if(_a&&_a!==U.age){U.age=_a;rcalc();S('u',JSON.stringify(U));}}
   document.getElementById('sgoal').textContent=GL[U.goal]||'—';
-  document.getElementById('skcal').textContent=(U.kcal||0)+' ккал';
-  const _sp=document.getElementById('sprefs');if(_sp){const _pc=(U.prefs||[]).length,_ac=U.allerg?1:0;_sp.textContent=(_pc+_ac)>0?(_pc?U.prefs.join(', '):'')+(_ac?(_pc?' · ':'')+U.allerg:''):'Не указаны';}
+  document.getElementById('skcal').textContent=(U.kcal||0)+' '+t('unit_kcal');
+  const _sp=document.getElementById('sprefs');if(_sp){const _pc=(U.prefs||[]).length,_ac=U.allerg?1:0;_sp.textContent=(_pc+_ac)>0?(_pc?U.prefs.join(', '):'')+(_ac?(_pc?' · ':'')+U.allerg:''):t('not_set');}
   document.getElementById('sapi').textContent=key?t('set_api_set','Установлен ✓'):t('set_api_unset','Не установлен');
   const _mname=ALL_MODELS.find(m=>m.id===selModel)?.name||selModel;
   document.getElementById('smodel').textContent=_mname;
@@ -4671,7 +4930,7 @@ function exportCSV() {
     a.href = url; a.download = `calsnap-${date}.csv`; a.click();
     URL.revokeObjectURL(url);
     SFX.play('export_done'); HFX.success();
-  } catch(e) { showToast('Ошибка экспорта'); }
+  } catch(e) { showToast(t('toast_export_error')); }
 }
 
 function exportJSON(){
@@ -4706,7 +4965,7 @@ function exportJSON(){
     URL.revokeObjectURL(url);
     HFX.success();SFX.play('export_done');
     showToast('✅ Данные экспортированы');
-  }catch(e){showToast('❌ Ошибка экспорта: '+e.message);}
+  }catch(e){showToast(tf('toast_export_error_msg',{msg:e.message}));}
 }
 
 function importJSON(input){
@@ -4733,7 +4992,7 @@ function importJSON(input){
         if(data.water){Object.entries(data.water).forEach(([k,v])=>localStorage.setItem(k,v));}
         setTimeout(()=>window.location.reload(),300);
       });
-    }catch(err){showToast('❌ Ошибка: '+err.message);}
+    }catch(err){showToast(tf('toast_error_msg',{msg:err.message}));}
     input.value='';
   };
   reader.readAsText(file);
@@ -5097,14 +5356,32 @@ function rBMI() {
 // ══════════════════════════════════════════════════
 // WATER BALANCE
 // ══════════════════════════════════════════════════
-const DRINKS = [
-  { id:'water',  icon:'💧', name:'Вода',    ml:250, hydration:1.0,  kcal:0,   prot:0,  fat:0,   carb:0   },
-  { id:'tea',    icon:'🍵', name:'Чай',     ml:200, hydration:0.9,  kcal:2,   prot:0,  fat:0,   carb:0.4 },
-  { id:'coffee', icon:'☕', name:'Кофе',    ml:150, hydration:0.6,  kcal:5,   prot:0.3,fat:0.1, carb:0   },
-  { id:'juice',  icon:'🧃', name:'Сок',     ml:200, hydration:0.85, kcal:90,  prot:0.5,fat:0.1, carb:21  },
-  { id:'milk',   icon:'🥛', name:'Молоко',  ml:200, hydration:0.9,  kcal:120, prot:6,  fat:4,   carb:9   },
-  { id:'other',  icon:'🫗', name:'Другое',  ml:200, hydration:0.8,  kcal:0,   prot:0,  fat:0,   carb:0   },
+// Drink data — `name` resolved via t() at render time so it follows the current language.
+const _DRINKS_BASE = [
+  { id:'water',  icon:'💧', i18n:'drink_water',  ml:250, hydration:1.0,  kcal:0,   prot:0,  fat:0,   carb:0   },
+  { id:'tea',    icon:'🍵', i18n:'drink_tea',    ml:200, hydration:0.9,  kcal:2,   prot:0,  fat:0,   carb:0.4 },
+  { id:'coffee', icon:'☕', i18n:'drink_coffee', ml:150, hydration:0.6,  kcal:5,   prot:0.3,fat:0.1, carb:0   },
+  { id:'juice',  icon:'🧃', i18n:'drink_juice',  ml:200, hydration:0.85, kcal:90,  prot:0.5,fat:0.1, carb:21  },
+  { id:'milk',   icon:'🥛', i18n:'drink_milk',   ml:200, hydration:0.9,  kcal:120, prot:6,  fat:4,   carb:9   },
+  { id:'other',  icon:'🫗', i18n:'drink_other',  ml:200, hydration:0.8,  kcal:0,   prot:0,  fat:0,   carb:0   },
 ];
+function getDrinks(){ return _DRINKS_BASE.map(d => ({...d, name: t(d.i18n)})); }
+// Backward-compatible iterable so `DRINKS.find(...)` / `.map(...)` keep working.
+const DRINKS = new Proxy(_DRINKS_BASE, {
+  get(target, prop){
+    if (prop === 'find')   return (fn) => getDrinks().find(fn);
+    if (prop === 'filter') return (fn) => getDrinks().filter(fn);
+    if (prop === 'map')    return (fn) => getDrinks().map(fn);
+    if (prop === 'forEach')return (fn) => getDrinks().forEach(fn);
+    if (prop === 'length') return _DRINKS_BASE.length;
+    if (typeof prop === 'string' && /^\d+$/.test(prop)){
+      const idx = +prop;
+      const d = _DRINKS_BASE[idx];
+      return d ? {...d, name: t(d.i18n)} : undefined;
+    }
+    return target[prop];
+  }
+});
 
 
 function _updateMiniWater() {
@@ -5115,7 +5392,7 @@ function _updateMiniWater() {
   const fillEl = document.getElementById('miniWaterFill');
   const labelEl = document.getElementById('miniWaterLabel');
   if (fillEl) fillEl.style.width = pct + '%';
-  if (labelEl) labelEl.textContent = total + ' / ' + goal + ' мл';
+  if (labelEl) labelEl.textContent = total + ' / ' + goal + ' ' + t('water_ml');
 }
 
 function getWaterGoal() {
@@ -5138,9 +5415,10 @@ function addWater(drinkId) {
   S('water_'+ds(), JSON.stringify(arr));
   // For caloric drinks — also add to food log
   if(drink.kcal > 0) {
+    const _ml = t('water_ml');
     const entry = {
-      food: drink.name + ' ' + drink.ml + 'мл',
-      portion: drink.ml + 'мл',
+      food: drink.name + ' ' + drink.ml + ' ' + _ml,
+      portion: drink.ml + ' ' + _ml,
       kcal: drink.kcal, prot: drink.prot, fat: drink.fat, carb: drink.carb,
       time: tnow(), date: ds(),
       isDrink: true, drinkId: drinkId
@@ -5274,8 +5552,8 @@ function rWater() {
   // Salt hint
   const hint = document.getElementById('waterSaltHint');
   if(hint) {
-    hintt.classList.toggle('on', hasSalt);
-    hint.textContent = `🧂 Солёная еда — норма воды +20% (${adjusted} мл)`;
+    hint.classList.toggle('on', hasSalt);
+    hint.textContent = t('water_salt_hint','🧂 Солёная еда — норма воды +20%') + ' (' + adjusted + ' ' + t('water_ml','мл') + ')';
   }
 
   // Drink buttons
@@ -5302,13 +5580,13 @@ function rWater() {
   const eventsEl = document.getElementById('waterEvents');
   if(eventsEl) {
     if(!arr.length) {
-      eventsEl.innerHTML = `<div class="water-empty-hint">💧 Добавь первый стакан воды</div>`;
+      eventsEl.innerHTML = `<div class="water-empty-hint">${t('water_empty')}</div>`;
     } else {
       eventsEl.innerHTML = arr.slice().reverse().slice(0,8).map((e,i) => {
         const d = DRINKS.find(x=>x.id===e.id)||DRINKS[0];
         return `<div class="water-event" style="animation-delay:${i*0.04}s">
           <span class="water-event-icon">${d.icon}</span>
-          <span class="water-event-ml">${e.ml}мл</span>
+          <span class="water-event-ml">${e.ml} ${t('water_ml')}</span>
           <span class="water-event-t">${e.t||''}</span>
         </div>`;
       }).join('');
@@ -5328,7 +5606,7 @@ function rWater() {
 let _weekLoading = false;
 
 async function loadWeekAnalysis(force=false) {
-  if(!key) { document.getElementById('weekAiBody').innerHTML='<div class="week-ai-empty">Добавь API ключ Gemini в Настройках</div>'; return; }
+  if(!key) { document.getElementById('weekAiBody').innerHTML=`<div class="week-ai-empty">${t('week_ai_no_key')}</div>`; return; }
 
   const wkKey = 'week_'+new Date().toISOString().slice(0,7)+'_'+Math.floor(new Date().getDate()/7);
   const cached = G(wkKey);
@@ -5338,8 +5616,8 @@ async function loadWeekAnalysis(force=false) {
 
   const btn = document.getElementById('weekAiBtn');
   if(btn){ btn.disabled=true; btn.textContent='...'; }
-  document.getElementById('weekAiBody').innerHTML='<div class="week-ai-empty">🤖 AI анализирует питание за 7 дней...</div>';
-  document.getElementById('weekAiSub').textContent='Анализирую...';
+  document.getElementById('weekAiBody').innerHTML=`<div class="week-ai-empty">${t('week_ai_loading')}</div>`;
+  document.getElementById('weekAiSub').textContent=t('week_ai_analyzing');
 
   // Собираем данные за 7 дней
   const days7 = [];
@@ -5348,7 +5626,7 @@ async function loadWeekAnalysis(force=false) {
     const dl=dlog(ds(d)), tt=tot(dl);
     if(dl.length) days7.push({day:d.toLocaleDateString('ru',{weekday:'short',day:'numeric',month:'short'}), kcal:tt.k, prot:Math.round(tt.p), carb:Math.round(tt.c), fat:Math.round(tt.f), count:dl.length});
   }
-  if(days7.length<2){ document.getElementById('weekAiBody').innerHTML='<div class="week-ai-empty">Нужно минимум 2 дня данных для анализа. Записывай еду каждый день!</div>'; if(btn){btn.disabled=false;btn.textContent='Анализ';} _weekLoading=false; return; }
+  if(days7.length<2){ document.getElementById('weekAiBody').innerHTML=`<div class="week-ai-empty">${t('week_ai_min_days')}</div>`; if(btn){btn.disabled=false;btn.textContent=t('week_ai_btn');} _weekLoading=false; return; }
 
   // Add water data per day
   const days7water = [];
@@ -5368,11 +5646,11 @@ async function loadWeekAnalysis(force=false) {
     renderWeekAnalysis(data);
     HFX.success();
   } catch(e) {
-    document.getElementById('weekAiBody').innerHTML='<div class="week-ai-empty">Ошибка загрузки. Проверь API ключ.</div>';
+    document.getElementById('weekAiBody').innerHTML=`<div class="week-ai-empty">${t('week_ai_load_error')}</div>`;
   }
   _weekLoading=false;
-  if(btn){btn.disabled=false;btn.textContent='Обновить';}
-  document.getElementById('weekAiSub').textContent='AI анализ питания за 7 дней';
+  if(btn){btn.disabled=false;btn.textContent=t('week_ai_refresh');}
+  document.getElementById('weekAiSub').textContent=t('week_ai_default_sub');
 }
 
 
@@ -5447,7 +5725,7 @@ function _updatePaceCard() {
   } else if (goal === 'lose') {
     if (weeklyChange >= -0.05) {
       iconEl.textContent = '⚠️'; titleEl.textContent = 'Нет прогресса';
-      subEl.textContent = 'Создай дефицит 300–500 ккал/день для похудения';
+      subEl.textContent = t('goal_lose_sub');
     } else {
       const targetLoss = targetW ? curW - targetW : Math.max(curW - 5, curW * 0.9);
       const remaining = curW - targetLoss;
@@ -5459,7 +5737,7 @@ function _updatePaceCard() {
   } else if (goal === 'gain') {
     if (weeklyChange <= 0.05) {
       iconEl.textContent = '⚠️'; titleEl.textContent = 'Нет набора';
-      subEl.textContent = 'Добавь 300–500 ккал сверх нормы для набора массы';
+      subEl.textContent = t('goal_gain_sub');
     } else {
       iconEl.textContent = '💪'; titleEl.textContent = 'Набор идёт!';
       const rate = weeklyChange.toFixed(2);
@@ -6416,7 +6694,7 @@ function devCopyLogs(){
       document.execCommand('copy');document.body.removeChild(ta);
       showToast('📋 Логи скопированы');
     });
-  }catch(e){showToast('❌ Ошибка: '+e.message);}
+  }catch(e){showToast(tf('toast_error_msg',{msg:e.message}));}
 }
 window._devErrors=[];
 window.onerror=function(m,s,l){window._devErrors.push(m+' ('+s+':'+l+')');if(window._devErrors.length>20)window._devErrors.shift();};
