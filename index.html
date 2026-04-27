@@ -9,6 +9,11 @@
 <meta name="apple-mobile-web-app-title" content="CalSnap">
 <meta name="description" content="CalSnap — AI-счётчик калорий с распознаванием еды по фото, тексту и штрихкоду. Работает офлайн.">
 <meta name="color-scheme" content="light dark">
+<meta name="format-detection" content="telephone=no, date=no, address=no, email=no">
+<meta name="HandheldFriendly" content="true">
+<meta name="MobileOptimized" content="width">
+<meta name="theme-color" content="#F2F0EB" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#0F0E0C" media="(prefers-color-scheme: dark)">
 <meta id="tc-meta" name="theme-color" content="#F2F0EB">
 <link rel="manifest" href="manifest.json">
 <link rel="apple-touch-icon" href="icons/icon-192.png">
@@ -104,9 +109,24 @@
 /* ════════════════════════════════════════════════════════
    CalSnap v5 — Warm Material
    ════════════════════════════════════════════════════════ */
-*, *::before, *::after { box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;-webkit-touch-callout:none; }
+*, *::before, *::after {
+  box-sizing:border-box;margin:0;padding:0;
+  -webkit-tap-highlight-color:transparent;-webkit-touch-callout:none;
+  -webkit-text-size-adjust:100%;text-size-adjust:100%;
+  -webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale;
+}
+/* Same accent across browsers, neutralize Samsung/MIUI auto-tints */
+html { accent-color: var(--acc); -webkit-text-size-adjust:100%; text-size-adjust:100%; }
+/* Disable iOS auto-zoom on focus by ensuring 16px+ on form fields */
+input, textarea, select, button { font: inherit; font-size: max(16px, 1em); }
+/* Force consistent rendering of native controls */
+input[type="checkbox"], input[type="radio"] { accent-color: var(--acc); }
+input::placeholder, textarea::placeholder { color: var(--t2); opacity: 1; }
 :root {
   color-scheme: light dark;
+  font-feature-settings: 'kern' 1, 'liga' 1, 'calt' 1, 'ss01' 1;
+  font-variant-ligatures: common-ligatures;
+  text-rendering: optimizeLegibility;
   --ff:'DM Sans',-apple-system,BlinkMacSystemFont,sans-serif;
   --bg0:#F2F0EB;--bg1:#FFFFFF;--bg2:#F7F5F1;--bg3:#EEECEA;
   --bg-nav:rgba(242,240,235,.86);
@@ -194,7 +214,9 @@
   --acc-g:linear-gradient(160deg,#3A3630 0%,#1A1916 100%);
 }
 html[data-theme="light"],html[data-theme="light"] body{color-scheme:only light;}
-html,body{height:100%;overflow:hidden;background:var(--bg0);color:var(--t0);font-family:var(--ff);-webkit-font-smoothing:antialiased;overscroll-behavior:none;font-size:16px;}
+html,body{height:100%;overflow:hidden;background:var(--bg0);color:var(--t0);font-family:var(--ff);-webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale;overscroll-behavior:none;font-size:16px;line-height:1.4;letter-spacing:-.005em;forced-color-adjust:none;}
+body { padding-left: env(safe-area-inset-left); padding-right: env(safe-area-inset-right); }
+img, svg { -webkit-user-drag:none; user-select:none; }
 .screen{position:fixed;inset:0;overflow-y:scroll;overflow-x:hidden;display:none;background:var(--bg0);overscroll-behavior-y:contain;-webkit-overflow-scrolling:touch;}
 .screen.active{display:block;animation:scIn .28s cubic-bezier(.22,1,.36,1) both;}
 ::-webkit-scrollbar{display:none;}
@@ -1801,8 +1823,8 @@ body.modal-open { overflow: hidden !important; touch-action: none; }
     </button>
     <div class="ai-ava-wrap">🤖<span class="ai-online-dot"></span></div>
     <div class="ai-title-wrap">
-      <div class="ai-hdr" style="all:unset;display:block;font-size:16px;font-weight:800;color:var(--t0)">AI Нутрициолог</div>
-      <div style="font-size:12px;color:#22C55E;font-weight:600;margin-top:2px">● Онлайн</div>
+      <div class="ai-hdr" style="all:unset;display:block;font-size:16px;font-weight:800;color:var(--t0)" data-i18n="ai_title">AI Нутрициолог</div>
+      <div style="font-size:12px;color:#22C55E;font-weight:600;margin-top:2px"><span aria-hidden="true">●</span> <span data-i18n="ai_online">Онлайн</span></div>
     </div>
     <button class="ai-reset" onclick="HFX.light();SFX.play('btn_tap');clearAiChat()">
       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-4"/></svg>
@@ -1810,12 +1832,12 @@ body.modal-open { overflow: hidden !important; touch-action: none; }
   </div>
   <!-- Quick suggestions -->
   <div class="ai-sugs" style="flex-shrink:0">
-    <div class="ai-sg" onclick="HFX.light();SFX.play('ai_send');aiSug(this)">🔥 Моя норма?</div>
-    <div class="ai-sg" onclick="HFX.light();SFX.play('ai_send');aiSug(this)">💡 Что съесть?</div>
-    <div class="ai-sg" onclick="HFX.light();SFX.play('ai_send');aiSug(this)">📊 Мой рацион</div>
-    <div class="ai-sg" onclick="HFX.light();SFX.play('ai_send');aiSug(this)">🏋️ Набор массы</div>
-    <div class="ai-sg" onclick="HFX.light();SFX.play('ai_send');aiSug(this)">⚡ Быстрый перекус</div>
-    <div class="ai-sg" onclick="HFX.light();SFX.play('ai_send');aiSug(this)">🥗 Дефицит калорий</div>
+    <div class="ai-sg" onclick="HFX.light();SFX.play('ai_send');aiSug(this)" data-i18n="ai_sug_norm">🔥 Моя норма?</div>
+    <div class="ai-sg" onclick="HFX.light();SFX.play('ai_send');aiSug(this)" data-i18n="ai_sug_eat">💡 Что съесть?</div>
+    <div class="ai-sg" onclick="HFX.light();SFX.play('ai_send');aiSug(this)" data-i18n="ai_sug_diet">📊 Мой рацион</div>
+    <div class="ai-sg" onclick="HFX.light();SFX.play('ai_send');aiSug(this)" data-i18n="ai_sug_bulk">🏋️ Набор массы</div>
+    <div class="ai-sg" onclick="HFX.light();SFX.play('ai_send');aiSug(this)" data-i18n="ai_sug_snack">⚡ Быстрый перекус</div>
+    <div class="ai-sg" onclick="HFX.light();SFX.play('ai_send');aiSug(this)" data-i18n="ai_sug_cut">🥗 Дефицит калорий</div>
   </div>
   <!-- Messages -->
   <div class="ai-msgs" id="aimsg" onclick="document.getElementById('aiinp').blur()"></div>
@@ -1836,16 +1858,16 @@ body.modal-open { overflow: hidden !important; touch-action: none; }
 <div class="screen" id="sett">
   <div class="st-hdr"><h2 data-i18n="nav_settings">Настройки</h2></div>
   <div class="st-sec">
-    <div class="st-lbl">Внешний вид</div>
+    <div class="st-lbl" data-i18n="set_appearance">Внешний вид</div>
     <div class="st-card">
       <div class="st-row" onclick="HFX.tick();SFX.play('toggle');toggleTheme()">
         <div class="sr-ico-wrap slate" style="filter:drop-shadow(0 1px 1px rgba(0,0,0,.4))">🌙</div>
-        <div class="sr-txt"><div class="sr-t">Тёмная тема</div></div>
+        <div class="sr-txt"><div class="sr-t" data-i18n="set_dark">Тёмная тема</div></div>
         <div class="toggle" id="themeToggle"></div>
       </div>
       <div class="st-row" onclick="HFX.tick();SFX.play('toggle');toggleSfx()">
         <div class="sr-ico-wrap" style="background:var(--acc);filter:drop-shadow(0 1px 1px rgba(0,0,0,.3))">🔊</div>
-        <div class="sr-txt"><div class="sr-t">Звуки</div><div class="sr-s">Звуки интерфейса</div></div>
+        <div class="sr-txt"><div class="sr-t" data-i18n="set_sounds">Звуки</div><div class="sr-s" data-i18n="set_sounds_sub">Звуки интерфейса</div></div>
         <div class="toggle" id="sfxToggle"></div>
       </div>
       <div class="st-row" onclick="HFX.tick();SFX.play('toggle');toggleHfx()">
@@ -1861,73 +1883,73 @@ body.modal-open { overflow: hidden !important; touch-action: none; }
     </div>
   </div>
   <div class="st-sec">
-    <div class="st-lbl">Профиль</div>
+    <div class="st-lbl" data-i18n="set_profile">Профиль</div>
     <div class="st-card">
-      <div class="st-row" onclick="HFX.light();SFX.play('sheet_open');ed('name')"><div class="sr-ico-wrap blue" style="font-size:14px;font-weight:700;color:#fff;letter-spacing:0">Аа</div><div class="sr-txt"><div class="sr-t">Имя</div></div><span class="sr-v" id="sname">—</span></div>
-      <div class="st-row" onclick="HFX.light();SFX.play('sheet_open');ed('params')"><div class="sr-ico-wrap green" style="font-size:13px;font-weight:700;color:#fff">cm</div><div class="sr-txt"><div class="sr-t">Возраст / Рост / Вес</div></div><span class="sr-arr">›</span></div>
-      <div class="st-row" onclick="HFX.light();SFX.play('sheet_open');ed('goal')"><div class="sr-ico-wrap orange" style="filter:drop-shadow(0 1px 1px rgba(0,0,0,.3))">🎯</div><div class="sr-txt"><div class="sr-t">Цель</div></div><span class="sr-v" id="sgoal">—</span></div>
+      <div class="st-row" onclick="HFX.light();SFX.play('sheet_open');ed('name')"><div class="sr-ico-wrap blue" style="font-size:14px;font-weight:700;color:#fff;letter-spacing:0">Аа</div><div class="sr-txt"><div class="sr-t" data-i18n="set_name">Имя</div></div><span class="sr-v" id="sname">—</span></div>
+      <div class="st-row" onclick="HFX.light();SFX.play('sheet_open');ed('params')"><div class="sr-ico-wrap green" style="font-size:13px;font-weight:700;color:#fff">cm</div><div class="sr-txt"><div class="sr-t" data-i18n="set_params">Возраст / Рост / Вес</div></div><span class="sr-arr">›</span></div>
+      <div class="st-row" onclick="HFX.light();SFX.play('sheet_open');ed('goal')"><div class="sr-ico-wrap orange" style="filter:drop-shadow(0 1px 1px rgba(0,0,0,.3))">🎯</div><div class="sr-txt"><div class="sr-t" data-i18n="set_goal">Цель</div></div><span class="sr-v" id="sgoal">—</span></div>
     </div>
   </div>
   <div class="st-sec">
-    <div class="st-lbl">Питание</div>
+    <div class="st-lbl" data-i18n="set_food">Питание</div>
     <div class="st-card">
-      <div class="st-row" onclick="HFX.light();SFX.play('sheet_open');ed('kcal')"><div class="sr-ico-wrap red" style="filter:drop-shadow(0 1px 1px rgba(0,0,0,.3))">🔥</div><div class="sr-txt"><div class="sr-t">Норма калорий</div><div class="sr-s">Авторасчёт по параметрам</div></div><span class="sr-v" id="skcal">—</span></div>
-      <div class="st-row" onclick="HFX.light();SFX.play('sheet_open');ed('prefs')"><div class="sr-ico-wrap" style="background:linear-gradient(135deg,#34d399,#059669)">🥗</div><div class="sr-txt"><div class="sr-t">Предпочтения и аллергии</div><div class="sr-s" id="sprefs">Не указаны</div></div><span class="sr-arr">›</span></div>
+      <div class="st-row" onclick="HFX.light();SFX.play('sheet_open');ed('kcal')"><div class="sr-ico-wrap red" style="filter:drop-shadow(0 1px 1px rgba(0,0,0,.3))">🔥</div><div class="sr-txt"><div class="sr-t" data-i18n="set_kcal_norm">Норма калорий</div><div class="sr-s" data-i18n="set_kcal_sub">Авторасчёт по параметрам</div></div><span class="sr-v" id="skcal">—</span></div>
+      <div class="st-row" onclick="HFX.light();SFX.play('sheet_open');ed('prefs')"><div class="sr-ico-wrap" style="background:linear-gradient(135deg,#34d399,#059669)">🥗</div><div class="sr-txt"><div class="sr-t" data-i18n="set_prefs">Предпочтения и аллергии</div><div class="sr-s" id="sprefs" data-i18n="set_no_prefs">Не указаны</div></div><span class="sr-arr">›</span></div>
     </div>
   </div>
   <div class="st-sec">
-    <div class="st-lbl">API</div>
+    <div class="st-lbl" data-i18n="set_api">API</div>
     <div class="st-card">
-      <div class="st-row" onclick="HFX.light();SFX.play('sheet_open');openApi()"><div class="sr-ico-wrap indigo" style="filter:drop-shadow(0 1px 1px rgba(0,0,0,.3))">🔑</div><div class="sr-txt"><div class="sr-t">Gemini API ключ</div><div class="sr-s" id="sapi">Не установлен</div></div><span class="sr-arr">›</span></div>
-      <div class="st-row" onclick="HFX.light();SFX.play('sheet_open');openModelPicker()"><div class="sr-ico-wrap purple" style="filter:drop-shadow(0 1px 1px rgba(0,0,0,.25))">🧠</div><div class="sr-txt"><div class="sr-t">Модель Gemini</div><div class="sr-s" id="smodel">gemini-2.0-flash-lite</div></div><span class="sr-arr">›</span></div>
+      <div class="st-row" onclick="HFX.light();SFX.play('sheet_open');openApi()"><div class="sr-ico-wrap indigo" style="filter:drop-shadow(0 1px 1px rgba(0,0,0,.3))">🔑</div><div class="sr-txt"><div class="sr-t" data-i18n="set_api_key">Gemini API ключ</div><div class="sr-s" id="sapi" data-i18n="set_api_unset">Не установлен</div></div><span class="sr-arr">›</span></div>
+      <div class="st-row" onclick="HFX.light();SFX.play('sheet_open');openModelPicker()"><div class="sr-ico-wrap purple" style="filter:drop-shadow(0 1px 1px rgba(0,0,0,.25))">🧠</div><div class="sr-txt"><div class="sr-t" data-i18n="set_model">Модель Gemini</div><div class="sr-s" id="smodel">gemini-2.0-flash-lite</div></div><span class="sr-arr">›</span></div>
     </div>
   </div>
   <div class="st-sec">
-    <div class="st-lbl">Уведомления</div>
+    <div class="st-lbl" data-i18n="set_notifs">Уведомления</div>
     <div class="st-card">
       <div class="st-row" onclick="HFX.light();SFX.play('sheet_open');openNotifSettings()">
         <div class="sr-ico-wrap" style="background:linear-gradient(145deg,#fb923c,#ef4444)">🔔</div>
-        <div class="sr-txt"><div class="sr-t">Напоминания</div><div class="sr-s" id="notifStatus">Настрой время напоминаний</div></div>
+        <div class="sr-txt"><div class="sr-t" data-i18n="set_reminders">Напоминания</div><div class="sr-s" id="notifStatus" data-i18n="set_reminders_sub">Настрой время напоминаний</div></div>
         <span class="sr-arr" id="notifArr">›</span>
       </div>
     </div>
   </div>
   <div class="st-sec">
-    <div class="st-lbl">Данные</div>
+    <div class="st-lbl" data-i18n="set_data">Данные</div>
     <div class="st-card">
       <button class="export-btn" onclick="HFX.medium();SFX.play('export_done');exportCSV()" style="color:var(--ok)">
         <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="stroke:var(--ok)">
           <rect x="3" y="3" width="18" height="18" rx="2"/><path d="M8 12h8M12 8v8"/>
         </svg>
-        Экспорт в CSV (Excel)
+        <span data-i18n="set_export_csv">Экспорт в CSV (Excel)</span>
       </button>
       <button class="export-btn" onclick="HFX.medium();exportJSON()">
         <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
           <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/>
         </svg>
-        Экспорт данных (JSON)
+        <span data-i18n="set_export_json">Экспорт данных (JSON)</span>
       </button>
       <button class="export-btn" onclick="HFX.light();SFX.play('btn_tap');document.getElementById('importFileInput').click()" style="color:var(--ok)">
         <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="stroke:var(--ok)">
           <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 14 12 9 17 14"/><line x1="12" y1="9" x2="12" y2="21"/>
         </svg>
-        Импорт данных (JSON)
+        <span data-i18n="set_import_json">Импорт данных (JSON)</span>
       </button>
       <input type="file" id="importFileInput" accept=".json" style="display:none" onchange="HFX.medium();importJSON(this)">
-      <div class="st-row" onclick="HFX.heavy();SFX.play('error');clrAll()"><div class="sr-ico-wrap red" style="filter:drop-shadow(0 1px 1px rgba(0,0,0,.3))">🗑️</div><div class="sr-txt"><div class="sr-t" style="color:var(--err)">Сбросить все данные</div></div></div>
+      <div class="st-row" onclick="HFX.heavy();SFX.play('error');clrAll()"><div class="sr-ico-wrap red" style="filter:drop-shadow(0 1px 1px rgba(0,0,0,.3))">🗑️</div><div class="sr-txt"><div class="sr-t" style="color:var(--err)" data-i18n="set_reset">Сбросить все данные</div></div></div>
     </div>
   </div>
   <div class="st-sec">
-    <div class="st-lbl">О приложении</div>
+    <div class="st-lbl" data-i18n="set_about">О приложении</div>
     <div class="st-card">
       <div class="st-row" onclick="HFX.light();SFX.play('btn_tap');window.open('./widget.html','_blank')">
         <div class="sr-ico-wrap" style="background:linear-gradient(135deg,#6366f1,#8b5cf6)">📊</div>
-        <div class="sr-txt"><div class="sr-t">Виджеты</div><div class="sr-s">Добавить на рабочий стол</div></div>
+        <div class="sr-txt"><div class="sr-t" data-i18n="set_widgets">Виджеты</div><div class="sr-s" data-i18n="set_widgets_sub">Добавить на рабочий стол</div></div>
         <span class="sr-arr">›</span>
       </div>
       <div class="st-row" onclick="HFX.light();SFX.play('sheet_open');openAbout()">
         <div class="sr-ico-wrap" style="background:linear-gradient(135deg,var(--acc),#ff9a3c)">🍎</div>
-        <div class="sr-txt"><div class="sr-t">Авторы CalSnap</div><div class="sr-s">RJV · Rizan</div></div>
+        <div class="sr-txt"><div class="sr-t" data-i18n="set_authors">Авторы CalSnap</div><div class="sr-s">RJV · Rizan</div></div>
         <span class="sr-arr">›</span>
       </div>
     </div>
@@ -2140,10 +2162,10 @@ body.modal-open { overflow: hidden !important; touch-action: none; }
 <div id="installBanner" style="display:none;position:fixed;bottom:80px;left:12px;right:12px;background:var(--bg1);border:2px solid var(--acc);border-radius:20px;padding:14px 16px;z-index:500;align-items:center;gap:12px;box-shadow:0 4px 20px rgba(0,0,0,0.12)">
   <div style="font-size:32px">📲</div>
   <div style="flex:1">
-    <div style="font-size:14px;font-weight:800;color:var(--t0)">Установить CalSnap</div>
-    <div style="font-size:12px;color:var(--t1);margin-top:2px">Работает без интернета</div>
+    <div style="font-size:14px;font-weight:800;color:var(--t0)" data-i18n="install_title">Установить CalSnap</div>
+    <div style="font-size:12px;color:var(--t1);margin-top:2px" data-i18n="install_sub">Работает без интернета</div>
   </div>
-  <button onclick="HFX.medium();SFX.play('install');installPWA()" style="background:var(--acc);color:#fff;border:none;border-radius:12px;padding:8px 16px;font-size:13px;font-weight:700;cursor:pointer">Установить</button>
+  <button onclick="HFX.medium();SFX.play('install');installPWA()" style="background:var(--acc);color:#fff;border:none;border-radius:12px;padding:8px 16px;font-size:13px;font-weight:700;cursor:pointer" data-i18n="install_btn">Установить</button>
   <button onclick="HFX.light();SFX.play('btn_tap');dismissInstallBanner()" style="background:none;border:none;font-size:18px;cursor:pointer;color:var(--t1);padding:0 4px">✕</button>
 </div>
 <!-- BOTTOM NAV -->
@@ -2174,13 +2196,13 @@ body.modal-open { overflow: hidden !important; touch-action: none; }
 <div class="ov" id="addOv" onclick="if(event.target===this){HFX.light();closeAdd();}">
   <div class="sheet">
     <div class="sh-handle"></div>
-    <div class="sh-hdr"><h3>Добавить еду</h3><button class="sh-close" onclick="HFX.light();SFX.play('sheet_close');closeAdd()">✕</button></div>
+    <div class="sh-hdr"><h3 data-i18n="add_food_title">Добавить еду</h3><button class="sh-close" onclick="HFX.light();SFX.play('sheet_close');closeAdd()">✕</button></div>
     <div class="tabs" id="addTabs">
       <div class="tabs-pill" id="addTabPill"></div>
-      <button class="tab on" id="addTab0" onclick="HFX.tick();SFX.play('btn_tap');swTab('photo',this,0)">📷 Фото</button>
-      <button class="tab" id="addTab1" onclick="HFX.tick();SFX.play('btn_tap');swTab('text',this,1)">✍️ Текст</button>
-      <button class="tab" id="addTab2" onclick="HFX.tick();SFX.play('btn_tap');swTab('barcode',this,2)">📦 Штрихкод</button>
-      <button class="tab" id="addTab3" onclick="HFX.tick();SFX.play('btn_tap');swTab('favs',this,3)">⭐ Избранное</button>
+      <button class="tab on" id="addTab0" onclick="HFX.tick();SFX.play('btn_tap');swTab('photo',this,0)" data-i18n="tab_photo">📷 Фото</button>
+      <button class="tab" id="addTab1" onclick="HFX.tick();SFX.play('btn_tap');swTab('text',this,1)" data-i18n="tab_text">✍️ Текст</button>
+      <button class="tab" id="addTab2" onclick="HFX.tick();SFX.play('btn_tap');swTab('barcode',this,2)" data-i18n="tab_barcode">📦 Штрихкод</button>
+      <button class="tab" id="addTab3" onclick="HFX.tick();SFX.play('btn_tap');swTab('favs',this,3)" data-i18n="tab_favs">⭐ Избранное</button>
 
     </div>
 
@@ -2188,26 +2210,26 @@ body.modal-open { overflow: hidden !important; touch-action: none; }
     <div class="panel on" id="tp-photo">
       <div class="upzone" id="upz" style="display:block">
         <span class="ui">📷</span>
-        <h4>Добавить фото</h4>
-        <p>Выбери способ</p>
+        <h4 data-i18n="photo_add_title">Добавить фото</h4>
+        <p data-i18n="photo_pick_way">Выбери способ</p>
         <div style="display:flex;gap:10px;margin-top:16px;position:relative;z-index:1">
-          <button onclick="document.getElementById('phinp_cam').click()" style="flex:1;background:var(--t0);color:var(--bg0);border:none;border-radius:var(--r1);padding:13px;font-size:14px;font-weight:700;cursor:pointer;transition:opacity .12s" ontouchstart="this.style.opacity=.75" ontouchend="this.style.opacity=1">📷 Камера</button>
-          <button onclick="document.getElementById('phinp_gal').click()" style="flex:1;background:var(--f1);border:none;border-radius:12px;padding:13px;font-size:14px;font-weight:600;cursor:pointer;color:var(--t0)">🖼 Галерея</button>
+          <button onclick="document.getElementById('phinp_cam').click()" style="flex:1;background:var(--t0);color:var(--bg0);border:none;border-radius:var(--r1);padding:13px;font-size:14px;font-weight:700;cursor:pointer;transition:opacity .12s" ontouchstart="this.style.opacity=.75" ontouchend="this.style.opacity=1" data-i18n="photo_camera">📷 Камера</button>
+          <button onclick="document.getElementById('phinp_gal').click()" style="flex:1;background:var(--f1);border:none;border-radius:12px;padding:13px;font-size:14px;font-weight:600;cursor:pointer;color:var(--t0)" data-i18n="photo_gallery">🖼 Галерея</button>
         </div>
         <input type="file" id="phinp_cam" accept="image/*" capture="environment" onchange="onPhoto(event)" style="display:none">
         <input type="file" id="phinp_gal" accept="image/*" onchange="onPhoto(event)" style="display:none">
       </div>
       <div class="prev-wrap" id="prevw" style="display:none">
         <img id="previmg" src="" alt="">
-        <button class="prev-change" onclick="HFX.light();SFX.play('btn_tap');rstPhoto()">Изменить</button>
+        <button class="prev-change" onclick="HFX.light();SFX.play('btn_tap');rstPhoto()" data-i18n="photo_change">Изменить</button>
       </div>
       <div id="phDescWrap" style="display:none;margin-bottom:10px">
-        <textarea id="phDesc" class="txa" placeholder="Необязательно: опиши блюдо для точности AI&#10;Например: домашний борщ со сметаной, большая тарелка" style="min-height:72px;font-size:14px"></textarea>
+        <textarea id="phDesc" class="txa" placeholder="Необязательно: опиши блюдо для точности AI&#10;Например: домашний борщ со сметаной, большая тарелка" data-i18n-placeholder="photo_desc_ph" style="min-height:72px;font-size:14px"></textarea>
       </div>
       <div id="phAbtn" style="display:none;margin-bottom:12px">
-        <button class="btn" onclick="HFX.medium();SFX.play('btn_tap');doPhoto()">🔍 Анализировать</button>
+        <button class="btn" onclick="HFX.medium();SFX.play('btn_tap');doPhoto()" data-i18n="photo_analyze">🔍 Анализировать</button>
       </div>
-      <div class="ldr" id="phldr"><div class="sp"></div><p id="ldrtxt">Gemini анализирует…</p></div>
+      <div class="ldr" id="phldr"><div class="sp"></div><p id="ldrtxt" data-i18n="gemini_analyzing">Gemini анализирует…</p></div>
       <div class="err" id="pherr"></div>
       <div class="res" id="phres">
         <img class="res-img" id="resimg" src="" alt="">
@@ -2216,9 +2238,9 @@ body.modal-open { overflow: hidden !important; touch-action: none; }
           <div class="res-portion" id="rp">—</div>
           <div class="res-kcal" id="rk">— <small>ккал</small></div>
           <div class="res-macs">
-            <div class="rm p"><div class="rv" id="rpr">—</div><div class="rk2" style="font-size:10px;color:var(--t1);font-weight:600;margin-top:2px;text-transform:uppercase;letter-spacing:.3px">Белки</div></div>
-            <div class="rm c"><div class="rv" id="rcr">—</div><div class="rk2" style="font-size:10px;color:var(--t1);font-weight:600;margin-top:2px;text-transform:uppercase;letter-spacing:.3px">Углев.</div></div>
-            <div class="rm f"><div class="rv" id="rfr">—</div><div class="rk2" style="font-size:10px;color:var(--t1);font-weight:600;margin-top:2px;text-transform:uppercase;letter-spacing:.3px">Жиры</div></div>
+            <div class="rm p"><div class="rv" id="rpr">—</div><div class="rk2" style="font-size:10px;color:var(--t1);font-weight:600;margin-top:2px;text-transform:uppercase;letter-spacing:.3px" data-i18n="macro_protein">Белки</div></div>
+            <div class="rm c"><div class="rv" id="rcr">—</div><div class="rk2" style="font-size:10px;color:var(--t1);font-weight:600;margin-top:2px;text-transform:uppercase;letter-spacing:.3px" data-i18n="macro_carbs">Углев.</div></div>
+            <div class="rm f"><div class="rv" id="rfr">—</div><div class="rk2" style="font-size:10px;color:var(--t1);font-weight:600;margin-top:2px;text-transform:uppercase;letter-spacing:.3px" data-i18n="macro_fat">Жиры</div></div>
           </div>
           <div class="res-desc" id="rd"></div>
           <div id="ringrlist"></div>
@@ -2766,6 +2788,28 @@ const I18N = {
     streak_days: 'дней',
     api_bar_title: 'Нужен API ключ Gemini',
     api_bar_sub: 'Нажми → получи бесплатно за 1 мин',
+    photo_parse_error: 'Не удалось разобрать ответ AI. Попробуй ещё раз или опиши блюдо вручную.',
+    install_title: 'Установить CalSnap',
+    install_sub: 'Работает без интернета',
+    install_btn: 'Установить',
+    photo_add_title: 'Добавить фото',
+    photo_pick_way: 'Выбери способ',
+    photo_camera: '📷 Камера',
+    photo_gallery: '🖼 Галерея',
+    photo_change: 'Изменить',
+    photo_desc_ph: 'Необязательно: опиши блюдо для точности AI\nНапример: домашний борщ со сметаной, большая тарелка',
+    photo_analyze: '🔍 Анализировать',
+    gemini_analyzing: 'Gemini анализирует…',
+    ai_title: 'AI Нутрициолог',
+    ai_online: 'Онлайн',
+    ai_sug_norm: '🔥 Моя норма?',
+    ai_sug_eat: '💡 Что съесть?',
+    ai_sug_diet: '📊 Мой рацион',
+    ai_sug_bulk: '🏋️ Набор массы',
+    ai_sug_snack: '⚡ Быстрый перекус',
+    ai_sug_cut: '🥗 Дефицит калорий',
+    ai_welcome_hi: 'Привет',
+    ai_chips_label: 'ПОПРОБУЙ СПРОСИТЬ',
     // Misc
     not_set: 'Не указаны',
   },
@@ -2980,6 +3024,28 @@ const I18N = {
     water_history_today: "Today's history",
     api_bar_title: 'Gemini API key needed',
     api_bar_sub: 'Tap → get a free key in 1 min',
+    photo_parse_error: "Couldn't parse the AI response. Try again or describe the meal manually.",
+    install_title: 'Install CalSnap',
+    install_sub: 'Works offline',
+    install_btn: 'Install',
+    photo_add_title: 'Add a photo',
+    photo_pick_way: 'Pick a source',
+    photo_camera: '📷 Camera',
+    photo_gallery: '🖼 Gallery',
+    photo_change: 'Change',
+    photo_desc_ph: 'Optional: describe the dish for better AI accuracy\nE.g.: homemade borscht with sour cream, large bowl',
+    photo_analyze: '🔍 Analyze',
+    gemini_analyzing: 'Gemini is analyzing…',
+    ai_title: 'AI Nutritionist',
+    ai_online: 'Online',
+    ai_sug_norm: '🔥 My target?',
+    ai_sug_eat: '💡 What to eat?',
+    ai_sug_diet: '📊 My nutrition',
+    ai_sug_bulk: '🏋️ Bulk up',
+    ai_sug_snack: '⚡ Quick snack',
+    ai_sug_cut: '🥗 Calorie deficit',
+    ai_welcome_hi: 'Hi',
+    ai_chips_label: 'TRY ASKING',
     // Misc
     not_set: 'Not set',
   },
@@ -4038,17 +4104,23 @@ function initAi(){
   if(!chatHistory||chatHistory<=2){
   c.innerHTML='';
   // Welcome card
-  const wcard=documentt.createElement('div');
+  const wcard=document.createElement('div');
   wcard.className='ai-welcome';
+  const _kcalUnit=t('unit_kcal');
+  const _mlUnit=t('water_ml');
+  const _ofWord=LANG==='en'?'of':'из';
+  const _goalWord=LANG==='en'?'Goal':'Цель';
+  const _leftWord=LANG==='en'?'left':'Осталось';
+  const _todayWord=LANG==='en'?'Today':'Сегодня';
   wcard.innerHTML=`
     <span class="ai-welcome-icon">🤖</span>
-    <div class="ai-welcome-title">Привет, ${U?.name||''}!</div>
-    <div class="ai-welcome-sub">Сегодня: <b style="color:#FF8C00">${tt.k} ккал</b> из ${U?.kcal||2000} · 💧 <b style="color:#3b82f6">${waterNow}мл</b> из ${waterTarget}мл${waterTimeline ? '<br><span style="font-size:11px;color:var(--t2)">' + waterTimeline + '</span>' : ''}<br>Цель: «${GL[U?.goal]||'—'}» · Осталось <b>${Math.max(0,(U?.kcal||2000)-tt.k)}</b> ккал</div>
+    <div class="ai-welcome-title">${t('ai_welcome_hi')}, ${U?.name||''}!</div>
+    <div class="ai-welcome-sub">${_todayWord}: <b style="color:#FF8C00">${tt.k} ${_kcalUnit}</b> ${_ofWord} ${U?.kcal||2000} · 💧 <b style="color:#3b82f6">${waterNow}${_mlUnit}</b> ${_ofWord} ${waterTarget}${_mlUnit}${waterTimeline ? '<br><span style="font-size:11px;color:var(--t2)">' + waterTimeline + '</span>' : ''}<br>${_goalWord}: «${GL[U?.goal]||'—'}» · ${_leftWord} <b>${Math.max(0,(U?.kcal||2000)-tt.k)}</b> ${_kcalUnit}</div>
   `;
   c.appendChild(wcard);
-  const lbl=documentt.createElement('div');
+  const lbl=document.createElement('div');
   lbl.className='ai-chips-label';
-  lbl.textContent='ПОПРОБУЙ СПРОСИТЬ';
+  lbl.textContent=t('ai_chips_label');
   c.appendChild(lbl);
   } // end if no chat history
 }
@@ -4165,14 +4237,14 @@ ${foodLog}
 - НЕ повторяй данные которые пользователь уже знает`;
 
   // Show typing indicator
-  const lm=documentt.createElement('div');lm.className='msg msg-ai';
+  const lm=document.createElement('div');lm.className='msg msg-ai';
   lm.innerHTML='<div class="msg-ai-wrap"><div class="msg-ai-ava">🤖</div><div class="typing-indicator"><div class="typing-dot"></div><div class="typing-dot"></div><div class="typing-dot"></div></div></div>';
   const _c=document.getElementById('aimsg');_c.appendChild(lm);_c.scrollTop=_c.scrollHeight;
   try{
     const r=await gem([{text:txt}],sys);
     HFX.double();_aiThinkStop();
     SFX.play('ai_reply');
-    const _bbl=documentt.createElement('div');_bbl.className='bbl';_bbl.innerHTML=fmt(r);
+    const _bbl=document.createElement('div');_bbl.className='bbl';_bbl.innerHTML=fmt(r);
     lm.innerHTML='<div class="msg-ai-wrap"><div class="msg-ai-ava">🤖</div></div>';
     lm.querySelector('.msg-ai-wrap').appendChild(_bbl);
     _c.scrollTop=_c.scrollHeight;
@@ -4287,11 +4359,19 @@ async function doPhoto(){
     const descHint=userDesc?`\nUser hint: "${userDesc}" — use this to clarify the dish name and portion.`:'';
     const p=`Analyze this food photo.${descHint}\nReturn ONLY JSON, no other text:\n{"food":"name in Russian","portion":"amount","calories":200,"protein":10,"fat":8,"carbs":20,"description":"brief description","ingredients":[{"name":"ingredient","calories":50}]}`;
     let raw='';
-    try{ raw=await gem([{text:p},{inline_data:{mime_type:mime,data:imgData}}]); }
+    try{ raw=await gem([{text:p},{inline_data:{mime_type:mime,data:imgData}}],'',{json:true,maxOutputTokens:2048}); }
     catch(e){ throw new Error('Gemini API: '+(e.message||e)); }
     let r;
     try{ r=pj(raw); }
-    catch(e){ throw new Error('Ответ Gemini: '+raw.slice(0,120)); }
+    catch(e){
+      // One retry without JSON mode in case the model misbehaves with structured output.
+      try{
+        raw=await gem([{text:p+'\nReturn ONLY raw JSON, no markdown.'},{inline_data:{mime_type:mime,data:imgData}}],'',{maxOutputTokens:2048});
+        r=pj(raw);
+      } catch(e2){
+        throw new Error(t('photo_parse_error','Не удалось разобрать ответ AI. Попробуй ещё раз или опиши блюдо вручную.'));
+      }
+    }
     cur.photo={food:r.food,portion:r.portion,kcal:r.calories||0,prot:r.protein||0,fat:r.fat||0,carb:r.carbs||0,img:'data:image/jpeg;base64,'+imgData,time:tnow(),date:ds(),desc:r.description||'',ingr:r.ingredients||[]};
     document.getElementById('rn').textContent=r.food||'Блюдо';
     document.getElementById('rp').textContent=r.portion||'';
@@ -4340,7 +4420,7 @@ async function doText(){
 Respond with ONLY a valid JSON object. No text before or after. No markdown. Example format:
 {"food":"Гречка с курицей","portion":"250г","calories":320,"protein":28,"fat":8,"carbs":35,"description":"Гречневая каша с куриной грудкой. Сбалансированное блюдо с высоким содержанием белка."}
 Now calculate for what the user ate and return JSON in same format:`;
-    const raw=await gem([{text:p}]);
+    const raw=await gem([{text:p}],'',{json:true,maxOutputTokens:2048});
     const r=pj(raw);
     cur.text={food:r.food,portion:r.portion,kcal:r.calories||0,prot:r.protein||0,fat:r.fat||0,carb:r.carbs||0,time:tnow(),date:ds(),desc:r.description||'',ingr:r.ingredients||[]};
     document.getElementById('trn').textContent=r.food||txt;
@@ -4470,7 +4550,7 @@ async function doBarcode(e){
 Respond with ONLY a valid JSON object. No text before or after. No markdown. Example:
 {"food":"Чипсы Lay's Сметана","portion":"30г","calories":165,"protein":2,"fat":11,"carbs":15,"description":"Картофельные чипсы. Высококалорийный снек."}
 Return JSON for the product in this photo:`;
-    const raw=await gem([{text:p},{inline_data:{mime_type:mime,data:b}}]);
+    const raw=await gem([{text:p},{inline_data:{mime_type:mime,data:b}}],'',{json:true,maxOutputTokens:2048});
     const r=pj(raw);
     _renderBarcodeResult(r);
   }catch(e){HFX.error();SFX.play('ai_error');showErr('bcerr', String(e.message||e||'Ошибка анализа'));}
@@ -4677,13 +4757,15 @@ function selectModel(id){
     </div>
   `).join('');
 }
-async function gem(parts,sys=''){
+async function gem(parts,sys='',opts={}){
   if(!key) throw new Error('API ключ не установлен. Добавь в Настройках → API');
   const models=[selModel,'gemini-2.5-flash-lite-preview-06-17','gemini-2.0-flash-lite','gemini-2.0-flash'].filter((v,i,a)=>a.indexOf(v)===i);
   let lastErr;
   for(const m of models){
     try{
-      const body={contents:[{parts}],generationConfig:{temperature:0.2,maxOutputTokens:1024}};
+      const generationConfig={temperature:opts.temperature ?? 0.2, maxOutputTokens:opts.maxOutputTokens ?? 2048};
+      if(opts.json) generationConfig.responseMimeType='application/json';
+      const body={contents:[{parts}],generationConfig};
       if(sys)body.system_instruction={parts:[{text:sys}]};
       // No AbortSignal — SW structured clone fails with it
       const r=await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${m}:generateContent?key=${key}`,
@@ -4748,19 +4830,43 @@ function pj(raw){
      .replace(/[`\u2018\u2019\u201B\u02CB\uFF40]{3,}/g,'')
      .replace(/^[`\u2018\u2019\u201B\u02CB\uFF40]+|[`\u2018\u2019\u201B\u02CB\uFF40]+$/g,'')
      .trim();
-  // Find outermost JSON object
-  const start=c.indexOf('{'), end=c.lastIndexOf('}');
-  if(start===-1||end===-1) throw new Error('JSON не найден в ответе');
-  let obj;
-  try{ obj=JSON.parse(c.slice(start,end+1)); }
-  catch(e){
-    // Try to fix common issues: trailing commas, smart quotes
-    let fixed=c.slice(start,end+1)
-      .replace(/,\s*}/g,'}').replace(/,\s*]/g,']')
-      .replace(/[\u201C\u201D]/g,'"').replace(/[\u2018\u2019]/g,"'");
-    try{ obj=JSON.parse(fixed); }
-    catch(e2){ throw new Error('Не удалось разобрать JSON'); }
+  // Find outermost JSON object via balanced-brace match (handles trailing prose).
+  const start=c.indexOf('{');
+  if(start===-1) throw new Error('JSON не найден в ответе');
+  let depth=0, end=-1, inStr=false, esc=false;
+  for(let i=start;i<c.length;i++){
+    const ch=c[i];
+    if(esc){ esc=false; continue; }
+    if(ch==='\\'){ esc=true; continue; }
+    if(ch==='"'){ inStr=!inStr; continue; }
+    if(inStr) continue;
+    if(ch==='{') depth++;
+    else if(ch==='}'){ depth--; if(depth===0){ end=i; break; } }
   }
+  let candidate;
+  if(end!==-1){
+    candidate=c.slice(start,end+1);
+  } else {
+    // Truncated JSON: try to repair by closing open braces/strings.
+    candidate=c.slice(start);
+    if(inStr) candidate+='"';
+    while(depth-->0) candidate+='}';
+  }
+  const tryParse=(s)=>{ try{ return JSON.parse(s); } catch(e){ return null; } };
+  let obj=tryParse(candidate);
+  if(!obj){
+    const fixed=candidate
+      .replace(/,\s*}/g,'}').replace(/,\s*]/g,']')
+      .replace(/[\u201C\u201D]/g,'"').replace(/[\u2018\u2019]/g,"'")
+      .replace(/[\u00A0]/g,' ');
+    obj=tryParse(fixed);
+  }
+  if(!obj){
+    // Last attempt: drop a trailing partial value after the last comma.
+    const cut=candidate.replace(/,[^,}\]]*$/,'');
+    obj=tryParse(cut.endsWith('}')?cut:cut+'}');
+  }
+  if(!obj) throw new Error('Не удалось разобрать JSON');
   // Ensure numeric fields
   ['calories','protein','fat','carbs'].forEach(k=>{
     if(typeof obj[k]==='string') obj[k]=parseFloat(obj[k])||0;
@@ -5639,7 +5745,7 @@ async function loadWeekAnalysis(force=false) {
   const sys=`Ты персональный нутрициолог. Данные пользователя: ${U?.name}, цель: ${GL[U?.goal]||'—'}, норма: ${U?.kcal||2000}ккал.\nВода за 7 дней: ${waterSummary}\nВес (последние записи): ${wts.slice(0,5).map(w=>w.v+'кг').join(' → ')||'нет данных'}\nДанные за последние дни:\n${daysSummary}\n\nДай анализ в формате JSON:\n{"good":"что хорошо (1-2 предложения)","warn":"что стоит улучшить (1-2 предложения)","tip":"конкретный совет на следующую неделю (1-2 предложения)"}\nТолько JSON, по-русски, кратко.`;
 
   try {
-    const raw = await gem([{text:'Анализ питания за неделю'}], sys);
+    const raw = await gem([{text:'Анализ питания за неделю'}], sys, {json:true,maxOutputTokens:1024});
     let r; try{r=pj(raw);}catch(e){r={good:'Стабильное питание.',warn:'Старайся записывать все приёмы пищи.',tip:'Добавь больше белка в рацион.'};}
     const data = {good:r.good||'',warn:r.warn||'',tip:r.tip||'', date:ds()};
     S(wkKey, JSON.stringify(data));
