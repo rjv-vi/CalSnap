@@ -7,7 +7,7 @@
 // • Notification click focuses existing tab
 // ═══════════════════════════════════════════════════
 
-const CACHE = 'calsnap-v5';
+const CACHE = 'calsnap-v6';
 const NOTIF_CACHE = 'calsnap-notif';
 
 const ICONS = [
@@ -76,8 +76,8 @@ self.addEventListener('fetch', e => {
       try {
         const res = await fetch(req);
         if (res.ok) {
-          const c = await caches.open(CACHE);
-          c.put(req, res.clone()).catch(() => {});
+          const copy = res.clone();
+          caches.open(CACHE).then(c => c.put(req, copy).catch(() => {}));
         }
         return res;
       } catch {
@@ -101,7 +101,10 @@ self.addEventListener('fetch', e => {
     e.respondWith((async () => {
       const cached = await caches.match(req);
       const fetchP = fetch(req).then(res => {
-        if (res.ok) caches.open(CACHE).then(c => c.put(req, res.clone()));
+        if (res.ok) {
+          const copy = res.clone();
+          caches.open(CACHE).then(c => c.put(req, copy).catch(() => {}));
+        }
         return res;
       }).catch(() => cached);
       return cached || fetchP;
@@ -114,7 +117,10 @@ self.addEventListener('fetch', e => {
     e.respondWith((async () => {
       try {
         const res = await fetch(req);
-        if (res.ok) caches.open(CACHE).then(c => c.put(req, res.clone()));
+        if (res.ok) {
+          const copy = res.clone();
+          caches.open(CACHE).then(c => c.put(req, copy).catch(() => {}));
+        }
         return res;
       } catch {
         return (await caches.match(req)) || (await caches.match('./index.html'));
@@ -129,7 +135,10 @@ self.addEventListener('fetch', e => {
     if (cached) return cached;
     try {
       const res = await fetch(req);
-      if (res.ok) caches.open(CACHE).then(c => c.put(req, res.clone()));
+      if (res.ok) {
+        const copy = res.clone();
+        caches.open(CACHE).then(c => c.put(req, copy).catch(() => {}));
+      }
       return res;
     } catch {
       return (await caches.match('./index.html')) || new Response('', { status: 504 });
