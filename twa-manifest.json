@@ -21,13 +21,15 @@
       "name": "Add food",
       "shortName": "+ Food",
       "url": "/CalSnap/index.html#add",
-      "iconUrl": "https://rjv-vi.github.io/CalSnap/icons/icon-192.png"
+      "chosenIconUrl": "https://rjv-vi.github.io/CalSnap/icons/icon-192.png",
+      "chosenMonochromeIconUrl": "https://rjv-vi.github.io/CalSnap/icons/icon-192.png"
     },
     {
       "name": "Scan barcode",
       "shortName": "Barcode",
       "url": "/CalSnap/index.html#scan",
-      "iconUrl": "https://rjv-vi.github.io/CalSnap/icons/icon-192.png"
+      "chosenIconUrl": "https://rjv-vi.github.io/CalSnap/icons/icon-192.png",
+      "chosenMonochromeIconUrl": "https://rjv-vi.github.io/CalSnap/icons/icon-192.png"
     }
   ],
   "generatorApp": "bubblewrap-cli",
