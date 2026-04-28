@@ -267,7 +267,7 @@ function closeDevPanel(){
 }
 async function devForceUpdate(){
   showConfirm('🔄',t('confirm_force_title'),t('confirm_force_body'),t('confirm_force_btn'),async()=>{
-    localStorage.removeItem('_etag');
+    localStorage.removeItem('_etag'); Ginvalidate('_etag');
     if('serviceWorker' in navigator){const r=await navigator.serviceWorker.getRegistrations();await Promise.all(r.map(x=>x.unregister()));}
     if('caches' in window){const ks=await caches.keys();await Promise.all(ks.map(k=>caches.delete(k)));}
     window.location.replace(location.pathname+'?_='+Date.now());

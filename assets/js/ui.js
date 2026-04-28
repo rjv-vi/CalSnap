@@ -278,7 +278,7 @@ function clrAll(){
     log=[];S('log','[]');wts=[];S('wts','[]');S('u','null');U=null;S('key','');key='';S('mdl','');
     // Clear water data for all dates
     const keysToRemove=[];for(let i=0;i<localStorage.length;i++){const k=localStorage.key(i);if(k&&(k.startsWith('water_')||k.startsWith('tip_')||k==='notif_cfg'||k==='notif_enabled'))keysToRemove.push(k);}
-    keysToRemove.forEach(k=>localStorage.removeItem(k));
+    keysToRemove.forEach(k=>{ localStorage.removeItem(k); Ginvalidate(k); });
     document.getElementById('nav').style.display='none';
     // Brief delay for animation
     setTimeout(()=>ss('ob'),150);

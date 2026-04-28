@@ -1,5 +1,26 @@
-const G=(k,d='')=>{try{return localStorage.getItem(k)||d}catch(e){return d}};
-const S=(k,v)=>{try{localStorage.setItem(k,v)}catch(e){}};
+// localStorage helpers with a small in-memory cache to avoid repeated
+// synchronous IPC during hot render paths (rH/rCal/rP/rWater all read the
+// same keys multiple times per render). Cache is invalidated on S() and on
+// the `storage` event so cross-tab updates still flow through.
+const _lsCache = Object.create(null);
+const G=(k,d='')=>{
+  if (k in _lsCache) {
+    const v = _lsCache[k];
+    return v == null ? d : v;
+  }
+  try {
+    const v = localStorage.getItem(k);
+    _lsCache[k] = v;
+    return v == null ? d : v;
+  } catch(e) { return d; }
+};
+const S=(k,v)=>{
+  _lsCache[k] = v == null ? null : String(v);
+  try { localStorage.setItem(k, v); } catch(e) {}
+};
+// Drop the cache for a key (or everything) — used by reset / import flows.
+const Ginvalidate=(k)=>{ if(k==null){ for(const x in _lsCache) delete _lsCache[x]; } else { delete _lsCache[k]; } };
+try { window.addEventListener('storage', e => { if (e.key) delete _lsCache[e.key]; else Ginvalidate(); }); } catch(e) {}
 
 // State
 let U=JSON.parse(G('u','null')),
