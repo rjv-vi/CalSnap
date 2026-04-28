@@ -135,8 +135,10 @@ jobs:
           # --skipVersionUpgrade keeps the versionCode/versionName as patched
           # by the previous step instead of bubblewrap auto-bumping them.
           # Pipe "n" repeatedly so that any unforeseen interactive prompt
-          # falls back to the default rather than hanging the build.
-          yes n | bubblewrap update --skipVersionUpgrade
+          # falls back to the default. `|| true` swallows the SIGPIPE/141
+          # `yes` receives when bubblewrap closes its stdin, which would
+          # otherwise fail the step under bash's default `pipefail`.
+          (yes n || true) | bubblewrap update --skipVersionUpgrade
 
       - name: Build APK + AAB
         env:
