@@ -1,0 +1,54 @@
+{
+  "packageId": "com.rjv.calsnap",
+  "host": "rjv-vi.github.io",
+  "name": "CalSnap",
+  "launcherName": "CalSnap",
+  "display": "standalone",
+  "themeColor": "#0F0E0C",
+  "themeColorDark": "#0F0E0C",
+  "navigationColor": "#0F0E0C",
+  "navigationColorDark": "#0F0E0C",
+  "navigationDividerColor": "#0F0E0C",
+  "navigationDividerColorDark": "#0F0E0C",
+  "backgroundColor": "#0F0E0C",
+  "enableNotifications": true,
+  "startUrl": "/CalSnap/index.html",
+  "iconUrl": "https://rjv-vi.github.io/CalSnap/icons/icon-512.png",
+  "maskableIconUrl": "https://rjv-vi.github.io/CalSnap/icons/icon-512.png",
+  "monochromeIconUrl": "https://rjv-vi.github.io/CalSnap/icons/icon-512.png",
+  "shortcuts": [
+    {
+      "name": "Add food",
+      "shortName": "+ Food",
+      "url": "/CalSnap/index.html#add",
+      "iconUrl": "https://rjv-vi.github.io/CalSnap/icons/icon-192.png"
+    },
+    {
+      "name": "Scan barcode",
+      "shortName": "Barcode",
+      "url": "/CalSnap/index.html#scan",
+      "iconUrl": "https://rjv-vi.github.io/CalSnap/icons/icon-192.png"
+    }
+  ],
+  "generatorApp": "bubblewrap-cli",
+  "webManifestUrl": "https://rjv-vi.github.io/CalSnap/manifest.json",
+  "fallbackType": "customtabs",
+  "features": {
+    "locationDelegation": { "enabled": false },
+    "playBilling": { "enabled": false }
+  },
+  "alphaDependencies": { "enabled": false },
+  "enableSiteSettingsShortcut": true,
+  "isChromeOSOnly": false,
+  "isMetaQuest": false,
+  "fullScopeUrl": "https://rjv-vi.github.io/CalSnap/",
+  "minSdkVersion": 21,
+  "orientation": "portrait",
+  "appVersionName": "1.0.0",
+  "appVersion": 1,
+  "appVersionCode": 1,
+  "signingKey": {
+    "path": "./android.keystore",
+    "alias": "android"
+  }
+}
