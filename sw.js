@@ -39,6 +39,7 @@ const JS_FILES = [
   './assets/js/sound.js',
   './assets/js/i18n.js',
   './assets/js/state.js',
+  './assets/js/ux.js',
   './assets/js/app.js',
   './assets/js/gemini.js',
   './assets/js/ui.js',

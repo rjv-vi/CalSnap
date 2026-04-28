@@ -16,7 +16,11 @@ async function loadWeekAnalysis(force=false) {
 
   const btn = document.getElementById('weekAiBtn');
   if(btn){ btn.disabled=true; btn.textContent='...'; }
-  document.getElementById('weekAiBody').innerHTML=`<div class="week-ai-empty">${t('week_ai_loading')}</div>`;
+  document.getElementById('weekAiBody').innerHTML=
+    `<div class="skeleton-line" style="width:88%"></div>`+
+    `<div class="skeleton-line" style="width:74%;margin-top:10px"></div>`+
+    `<div class="skeleton-line" style="width:60%;margin-top:10px"></div>`+
+    `<div class="week-ai-empty" style="margin-top:14px;font-size:12px;opacity:.6">${t('week_ai_loading')}</div>`;
   document.getElementById('weekAiSub').textContent=t('week_ai_analyzing');
 
   // Собираем данные за 7 дней

@@ -70,26 +70,14 @@ function rH(){
   ring.style.strokeDasharray=C;
   ring.style.strokeDashoffset=C*(1-pct);
   ring.style.stroke=tt.k>g*1.05?'var(--err)':'var(--acc)';
-  document.getElementById('hpct').textContent=Math.round(pct*100)+'%';
-  // Animated calorie counter
-  const kcalEl=document.getElementById('hkcal');
-  const prevK=parseInt(kcalEl.dataset.val||'0')||0;
-  kcalEl.dataset.val=tt.k;
-  if(prevK!==tt.k){
-    const dur=500,st=performance.now();
-    const animK=now=>{
-      const p=Math.min((now-st)/dur,1),e=1-Math.pow(1-p,4);
-      kcalEl.textContent=Math.round(prevK+(tt.k-prevK)*e);
-      if(p<1)requestAnimationFrame(animK); else kcalEl.textContent=tt.k;
-    };
-    requestAnimationFrame(animK);
-  } else { kcalEl.textContent=tt.k; }
+  tweenNumber(document.getElementById('hpct'), Math.round(pct*100), { suffix:'%', duration:480 });
+  tweenNumber(document.getElementById('hkcal'), tt.k, { duration:520 });
   document.getElementById('hgoal').textContent=g;
   document.getElementById('hrem').textContent=tt.k<=g?tf('h_remaining',{n:g-tt.k}):tf('h_exceeded',{n:tt.k-g});
   const _g = t('unit_g');
-  document.getElementById('hprot').textContent=Math.round(tt.p)+_g;
-  document.getElementById('hcarb').textContent=Math.round(tt.c)+_g;
-  document.getElementById('hfat').textContent=Math.round(tt.f)+_g;
+  tweenNumber(document.getElementById('hprot'), tt.p, { suffix:_g, duration:420 });
+  tweenNumber(document.getElementById('hcarb'), tt.c, { suffix:_g, duration:420 });
+  tweenNumber(document.getElementById('hfat'),  tt.f, { suffix:_g, duration:420 });
   document.getElementById('hpg').textContent=(U.pr||0)+_g;
   document.getElementById('hcg').textContent=(U.cb||0)+_g;
   document.getElementById('hfg').textContent=(U.ft||0)+_g;

@@ -240,22 +240,35 @@ function _drainToastQueue(){
   let t = document.getElementById('_toast');
   if (!t) {
     t = document.createElement('div'); t.id = '_toast';
-    t.style.cssText = 'position:fixed;bottom:calc(var(--nav-h)+20px);left:50%;transform:translateX(-50%) translateY(8px);background:var(--t0);color:var(--bg0);padding:11px 20px;border-radius:28px;font-size:14px;font-weight:600;z-index:9999;max-width:calc(100% - 32px);text-align:center;box-shadow:0 8px 32px rgba(0,0,0,.22),0 2px 8px rgba(0,0,0,.14),inset 0 1px 0 rgba(255,255,255,.09);transition:opacity .32s cubic-bezier(.22,1,.36,1),transform .32s cubic-bezier(.22,1,.36,1);font-family:var(--ff);opacity:0;pointer-events:none;-webkit-backdrop-filter:blur(16px);backdrop-filter:blur(16px);';
+    t.style.cssText = 'position:fixed;top:calc(env(safe-area-inset-top, 0px) + 16px);left:50%;transform:translateX(-50%) translateY(-12px);background:var(--t0);color:var(--bg0);padding:12px 22px 14px;border-radius:18px;font-size:14px;font-weight:600;z-index:9999;max-width:calc(100% - 32px);text-align:center;box-shadow:0 12px 36px rgba(0,0,0,.28),0 2px 8px rgba(0,0,0,.16),inset 0 1px 0 rgba(255,255,255,.09);transition:opacity .36s cubic-bezier(.22,1,.36,1),transform .36s cubic-bezier(.22,1,.36,1);font-family:var(--ff);opacity:0;pointer-events:none;-webkit-backdrop-filter:blur(20px);backdrop-filter:blur(20px);overflow:hidden;';
+    const bar = document.createElement('div'); bar.id = '_toastBar';
+    bar.style.cssText = 'position:absolute;left:0;bottom:0;height:2px;width:100%;background:rgba(255,255,255,.18);transform-origin:left center;transform:scaleX(1);transition:transform linear;';
+    t.appendChild(bar);
     document.body.appendChild(t);
   }
-  t.textContent = msg;
+  // Set message via a text node to keep the progress bar element intact
+  let label = t.querySelector('._lbl');
+  if (!label) { label = document.createElement('span'); label.className = '_lbl'; t.insertBefore(label, t.firstChild); }
+  label.textContent = msg;
+  const bar = t.querySelector('#_toastBar');
   // Reset transition state
   t.style.opacity = '0';
-  t.style.transform = 'translateX(-50%) translateY(8px)';
+  t.style.transform = 'translateX(-50%) translateY(-12px)';
+  if (bar) { bar.style.transition = 'none'; bar.style.transform = 'scaleX(1)'; }
   requestAnimationFrame(() => {
     t.style.opacity = '1';
     t.style.transform = 'translateX(-50%) translateY(0)';
+    // Animate progress bar collapsing left over `duration`
+    if (bar) requestAnimationFrame(() => {
+      bar.style.transition = 'transform ' + duration + 'ms linear';
+      bar.style.transform = 'scaleX(0)';
+    });
   });
   clearTimeout(t._t);
   t._t = setTimeout(() => {
     t.style.opacity = '0';
-    t.style.transform = 'translateX(-50%) translateY(6px)';
-    setTimeout(() => _drainToastQueue(), 240);
+    t.style.transform = 'translateX(-50%) translateY(-10px)';
+    setTimeout(() => _drainToastQueue(), 280);
   }, duration);
 }
 
