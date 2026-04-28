@@ -56,11 +56,11 @@ function _updateNotifMasterUI(on) {
 
 async function toggleNotifMaster() {
   if(!('Notification' in window)) {
-    showConfirm('⚠️','Уведомления недоступны','Браузер не поддерживает уведомления. Установи CalSnap как PWA.',null,'Понятно');
+    showConfirm('⚠️',t('notif_no_support_title'),t('notif_no_support_body'),null,t('btn_understood'));
     return;
   }
   if(Notification.permission==='denied') {
-    showConfirm('🔕','Заблокированы','Разреши уведомления в настройках браузера → Сайты → Уведомления.',null,'Понятно');
+    showConfirm('🔕',t('notif_blocked_title'),t('notif_blocked_body'),null,t('btn_understood'));
     return;
   }
   if(Notification.permission !== 'granted') {

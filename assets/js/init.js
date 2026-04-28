@@ -266,7 +266,7 @@ function closeDevPanel(){
   ov.style.display='none';
 }
 async function devForceUpdate(){
-  showConfirm('🔄','Принудительное обновление?','Кэш и SW будут очищены, приложение перезагрузится.','Обновить',async()=>{
+  showConfirm('🔄',t('confirm_force_title'),t('confirm_force_body'),t('confirm_force_btn'),async()=>{
     localStorage.removeItem('_etag');
     if('serviceWorker' in navigator){const r=await navigator.serviceWorker.getRegistrations();await Promise.all(r.map(x=>x.unregister()));}
     if('caches' in window){const ks=await caches.keys();await Promise.all(ks.map(k=>caches.delete(k)));}

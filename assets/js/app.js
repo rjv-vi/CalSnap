@@ -332,7 +332,7 @@ function emo(f){
 
 function delL(i){
   const item=log[i];if(!item)return;
-  showConfirm('🗑️','Удалить запись?',`«${item.food||'Блюдо'}» (${item.kcal||0} ккал)`,'Удалить',()=>{
+  showConfirm('🗑️',t('confirm_delete_title'),`«${item.food||t('food_default_label')}» (${item.kcal||0} ${t('food_kcal_short')})`,t('btn_delete'),()=>{
     HFX.heavy();SFX.play('delete');
     log.splice(i,1);S('log',JSON.stringify(log));rH();
   });
@@ -433,7 +433,7 @@ function closeFd(){HFX.light();SFX.play('sheet_close');document.getElementById('
 function delFd(){
   if(fdIdx===null)return;
   const item=log[fdIdx];
-  showConfirm('🗑️','Удалить из дневника?',`«${item?.food||'Блюдо'}» (${item?.kcal||0} ккал)`,'Удалить',()=>{
+  showConfirm('🗑️',t('confirm_delete_diary_title'),`«${item?.food||t('food_default_label')}» (${item?.kcal||0} ${t('food_kcal_short')})`,t('btn_delete'),()=>{
     HFX.heavy();SFX.play('delete');
     log.splice(fdIdx,1);S('log',JSON.stringify(log));
     closeFd();rH();
@@ -789,7 +789,7 @@ function initAi(){
   } // end if no chat history
 }
 function clearAiChat(){
-  showConfirm('💬','Очистить чат?','История переписки будет удалена. Контекст питания сохранится.','Очистить',()=>{
+  showConfirm('💬',t('confirm_clear_chat_title'),t('confirm_clear_chat_body'),t('confirm_clear_chat_btn'),()=>{
     initAi();
   });
 }

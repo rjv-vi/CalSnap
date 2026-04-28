@@ -203,7 +203,7 @@ function importJSON(input){
     try{
       const data=JSON.parse(e.target.result);
       if(!data.version||!data.log)throw new Error('Неверный формат файла');
-      showConfirm('📥','Импорт данных?','Текущие данные будут заменены данными из файла от '+new Date(data.exported).toLocaleDateString('ru'),'Импортировать',()=>{
+      showConfirm('📥',t('confirm_import_title'),tf('confirm_import_body',{date:new Date(data.exported).toLocaleDateString(_localeTag())}),t('confirm_import_btn'),()=>{
         if(data.user&&data.user!=='null')S('u',data.user);
         if(data.log)S('log',data.log);
         if(data.wts)S('wts',data.wts);
@@ -273,7 +273,7 @@ function _drainToastQueue(){
 }
 
 function clrAll(){
-  showConfirm('🗑️','Сбросить всё?','Все данные будут удалены безвозвратно: журнал еды, вес, профиль и настройки.','Удалить всё',()=>{
+  showConfirm('🗑️',t('confirm_reset_title'),t('confirm_reset_body'),t('confirm_reset_btn'),()=>{
     SFX.play('reset_confirm'); HFX.heavy();
     log=[];S('log','[]');wts=[];S('wts','[]');S('u','null');U=null;S('key','');key='';S('mdl','');
     // Clear water data for all dates

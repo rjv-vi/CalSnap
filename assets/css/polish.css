@@ -76,6 +76,19 @@ input:focus-visible, textarea:focus-visible, select:focus-visible {
 [data-theme="light"] .cal-card { border-color:rgba(20,18,16,.06); }
 [data-theme="light"] .sheet { box-shadow:0 -4px 30px rgba(20,18,16,.08), 0 -16px 40px rgba(20,18,16,.04); }
 
+/* About modal: top-right close button (unified close pattern) */
+.about-x { position:absolute; top:12px; right:16px; z-index:2; }
+
+/* ───────────────────────────────────────────
+   Spacing scale (4px grid) — aspirational guideline.
+   When introducing new layouts, prefer values from this set:
+     4 / 8 / 12 / 16 / 20 / 24 / 32 / 40 / 48 px
+   Avoid intermediate values (10, 13, 14, 18, 22) when possible.
+   Modals follow a unified close pattern:
+     - Single-action sheets:  ✕ in top-right + tap-outside-to-close.
+     - Save/Cancel sheets:    bottom .btn / .btn2 row + tap-outside-to-close.
+   ─────────────────────────────────────────── */
+
 /* Reduced motion respect */
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation-duration:.001ms !important; animation-iteration-count:1 !important; transition-duration:.001ms !important; scroll-behavior:auto !important; }
