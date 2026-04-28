@@ -47,7 +47,6 @@ function toggleHfx() {
   },1800);
 })();
 
-// ─── Запуск приложения ───
 let _notifTimers = []; // must be declared before init() — it's used by _scheduleNotifs()
-try { init(); } catch(e) { console.error('Init error:', e); }
+// init() is invoked at the end of init.js, after all dependent modules have loaded.
 

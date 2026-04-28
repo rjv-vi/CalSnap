@@ -10,7 +10,7 @@ function rSet(){
   document.getElementById('sgoal').textContent=GL[U.goal]||'—';
   document.getElementById('skcal').textContent=(U.kcal||0)+' '+t('unit_kcal');
   const _sp=document.getElementById('sprefs');if(_sp){const _pc=(U.prefs||[]).length,_ac=U.allerg?1:0;_sp.textContent=(_pc+_ac)>0?(_pc?U.prefs.join(', '):'')+(_ac?(_pc?' · ':'')+U.allerg:''):t('not_set');}
-  document.getElementById('sapi').textContent=key?t('set_api_set','Установлен ✓'):t('set_api_unset','Не установлен');
+  document.getElementById('sapi').textContent=key?t('set_api_set'):t('set_api_unset');
   const _mname=ALL_MODELS.find(m=>m.id===selModel)?.name||selModel;
   document.getElementById('smodel').textContent=_mname;
   const dark=document.documentElement.getAttribute('data-theme')==='dark';
@@ -29,38 +29,38 @@ function toggleLang(){
 function ed(type){
   edType=type;
   const tl=document.getElementById('edtitle'),ct=document.getElementById('edcont');
-  if(type==='name'){tl.textContent='Имя';ct.innerHTML=`<input class="inp" id="ed_v" value="${U.name||''}">`;}
+  if(type==='name'){tl.textContent=t('set_name');ct.innerHTML=`<input class="inp" id="ed_v" value="${U.name||''}">`;}
   else if(type==='params'){
-    tl.textContent='Параметры';
+    tl.textContent=t('set_params');
     const curDob=U.dob||'';
     const curAge=curDob?calcAgeFromDob(curDob):U.age;
     const dispDob=curDob?`${String(new Date(curDob).getDate()).padStart(2,'0')}.${String(new Date(curDob).getMonth()+1).padStart(2,'0')}.${new Date(curDob).getFullYear()}`:'';
     _edGender=U.gen||'m';
     ct.innerHTML=`
-      <label class="dob-label">Дата рождения</label>
+      <label class="dob-label">${t('ob_dob')}</label>
       <button class="dob-picker-btn ${curDob?'filled':''}" id="ed_dob_btn" data-dob="${curDob}" onclick="openDrum('ed')">
-        ${curDob?`<span class="dob-value">${dispDob}</span>`:'<span class="dob-placeholder">Выбери дату рождения</span>'}
+        ${curDob?`<span class="dob-value">${dispDob}</span>`:`<span class="dob-placeholder">${t('ob_dob_pick')}</span>`}
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
       </button>
-      <div class="dob-age-hint" id="ed_dob_hint" style="margin-bottom:14px">${curAge?'Возраст: '+curAge+' лет':''}</div>
+      <div class="dob-age-hint" id="ed_dob_hint" style="margin-bottom:14px">${curAge?tf('age_label',{age:curAge}):''}</div>
       <div class="gender-row" style="margin-bottom:14px">
-        <div class="gender-card ${U.gen==='m'?'on':''}" id="ed_gen_m" onclick="HFX.tick();SFX.play('select');edPickGender('m')"><span class="gc-icon">♂️</span><span class="gc-lbl">Мужчина</span></div>
-        <div class="gender-card ${U.gen==='f'?'on':''}" id="ed_gen_f" onclick="HFX.tick();SFX.play('select');edPickGender('f')"><span class="gc-icon">♀️</span><span class="gc-lbl">Женщина</span></div>
+        <div class="gender-card ${U.gen==='m'?'on':''}" id="ed_gen_m" onclick="HFX.tick();SFX.play('select');edPickGender('m')"><span class="gc-icon">♂️</span><span class="gc-lbl">${t('gender_male')}</span></div>
+        <div class="gender-card ${U.gen==='f'?'on':''}" id="ed_gen_f" onclick="HFX.tick();SFX.play('select');edPickGender('f')"><span class="gc-icon">♀️</span><span class="gc-lbl">${t('gender_female')}</span></div>
       </div>
-      <input class="inp" type="number" id="ed_h" placeholder="Рост (см)" value="${U.h||''}" inputmode="decimal" style="margin-bottom:10px">
-      <input class="inp" type="number" id="ed_w" placeholder="Вес (кг)" value="${U.w||''}" inputmode="decimal">
+      <input class="inp" type="number" id="ed_h" placeholder="${t('ob_height_ph')}" value="${U.h||''}" inputmode="decimal" style="margin-bottom:10px">
+      <input class="inp" type="number" id="ed_w" placeholder="${t('ob_weight_ph')}" value="${U.w||''}" inputmode="decimal">
     `;
   }
-  else if(type==='goal'){tl.textContent='Цель';ct.innerHTML=`<div class="goal-grid">${Object.entries(GL).map(([k,v])=>`<div class="goal-card ${U.goal===k?'on':''}" data-g="${k}" onclick="HFX.tick();SFX.play('select');document.querySelectorAll('[data-g]').forEach(e=>e.classList.remove('on'));this.classList.add('on')"><div class="gn">${v}</div></div>`).join('')}</div>`;}
+  else if(type==='goal'){tl.textContent=t('set_goal');ct.innerHTML=`<div class="goal-grid">${Object.entries(GL).map(([k,v])=>`<div class="goal-card ${U.goal===k?'on':''}" data-g="${k}" onclick="HFX.tick();SFX.play('select');document.querySelectorAll('[data-g]').forEach(e=>e.classList.remove('on'));this.classList.add('on')"><div class="gn">${v}</div></div>`).join('')}</div>`;}
   else if(type==='prefs'){
-    tl.textContent='Предпочтения';
-    const PREF_OPTS=[{p:'no_meat',l:'🚫🥩 Без мяса'},{p:'no_gluten',l:'🚫🌾 Без глютена'},{p:'no_lactose',l:'🚫🥛 Без лактозы'},{p:'no_sugar',l:'🚫🍭 Без сахара'},{p:'vegan',l:'🌱 Веган'},{p:'keto',l:'🥑 Кето'},{p:'halal',l:'☪️ Халяль'},{p:'no_eggs',l:'🚫🥚 Без яиц'}];
+    tl.textContent=t('set_prefs');
+    const PREF_OPTS=[{p:'no_meat',l:t('pref_no_meat')},{p:'no_gluten',l:t('pref_no_gluten')},{p:'no_lactose',l:t('pref_no_lactose')},{p:'no_sugar',l:t('pref_no_sugar')},{p:'vegan',l:t('pref_vegan')},{p:'keto',l:t('pref_keto')},{p:'halal',l:t('pref_halal')},{p:'no_eggs',l:t('pref_no_eggs')}];
     const curPrefs=U.prefs||[];
     ct.innerHTML=`<div class="pref-grid" id="ed_prefs_grid">${PREF_OPTS.map(o=>`<div class="pref-chip${curPrefs.includes(o.p)?' on':''}" data-p="${o.p}" onclick="HFX.tick();SFX.play('select');this.classList.toggle('on')">${o.l}</div>`).join('')}</div>
-    <div style="font-size:13px;font-weight:600;color:var(--t1);margin-bottom:6px">Аллергии</div>
-    <input class="inp" id="ed_allerg" value="${U.allerg||''}" placeholder="Арахис, морепродукты...">`;
+    <div style="font-size:13px;font-weight:600;color:var(--t1);margin-bottom:6px">${t('allergies')}</div>
+    <input class="inp" id="ed_allerg" value="${U.allerg||''}" placeholder="${t('allerg_ph')}">`;
   }
-  else if(type==='kcal'){tl.textContent='Норма калорий';ct.innerHTML=`<input class="inp" type="number" id="ed_v" value="${U.kcal||2000}">`;}
+  else if(type==='kcal'){tl.textContent=t('set_kcal_norm');ct.innerHTML=`<input class="inp" type="number" id="ed_v" value="${U.kcal||2000}">`;}
   document.getElementById('edOv').classList.add('on');
   document.body.style.overflow='hidden';
   // Drag-select for edit modal cards
@@ -109,7 +109,7 @@ function edDobHint(){
   const hint=document.getElementById('ed_dob_hint');
   if(!hint)return;
   const age=calcAgeFromDob(dob);
-  hint.textContent=age&&age>0?'Возраст: '+age+' лет':'Проверь дату';
+  hint.textContent=age&&age>0?tf('age_label',{age:age}):t('check_date');
 }
 function rcalc(){
   let bmr=U.gen==='m'?10*U.w+6.25*U.h-5*U.age+5:10*U.w+6.25*U.h-5*U.age-161;
@@ -120,7 +120,7 @@ function rcalc(){
 
 function exportCSV() {
   try {
-    const rows = [['Дата','Время','Блюдо','Порция','Калории','Белки г','Углеводы г','Жиры г']];
+    const rows = [[t('csv_date'),t('csv_time'),t('csv_food'),t('csv_portion'),t('csv_kcal'),t('csv_protein'),t('csv_carbs'),t('csv_fats')]];
     const sortedLog = [...log].sort((a,b) => {
       const da = a.date + ' ' + (a.time||''), db = b.date + ' ' + (b.time||'');
       return da < db ? 1 : -1;
@@ -136,14 +136,14 @@ function exportCSV() {
     });
     // Add water rows
     rows.push([]);
-    rows.push(['Дата','Время','Напиток','мл','','','','']);
+    rows.push([t('csv_date'),t('csv_time'),t('csv_drink'),t('csv_ml'),'','','','']);
     for (let i = 0; i < localStorage.length; i++) {
       const k = localStorage.key(i);
       if (!k || !k.startsWith('water_')) continue;
       try {
         const arr = JSON.parse(localStorage.getItem(k)||'[]');
         arr.forEach(e => {
-          const d = DRINKS.find(x=>x.id===e.id)||{name:'Напиток'};
+          const d = DRINKS.find(x=>x.id===e.id)||{name:t('drink_default')};
           rows.push([k.replace('water_',''), e.t||'', d.name, e.ml||0,'','','','']);
         });
       } catch(e) {}
