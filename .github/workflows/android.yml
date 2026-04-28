@@ -60,6 +60,16 @@ jobs:
           JSON
           cat "$HOME/.bubblewrap/config.json"
 
+          # Bubblewrap's `build` command validates the SDK by checking for a
+          # legacy `$ANDROID_SDK/tools/` directory, which `setup-android@v3`
+          # no longer creates (the modern layout puts everything under
+          # `cmdline-tools/latest/`). Symlink the new location into the old
+          # name so the validator passes.
+          if [ ! -e "$ANDROID_HOME/tools" ] && [ -d "$ANDROID_HOME/cmdline-tools/latest" ]; then
+            ln -s "$ANDROID_HOME/cmdline-tools/latest" "$ANDROID_HOME/tools"
+          fi
+          ls -la "$ANDROID_HOME/" | head -10
+
       - name: Decode keystore
         env:
           KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
