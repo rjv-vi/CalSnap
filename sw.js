@@ -7,7 +7,7 @@
 // • Notification click focuses existing tab
 // ═══════════════════════════════════════════════════
 
-const CACHE = 'calsnap-v6';
+const CACHE = 'calsnap-v7';
 const NOTIF_CACHE = 'calsnap-notif';
 
 const ICONS = [
@@ -26,6 +26,35 @@ const SOUNDS = [
   'water_add','water_goal','water_undo','weight_log','welcome',
 ].map(n => `./sounds/${n}.mp3`);
 
+const CSS_FILES = [
+  './assets/css/base.css',
+  './assets/css/components.css',
+  './assets/css/screens.css',
+  './assets/css/polish.css',
+];
+
+const JS_FILES = [
+  './assets/js/boot.js',
+  './assets/js/sw-register.js',
+  './assets/js/sound.js',
+  './assets/js/i18n.js',
+  './assets/js/state.js',
+  './assets/js/app.js',
+  './assets/js/gemini.js',
+  './assets/js/ui.js',
+  './assets/js/drum.js',
+  './assets/js/confirm.js',
+  './assets/js/haptic.js',
+  './assets/js/bmi.js',
+  './assets/js/water.js',
+  './assets/js/daily.js',
+  './assets/js/daily-ai.js',
+  './assets/js/share.js',
+  './assets/js/notif.js',
+  './assets/js/about.js',
+  './assets/js/init.js',
+];
+
 const STATIC_ASSETS = [
   './',
   './index.html',
@@ -33,6 +62,8 @@ const STATIC_ASSETS = [
   './manifest.json',
   ...ICONS,
   ...SOUNDS,
+  ...CSS_FILES,
+  ...JS_FILES,
 ];
 
 // ── Install ──────────────────────────────────────
