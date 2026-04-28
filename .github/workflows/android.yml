@@ -45,6 +45,21 @@ jobs:
       - name: Install Bubblewrap CLI
         run: npm install -g @bubblewrap/cli
 
+      - name: Configure Bubblewrap (skip first-run JDK/SDK prompts)
+        run: |
+          # Bubblewrap CLI prompts interactively on first run for JDK + SDK
+          # paths and writes them to ~/.bubblewrap/config.json. Pre-creating
+          # that file with the action-provided paths makes every later
+          # command (init/update/build) fully non-interactive.
+          mkdir -p "$HOME/.bubblewrap"
+          cat > "$HOME/.bubblewrap/config.json" <<JSON
+          {
+            "jdkPath": "${JAVA_HOME}",
+            "androidSdkPath": "${ANDROID_HOME}"
+          }
+          JSON
+          cat "$HOME/.bubblewrap/config.json"
+
       - name: Decode keystore
         env:
           KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
@@ -115,8 +130,13 @@ jobs:
           cp twa-manifest.json ./android-build/twa-manifest.json
           cp android.keystore  ./android-build/android.keystore
           cd ./android-build
-          # Bubblewrap reads twa-manifest.json from the working dir.
-          bubblewrap update --skipVersionUpgrade
+          # Bubblewrap reads twa-manifest.json from the working dir and
+          # generates the full Android Studio project from scratch.
+          # --skipVersionUpgrade keeps the versionCode/versionName as patched
+          # by the previous step instead of bubblewrap auto-bumping them.
+          # Pipe "n" repeatedly so that any unforeseen interactive prompt
+          # falls back to the default rather than hanging the build.
+          yes n | bubblewrap update --skipVersionUpgrade
 
       - name: Build APK + AAB
         env:
@@ -126,6 +146,7 @@ jobs:
         run: |
           # Bubblewrap build prompts for keystore + key passwords on stdin
           # in non-interactive mode; piping them avoids prompts hanging CI.
+          # Two newlines = storepass then keypass.
           printf '%s\n%s\n' "$KEYSTORE_PASSWORD" "$KEY_PASSWORD" | \
             bubblewrap build --skipPwaValidation
 
