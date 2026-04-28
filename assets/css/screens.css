@@ -1,0 +1,167 @@
+/* ══════════════════════════════════════════════
+   UI POLISH v5.3 — Aesthetic refinements
+   ══════════════════════════════════════════════ */
+
+/* Smoother input focus ring */
+.inp:focus {
+  border-color: var(--t0) !important;
+  box-shadow: 0 0 0 3.5px rgba(20,18,16,.08), var(--s1), var(--si) !important;
+  transition: border-color .15s ease, box-shadow .18s cubic-bezier(.22,1,.36,1) !important;
+}
+
+/* Better logitem group border radius */
+.logitem:first-child:not(:only-child) { border-radius: 20px 20px 0 0; box-shadow: none; }
+.logitem:last-child:not(:only-child)  { border-radius: 0 0 20px 20px; box-shadow: 0 4px 14px rgba(0,0,0,.07); }
+.logitem:only-child                   { border-radius: 20px; box-shadow: var(--s2); }
+
+/* Nicer active state for st-row */
+.st-row:active { background: var(--f2) !important; transform: scale(.989) translateZ(0) !important; }
+
+/* Tab active color transition */
+.tab.on { color: var(--t0) !important; font-weight: 700; }
+
+/* Improve scan line animation */
+@keyframes scan { 0% { top: 0; opacity: .8; } 50% { opacity: 1; } 100% { top: calc(100% - 2px); opacity: .8; } }
+
+/* Drum col — cleaner selected item */
+.drum-item.sel { color: var(--t0) !important; font-weight: 800 !important; font-size: 20px !important; letter-spacing: -.3px; }
+
+/* Tighter water event pills */
+.water-event { border-radius: 14px; padding: 9px 12px; }
+
+/* Progress header sticky — better blur */
+.pg-hdr {
+  -webkit-backdrop-filter: saturate(180%) blur(32px) !important;
+  backdrop-filter: saturate(180%) blur(32px) !important;
+}
+
+/* Softer empty state icon */
+.empty .ei { filter: grayscale(10%) opacity(.85); }
+
+/* Settings rows — icon shadow fix for dark mode */
+[data-theme="dark"] .sr-ico-wrap { box-shadow: 0 2px 8px rgba(0,0,0,.4), inset 0 1px 0 rgba(255,255,255,.12) !important; }
+
+/* Improve ai-snd button */
+.ai-snd:active { transform: scale(.82) translateZ(0) !important; }
+
+/* Add subtle border to logitem group container */
+.logitem:first-child:not(:only-child),
+.logitem:not(:first-child):not(:last-child) {
+  border-left: .5px solid var(--b1);
+  border-right: .5px solid var(--b1);
+}
+.logitem:last-child:not(:only-child) {
+  border: .5px solid var(--b1);
+  border-top: none;
+}
+.logitem:first-child:not(:only-child) {
+  border-top: .5px solid var(--b1);
+}
+
+/* Smooth water-num bounce on add */
+@keyframes waterBump { 0%,100% { transform: scale(1); } 40% { transform: scale(1.12); } 70% { transform: scale(.96); } }
+.water-num.bump { animation: waterBump .32s cubic-bezier(.22,1,.36,1); }
+
+/* Settings version text */
+.about-hero-ver { letter-spacing: 2px; }
+
+/* Cleaner dob age hint */
+.dob-age-hint { font-size: 12px; transition: opacity .2s; }
+
+/* Notif settings sheet — cleaner */
+.notif-time-inp { border-radius: 10px; transition: border-color .15s, box-shadow .15s; outline: none; }
+.notif-time-inp:focus { border-color: var(--t0); box-shadow: 0 0 0 2px rgba(20,18,16,.08); }
+
+/* Better disabled opacity for offline mode */
+.nb[style*="pointer-events: none"], .nb-add[style*="pointer-events: none"] {
+  transition: opacity .3s ease !important;
+}
+
+/* Sharper progress ring label */
+.cc-pct { font-size: 13px; font-variant-numeric: tabular-nums; }
+
+/* Fix: ensure confirm cancel button has right style when it's the sole button */
+.cfrm-btn:not(.danger):not(.cancel) { 
+  color: var(--t0); 
+  font-weight: 700;
+}
+
+/* Overflow hidden on body when any modal open */
+body.modal-open { overflow: hidden !important; touch-action: none; }
+
+/* AI Welcome card */
+.ai-welcome{background:var(--bg1);border-radius:22px;padding:20px;margin-bottom:4px;border:.5px solid var(--b0);box-shadow:var(--s2),var(--si);text-align:center;}
+.ai-welcome-icon{font-size:42px;display:block;margin-bottom:10px;filter:drop-shadow(0 8px 20px rgba(0,0,0,.15));}
+.ai-welcome-title{font-size:20px;font-weight:900;letter-spacing:-.6px;margin-bottom:8px;}
+.ai-welcome-sub{font-size:14px;color:var(--t1);line-height:1.65;}
+.ai-chips-label{font-size:10px;font-weight:700;color:var(--t2);letter-spacing:1px;text-transform:uppercase;padding:14px 4px 8px;}
+
+/* ── MEAL TIMELINE ── */
+.meal-group{margin-bottom:2px;}.meal-group+.meal-group{border-top:.5px solid var(--b0);margin-top:4px;padding-top:4px;}
+.meal-group-hdr{display:flex;align-items:center;gap:6px;padding:10px 16px 4px;}
+.meal-group-icon{font-size:14px;}
+.meal-group-name{font-size:12px;font-weight:800;letter-spacing:.4px;text-transform:uppercase;color:var(--t1);flex:1;}
+.meal-group-kcal{font-size:12px;font-weight:700;color:var(--t2);}
+.li-drink-tag{font-size:11px;margin-left:4px;vertical-align:middle;opacity:.7;}
+
+/* ── EDIT FOOD ── */
+.fd-edit-btn{flex:1;background:var(--f1);border:1px solid var(--b0);border-radius:14px;padding:12px;font-size:14px;font-weight:600;color:var(--t0);cursor:pointer;transition:opacity .15s;}
+.fd-edit-btn:active{opacity:.7;}
+.edit-food-ov{position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:900;display:none;align-items:flex-end;justify-content:center;backdrop-filter:blur(4px);}
+.edit-food-ov.on{display:flex;}
+.edit-food-sheet{background:var(--bg1);border-radius:24px 24px 0 0;padding:20px;width:100%;max-height:90vh;overflow-y:auto;box-shadow:0 -8px 40px rgba(0,0,0,.18);}
+.edit-food-title{font-size:17px;font-weight:800;margin-bottom:16px;letter-spacing:-.4px;}
+.ef-row{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px;}
+.ef-field label{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--t2);display:block;margin-bottom:4px;}
+.ef-field input{width:100%;background:var(--bg2);border:1px solid var(--b1);border-radius:12px;padding:10px 12px;font-size:15px;font-weight:600;color:var(--t0);outline:none;box-sizing:border-box;}
+.ef-field input:focus{border-color:var(--acc);box-shadow:0 0 0 3px rgba(255,140,0,.15);}
+.ef-field.full{grid-column:1/-1;}
+
+/* ── FAVOURITES ── */
+.fav-item{display:flex;align-items:center;gap:12px;padding:12px 16px;border-radius:16px;background:var(--bg1);margin-bottom:8px;border:.5px solid var(--b0);cursor:pointer;transition:background .15s,transform .1s;}
+.fav-item:active{background:var(--f1);transform:scale(.98);}
+.fav-icon{width:40px;height:40px;border-radius:12px;background:var(--f1);display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0;}
+.fav-info{flex:1;min-width:0;}
+.fav-name{font-size:14px;font-weight:700;color:var(--t0);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.fav-kcal{font-size:12px;color:var(--t2);margin-top:2px;}
+.fav-add-btn{background:var(--acc);color:#fff;border:none;border-radius:10px;padding:8px 14px;font-size:13px;font-weight:700;cursor:pointer;flex-shrink:0;}
+.fav-del-btn{background:none;border:none;padding:6px;color:var(--t2);cursor:pointer;font-size:16px;}
+.fav-empty{text-align:center;padding:32px 16px;color:var(--t2);font-size:14px;line-height:1.6;}
+.fav-empty-ico{font-size:40px;margin-bottom:12px;display:block;}
+.li-star{background:none;border:none;padding:4px 6px;cursor:pointer;font-size:16px;color:var(--t2);flex-shrink:0;transition:transform .2s cubic-bezier(.34,1.56,.64,1);}
+.li-star.on{color:#f59e0b;}
+.li-star:active{transform:scale(1.4);}
+
+/* ── PREFERENCES ── */
+.pref-grid{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:16px;}
+.pref-chip{background:var(--f1);border:1.5px solid var(--b0);border-radius:99px;padding:8px 14px;font-size:13px;font-weight:600;color:var(--t0);cursor:pointer;transition:all .18s cubic-bezier(.22,1,.36,1);}
+.pref-chip.on{background:var(--acc);border-color:var(--acc);color:#fff;}
+
+/* ── FOOD DB SEARCH ── */
+.db-item{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:14px;cursor:pointer;transition:background .12s;}
+.db-item:hover{background:var(--f1);}.db-item:active{background:var(--f1);transform:scale(.99);}
+.db-ico{width:36px;height:36px;border-radius:10px;background:var(--f1);display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0;}
+.db-info{flex:1;min-width:0;}
+.db-name{font-size:13px;font-weight:700;color:var(--t0);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.db-kcal{font-size:11px;color:var(--t2);margin-top:1px;}
+.db-macs{font-size:10px;font-weight:700;color:var(--t2);white-space:nowrap;}
+
+/* ── WEIGHT PACE CARD ── */
+.pace-card{background:var(--bg1);border-radius:20px;padding:16px 20px;margin:0 16px 12px;border:.5px solid var(--b0);box-shadow:var(--s1);}
+.pace-inner{display:flex;align-items:center;gap:14px;}
+.pace-icon{font-size:28px;flex-shrink:0;}
+.pace-title{font-size:15px;font-weight:800;color:var(--t0);letter-spacing:-.3px;}
+.pace-sub{font-size:13px;color:var(--t1);margin-top:3px;line-height:1.4;}
+
+/* ── MINI WATER HOME ── */
+.mini-water-row{display:flex;align-items:center;gap:8px;margin-top:12px;padding:8px 12px;background:rgba(59,130,246,.07);border-radius:12px;cursor:pointer;transition:background .15s;}
+.mini-water-row:active{background:rgba(59,130,246,.14);}
+.mini-water-fill-wrap{flex:1;height:5px;background:rgba(59,130,246,.15);border-radius:99px;overflow:hidden;}
+.mini-water-fill{height:100%;background:linear-gradient(90deg,#60a5fa,#3b82f6);border-radius:99px;transition:width .5s cubic-bezier(.22,1,.36,1);}
+.mini-water-label{font-size:11px;font-weight:700;color:#3b82f6;white-space:nowrap;}
+
+/* ── EDIT MEAL CHIPS ── */
+.ef-meal-row{display:flex;gap:6px;flex-wrap:wrap;}
+.ef-meal-chip{background:var(--f1);border:1.5px solid var(--b0);border-radius:99px;padding:7px 13px;font-size:13px;font-weight:600;color:var(--t0);cursor:pointer;transition:all .18s cubic-bezier(.22,1,.36,1);}
+.ef-meal-chip.on{background:var(--acc);border-color:var(--acc);color:#fff;}
+

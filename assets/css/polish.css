@@ -1,0 +1,95 @@
+/* ══════════════════════════════════════════════════════════
+   v6 POLISH — premium feel: contrast lift, micro-anims, focus
+   ══════════════════════════════════════════════════════════ */
+
+/* Smooth theme toggle: animate color/bg transitions across whole UI */
+html, body, .screen, .cal-card, .cc-stat, .nb, .mac, .li, .fd, .rm,
+.btn, .btn2, .inp, .txa, .toggle, .pref-chip, .act-card, .goal-card,
+.gender-card, .ef-meal-chip, .sh-hdr, .sheet, .ai-bar, .ai-inp, .api-bar,
+.ai-msg, .ai-chip, .scrn, .cl-row, .heatmap, .mini-water-row, .drum-cell,
+.drum-sheet, .cfrm-box, .ov, .ai-card, .nb svg, .nb span,
+.streak, .h-greet, .h-name, .ob-step, .ob-h, .ob-s {
+  transition:
+    background-color .22s var(--easeOut, cubic-bezier(.22,1,.36,1)),
+    color .22s var(--easeOut, cubic-bezier(.22,1,.36,1)),
+    border-color .22s var(--easeOut, cubic-bezier(.22,1,.36,1)),
+    box-shadow .22s var(--easeOut, cubic-bezier(.22,1,.36,1));
+}
+/* Disable animations during the very first paint/onboarding to avoid flashes */
+html.boot *, html.boot *::before, html.boot *::after { transition:none !important; animation:none !important; }
+
+/* Premium tactile press (small scale-down on tap) for clickable cards/buttons */
+@media (hover:none) {
+  .btn:active, .btn2:active, .nb:active, .ai-chip:active, .pref-chip:active,
+  .act-card:active, .goal-card:active, .gender-card:active, .ef-meal-chip:active,
+  .sh-close:active, .api-bar:active, .mini-water-row:active, .li:active,
+  .fd-row:active, .rm:active, .cc-stat:active {
+    transform:scale(.97);
+    transition:transform .08s ease-out;
+  }
+}
+
+/* Visible focus rings (accessibility + premium look). Skip on mouse interactions. */
+:focus-visible {
+  outline:2px solid var(--acc);
+  outline-offset:2px;
+  border-radius:6px;
+}
+input:focus-visible, textarea:focus-visible, select:focus-visible {
+  outline:2px solid var(--acc);
+  outline-offset:1px;
+}
+
+/* Buttons: refined hover/active feedback for desktop + Android tablets */
+@media (hover:hover) and (pointer:fine) {
+  .btn:hover, .btn2:hover { filter:brightness(1.05); }
+  .nb:hover, .ai-chip:hover, .pref-chip:hover { background:var(--f1); }
+}
+
+/* Skeleton loader utility — already exists; add a soft round variant */
+.skeleton-line { display:block; height:14px; border-radius:7px;
+  background:linear-gradient(90deg,var(--f1) 25%,var(--f2) 50%,var(--f1) 75%);
+  background-size:200% 100%; animation:shimmer 1.5s infinite; }
+.skeleton-circle { border-radius:50%;
+  background:linear-gradient(90deg,var(--f1) 25%,var(--f2) 50%,var(--f1) 75%);
+  background-size:200% 100%; animation:shimmer 1.5s infinite; }
+
+/* Refined typography: slightly tighter tracking on big numerals, taller line-height */
+.cc-eaten, .cc-goal, .cc-pct, .sn { font-feature-settings:'tnum' 1, 'lnum' 1; letter-spacing:-.02em; }
+.li, .ob-s, .h-greet { line-height:1.45; }
+
+/* Dark theme polish — slightly stronger card edge & deeper bg for contrast */
+[data-theme="dark"] .cal-card,
+[data-theme="dark"] .sheet,
+[data-theme="dark"] .ai-msg.ai,
+[data-theme="dark"] .ef-meal-chip:not(.on),
+[data-theme="dark"] .pref-chip:not(.on),
+[data-theme="dark"] .act-card:not(.on),
+[data-theme="dark"] .goal-card:not(.on),
+[data-theme="dark"] .gender-card:not(.on) {
+  border-color:rgba(244,242,238,.10);
+}
+[data-theme="dark"] .ai-bar { background:rgba(26,25,22,.92); }
+[data-theme="dark"] .inp:focus, [data-theme="dark"] .txa:focus { border-color:rgba(244,242,238,.30); }
+
+/* Light theme polish — softer card edge so cards float more cleanly */
+[data-theme="light"] .cal-card { border-color:rgba(20,18,16,.06); }
+[data-theme="light"] .sheet { box-shadow:0 -4px 30px rgba(20,18,16,.08), 0 -16px 40px rgba(20,18,16,.04); }
+
+/* About modal: top-right close button (unified close pattern) */
+.about-x { position:absolute; top:12px; right:16px; z-index:2; }
+
+/* ───────────────────────────────────────────
+   Spacing scale (4px grid) — aspirational guideline.
+   When introducing new layouts, prefer values from this set:
+     4 / 8 / 12 / 16 / 20 / 24 / 32 / 40 / 48 px
+   Avoid intermediate values (10, 13, 14, 18, 22) when possible.
+   Modals follow a unified close pattern:
+     - Single-action sheets:  ✕ in top-right + tap-outside-to-close.
+     - Save/Cancel sheets:    bottom .btn / .btn2 row + tap-outside-to-close.
+   ─────────────────────────────────────────── */
+
+/* Reduced motion respect */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration:.001ms !important; animation-iteration-count:1 !important; transition-duration:.001ms !important; scroll-behavior:auto !important; }
+}

@@ -7,8 +7,26 @@
 // • Notification click focuses existing tab
 // ═══════════════════════════════════════════════════
 
-const CACHE = 'calsnap-v6';
+const CACHE = 'calsnap-v8';
 const NOTIF_CACHE = 'calsnap-notif';
+const API_CACHE = 'calsnap-api-v1';
+
+// TTL for API caches (ms). After expiry the entry is treated as stale.
+const OFF_TTL = 24 * 60 * 60 * 1000; // OpenFoodFacts product info — 24h
+const GEM_TTL = 60 * 60 * 1000;      // Gemini responses — 1h
+
+function _stamped(res){
+  // Add a custom header carrying the cache time so we can decide freshness
+  // without parsing Date headers (some upstreams omit them).
+  const h = new Headers(res.headers);
+  h.set('x-cs-cached-at', Date.now().toString());
+  return new Response(res.clone().body, { status: res.status, statusText: res.statusText, headers: h });
+}
+function _isFresh(res, ttl){
+  if(!res) return false;
+  const at = parseInt(res.headers.get('x-cs-cached-at') || '0', 10);
+  return at && (Date.now() - at) < ttl;
+}
 
 const ICONS = [
   './icons/icon-72.png',  './icons/icon-96.png',
@@ -26,6 +44,36 @@ const SOUNDS = [
   'water_add','water_goal','water_undo','weight_log','welcome',
 ].map(n => `./sounds/${n}.mp3`);
 
+const CSS_FILES = [
+  './assets/css/base.css',
+  './assets/css/components.css',
+  './assets/css/screens.css',
+  './assets/css/polish.css',
+];
+
+const JS_FILES = [
+  './assets/js/boot.js',
+  './assets/js/sw-register.js',
+  './assets/js/sound.js',
+  './assets/js/i18n.js',
+  './assets/js/state.js',
+  './assets/js/ux.js',
+  './assets/js/app.js',
+  './assets/js/gemini.js',
+  './assets/js/ui.js',
+  './assets/js/drum.js',
+  './assets/js/confirm.js',
+  './assets/js/haptic.js',
+  './assets/js/bmi.js',
+  './assets/js/water.js',
+  './assets/js/daily.js',
+  './assets/js/daily-ai.js',
+  './assets/js/share.js',
+  './assets/js/notif.js',
+  './assets/js/about.js',
+  './assets/js/init.js',
+];
+
 const STATIC_ASSETS = [
   './',
   './index.html',
@@ -33,6 +81,8 @@ const STATIC_ASSETS = [
   './manifest.json',
   ...ICONS,
   ...SOUNDS,
+  ...CSS_FILES,
+  ...JS_FILES,
 ];
 
 // ── Install ──────────────────────────────────────
@@ -49,7 +99,7 @@ self.addEventListener('activate', e => {
   e.waitUntil((async () => {
     const keys = await caches.keys();
     await Promise.all(keys
-      .filter(k => k.startsWith('calsnap-') && k !== CACHE && k !== NOTIF_CACHE)
+      .filter(k => k.startsWith('calsnap-') && k !== CACHE && k !== NOTIF_CACHE && k !== API_CACHE)
       .map(k => caches.delete(k)));
     await self.clients.claim();
   })());
@@ -61,27 +111,53 @@ self.addEventListener('fetch', e => {
   if (req.method !== 'GET') return;
   const url = req.url;
 
-  // Gemini API — network-only, graceful offline JSON
+  // Gemini API — POST-by-default and not cached.
+  // GET endpoints (rare) get cached for GEM_TTL with offline fallback.
   if (url.includes('generativelanguage.googleapis.com')) {
-    e.respondWith(fetch(req).catch(() =>
-      new Response('{"error":{"message":"Нет интернета","code":503}}',
-        { headers: { 'Content-Type': 'application/json' }, status: 503 })
-    ));
-    return;
-  }
-
-  // OpenFoodFacts — network with cache fallback (read-only public API)
-  if (url.includes('world.openfoodfacts.org') || url.includes('openfoodfacts.org')) {
     e.respondWith((async () => {
       try {
         const res = await fetch(req);
-        if (res.ok) {
-          const copy = res.clone();
-          caches.open(CACHE).then(c => c.put(req, copy).catch(() => {}));
+        if (req.method === 'GET' && res.ok) {
+          const stamped = _stamped(res);
+          caches.open(API_CACHE).then(c => c.put(req, stamped.clone()).catch(()=>{}));
+          return stamped;
         }
         return res;
       } catch {
-        const cached = await caches.match(req);
+        if (req.method === 'GET') {
+          const cached = await caches.open(API_CACHE).then(c => c.match(req));
+          if (cached && _isFresh(cached, GEM_TTL)) return cached;
+        }
+        return new Response('{"error":{"message":"Нет интернета","code":503}}',
+          { headers: { 'Content-Type': 'application/json' }, status: 503 });
+      }
+    })());
+    return;
+  }
+
+  // OpenFoodFacts — stale-while-revalidate with TTL freshness gate.
+  // Fresh hits (≤ 24h) come straight from cache; older entries trigger a
+  // background refetch but still return the stale response immediately.
+  if (url.includes('world.openfoodfacts.org') || url.includes('openfoodfacts.org')) {
+    e.respondWith((async () => {
+      const c = await caches.open(API_CACHE);
+      const cached = await c.match(req);
+      if (cached && _isFresh(cached, OFF_TTL)) {
+        // Background revalidate without blocking response
+        e.waitUntil(fetch(req).then(res => {
+          if (res.ok) c.put(req, _stamped(res)).catch(()=>{});
+        }).catch(()=>{}));
+        return cached;
+      }
+      try {
+        const res = await fetch(req);
+        if (res.ok) {
+          const stamped = _stamped(res);
+          c.put(req, stamped.clone()).catch(()=>{});
+          return stamped;
+        }
+        return cached || res;
+      } catch {
         return cached || new Response('{"status":0}', {
           headers: { 'Content-Type': 'application/json' }, status: 503,
         });
