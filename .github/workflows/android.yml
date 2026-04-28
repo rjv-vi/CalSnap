@@ -152,15 +152,16 @@ jobs:
 
       - name: Build APK + AAB
         env:
-          KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
-          KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+          # Bubblewrap reads these two env vars in non-interactive mode and
+          # skips the password prompts entirely. Piping passwords on stdin
+          # is fragile because inquirer.js requires a TTY: when the pipe is
+          # exhausted between the first and second prompt, it treats EOF as
+          # Ctrl+C and exits 130.
+          BUBBLEWRAP_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          BUBBLEWRAP_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
         working-directory: ./android-build
         run: |
-          # Bubblewrap build prompts for keystore + key passwords on stdin
-          # in non-interactive mode; piping them avoids prompts hanging CI.
-          # Two newlines = storepass then keypass.
-          printf '%s\n%s\n' "$KEYSTORE_PASSWORD" "$KEY_PASSWORD" | \
-            bubblewrap build --skipPwaValidation
+          bubblewrap build --skipPwaValidation
 
       - name: Rename artifacts
         working-directory: ./android-build
