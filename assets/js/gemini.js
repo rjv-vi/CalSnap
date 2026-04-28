@@ -181,8 +181,12 @@ async function gem(parts,sys='',opts={}){
   throw new Error(lastErr||'Ошибка Gemini API');
 }
 async function b64(file){
-  // Use already-read dataURL if available (avoids double FileReader on Android)
-  const dataUrl = phDataUrl || await new Promise((res,rej)=>{
+  // Reuse the dataURL only when called with the exact same File the photo
+  // tab already read (phDataUrl belongs to phFile). Without this guard a
+  // barcode scan after picking a photo would analyse the stale photo
+  // instead of the barcode image.
+  const _canReuse = (typeof phFile !== 'undefined') && file && file === phFile && (typeof phDataUrl !== 'undefined') && phDataUrl;
+  const dataUrl = _canReuse ? phDataUrl : await new Promise((res,rej)=>{
     const fr=new FileReader();
     fr.onload=()=>res(fr.result);
     fr.onerror=()=>rej(new Error('Ошибка чтения файла'));
