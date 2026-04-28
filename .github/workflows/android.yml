@@ -57,24 +57,43 @@ jobs:
 
       - name: Determine version
         id: version
+        env:
+          # Pass user-controllable inputs through env vars instead of
+          # ${{ }} interpolation inside the shell script (prevents shell
+          # injection from a crafted workflow_dispatch input).
+          INPUT_VERSION_NAME: ${{ github.event.inputs.version_name }}
+          INPUT_VERSION_CODE: ${{ github.event.inputs.version_code }}
         run: |
-          if [ -n "${{ github.event.inputs.version_name }}" ]; then
-            VERSION_NAME="${{ github.event.inputs.version_name }}"
+          if [ -n "$INPUT_VERSION_NAME" ]; then
+            VERSION_NAME="$INPUT_VERSION_NAME"
           elif [[ "$GITHUB_REF" == refs/tags/v* ]]; then
             VERSION_NAME="${GITHUB_REF#refs/tags/v}"
           else
             VERSION_NAME="0.0.0-$(date -u +%Y%m%d%H%M)"
           fi
-          if [ -n "${{ github.event.inputs.version_code }}" ]; then
-            VERSION_CODE="${{ github.event.inputs.version_code }}"
+          if [ -n "$INPUT_VERSION_CODE" ]; then
+            VERSION_CODE="$INPUT_VERSION_CODE"
           else
             VERSION_CODE="$GITHUB_RUN_NUMBER"
+          fi
+          # Reject anything that isn't a safe semver-ish or integer to keep
+          # the value harmless even if it later flows through other shells.
+          if ! [[ "$VERSION_NAME" =~ ^[A-Za-z0-9._-]+$ ]]; then
+            echo "::error::Invalid version_name (allowed: A-Z a-z 0-9 . _ -)"
+            exit 1
+          fi
+          if ! [[ "$VERSION_CODE" =~ ^[0-9]+$ ]]; then
+            echo "::error::Invalid version_code (must be a positive integer)"
+            exit 1
           fi
           echo "version_name=$VERSION_NAME" >> "$GITHUB_OUTPUT"
           echo "version_code=$VERSION_CODE" >> "$GITHUB_OUTPUT"
           echo "Building version $VERSION_NAME (code $VERSION_CODE)"
 
       - name: Patch version into twa-manifest.json
+        env:
+          VERSION_NAME: ${{ steps.version.outputs.version_name }}
+          VERSION_CODE: ${{ steps.version.outputs.version_code }}
         run: |
           python3 - <<'EOF'
           import json, os
@@ -86,9 +105,6 @@ jobs:
           with open('twa-manifest.json', 'w', encoding='utf-8') as f:
               json.dump(m, f, indent=2, ensure_ascii=False)
           EOF
-        env:
-          VERSION_NAME: ${{ steps.version.outputs.version_name }}
-          VERSION_CODE: ${{ steps.version.outputs.version_code }}
 
       - name: Initialise Bubblewrap project
         env:
@@ -115,18 +131,23 @@ jobs:
 
       - name: Rename artifacts
         working-directory: ./android-build
+        env:
+          VERSION_NAME: ${{ steps.version.outputs.version_name }}
         run: |
           mkdir -p ../release-artifacts
-          cp app-release-signed.apk ../release-artifacts/calsnap-${{ steps.version.outputs.version_name }}.apk || \
-          cp ./app/build/outputs/apk/release/app-release.apk ../release-artifacts/calsnap-${{ steps.version.outputs.version_name }}.apk || true
-          cp app-release-bundle.aab ../release-artifacts/calsnap-${{ steps.version.outputs.version_name }}.aab || \
-          cp ./app/build/outputs/bundle/release/app-release.aab ../release-artifacts/calsnap-${{ steps.version.outputs.version_name }}.aab || true
+          cp app-release-signed.apk "../release-artifacts/calsnap-${VERSION_NAME}.apk" || \
+            cp ./app/build/outputs/apk/release/app-release.apk "../release-artifacts/calsnap-${VERSION_NAME}.apk" || true
+          cp app-release-bundle.aab "../release-artifacts/calsnap-${VERSION_NAME}.aab" || \
+            cp ./app/build/outputs/bundle/release/app-release.aab "../release-artifacts/calsnap-${VERSION_NAME}.aab" || true
           ls -la ../release-artifacts/
 
       - name: Upload artifacts (workflow_dispatch)
         if: github.event_name == 'workflow_dispatch'
         uses: actions/upload-artifact@v4
         with:
+          # Safe: this is a YAML value passed to the action, not a shell
+          # interpolation. version_name has already been validated against
+          # a strict allowlist in the Determine version step.
           name: calsnap-android-${{ steps.version.outputs.version_name }}
           path: release-artifacts/*
 
