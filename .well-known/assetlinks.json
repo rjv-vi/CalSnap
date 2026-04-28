@@ -1,0 +1,15 @@
+[
+  {
+    "relation": [
+      "delegate_permission/common.handle_all_urls",
+      "delegate_permission/common.use_as_origin"
+    ],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "com.rjv.calsnap",
+      "sha256_cert_fingerprints": [
+        "22:96:74:AA:AD:62:52:5B:32:72:E6:DC:37:4C:EB:E7:15:AE:8A:F5:C8:F9:04:FD:41:BA:2E:51:CD:1D:E4:EB"
+      ]
+    }
+  }
+]
