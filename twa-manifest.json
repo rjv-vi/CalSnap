@@ -11,6 +11,7 @@
   "navigationDividerColor": "#0F0E0C",
   "navigationDividerColorDark": "#0F0E0C",
   "backgroundColor": "#0F0E0C",
+  "splashScreenFadeOutDuration": 300,
   "enableNotifications": true,
   "startUrl": "/CalSnap/index.html",
   "iconUrl": "https://rjv-vi.github.io/CalSnap/icons/icon-512.png",
