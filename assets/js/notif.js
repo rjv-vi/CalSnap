@@ -176,7 +176,11 @@ function _scheduleNotifs() {
     const waterH = parseInt(cfg.waterInterval||'2');
     if(cfg.water_on !== false && waterH > 0) {
       const waterIntervalMs = waterH * 3600 * 1000;
-      const firstWater = waterIntervalMs - (now.getMinutes()*60+now.getSeconds())*1000 % waterIntervalMs;
+      // Align water reminders to multi-hour boundaries from midnight (e.g. 0/2/4/...)
+      // for waterH=2. The previous formula only looked at minutes+seconds within
+      // the current hour, which produced the wrong delay for intervals > 1h.
+      const totalDayMs = (now.getHours()*3600 + now.getMinutes()*60 + now.getSeconds()) * 1000;
+      const firstWater = waterIntervalMs - (totalDayMs % waterIntervalMs);
       const scheduleWater = (delay) => {
         const id = setTimeout(() => {
           _sendNotif('water');
