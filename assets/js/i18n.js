@@ -389,6 +389,9 @@ const I18N = {
     btn_understood: 'Понятно',
     food_default_label: 'Блюдо',
     food_kcal_short: 'ккал',
+    update_title: 'Доступно обновление!',
+    update_sub: 'Новая версия CalSnap готова',
+    update_btn: 'Обновить',
   },
   en: {
     ob_name_required: 'Please enter your name',
@@ -761,6 +764,9 @@ const I18N = {
     btn_understood: 'Got it',
     food_default_label: 'Food',
     food_kcal_short: 'kcal',
+    update_title: 'Update available!',
+    update_sub: 'A new version of CalSnap is ready',
+    update_btn: 'Update',
   },
 };
 function _getLang(){ try { return localStorage.getItem('lang') || (document.documentElement.lang === 'en' ? 'en' : 'ru'); } catch(e) { return 'ru'; } }

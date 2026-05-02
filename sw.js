@@ -1,15 +1,19 @@
 // ═══════════════════════════════════════════════════
-// CALSNAP SERVICE WORKER v5
+// CALSNAP SERVICE WORKER
 // • Precache all sounds + icons + manifest
 // • Stale-while-revalidate for HTML/JSON
 // • Background notifications via Periodic Sync
 // • Push handler ready for future server push
-// • Notification click focuses existing tab
+// • Notification click focuses existing tab + navigates if URL differs
+// • Navigation Preload speeds up the very first network-first nav request
 // ═══════════════════════════════════════════════════
 
-const CACHE = 'calsnap-v8';
+const CACHE = 'calsnap-v9';
 const NOTIF_CACHE = 'calsnap-notif';
 const API_CACHE = 'calsnap-api-v1';
+// Hard cap so a single user runaway (lots of barcodes) cannot grow the API
+// cache without bound on disk-constrained devices.
+const API_CACHE_MAX_ENTRIES = 200;
 
 // TTL for API caches (ms). After expiry the entry is treated as stale.
 const OFF_TTL = 24 * 60 * 60 * 1000; // OpenFoodFacts product info — 24h
@@ -97,13 +101,30 @@ self.addEventListener('install', e => {
 // ── Activate ─────────────────────────────────────
 self.addEventListener('activate', e => {
   e.waitUntil((async () => {
+    // Enable Navigation Preload — Chrome can start fetching the navigation
+    // request in parallel with SW boot, shaving ~50-200 ms off the first
+    // load after activation when the user is online.
+    if (self.registration.navigationPreload) {
+      try { await self.registration.navigationPreload.enable(); } catch(e) {}
+    }
     const keys = await caches.keys();
     await Promise.all(keys
       .filter(k => k.startsWith('calsnap-') && k !== CACHE && k !== NOTIF_CACHE && k !== API_CACHE)
       .map(k => caches.delete(k)));
+    // Trim the API cache if it grew past the soft cap (oldest entries first).
+    try { await _trimCache(API_CACHE, API_CACHE_MAX_ENTRIES); } catch(e) {}
     await self.clients.claim();
   })());
 });
+
+async function _trimCache(name, max){
+  const c = await caches.open(name);
+  const reqs = await c.keys();
+  if (reqs.length <= max) return;
+  // Cache.keys() preserves insertion order — drop the oldest.
+  const drop = reqs.length - max;
+  for (let i = 0; i < drop; i++) await c.delete(reqs[i]);
+}
 
 // ── Fetch ─────────────────────────────────────────
 self.addEventListener('fetch', e => {
@@ -188,12 +209,15 @@ self.addEventListener('fetch', e => {
     return;
   }
 
-  // HTML / manifest — network-first (always get latest), fallback to cache
+  // HTML / manifest — network-first (always get latest), fallback to cache.
+  // Use Navigation Preload when available so the network request is already
+  // in flight by the time this handler runs.
   if (req.mode === 'navigate' || url.endsWith('.html') || url.endsWith('manifest.json')) {
     e.respondWith((async () => {
       try {
-        const res = await fetch(req);
-        if (res.ok) {
+        const preload = e.preloadResponse ? await e.preloadResponse : null;
+        const res = preload || await fetch(req);
+        if (res && res.ok) {
           const copy = res.clone();
           caches.open(CACHE).then(c => c.put(req, copy).catch(() => {}));
         }
@@ -320,6 +344,7 @@ async function checkScheduledNotifs() {
           await self.registration.showNotification(m.title, {
             body: m.body, icon: 'icons/icon-192.png', badge: 'icons/icon-72.png',
             vibrate: [100, 50, 100], tag: `calsnap-${meal.key}`, renotify: false,
+            data: { url: './index.html#add' },
           });
         }
         schedule[lastKey] = true;
@@ -339,6 +364,7 @@ async function checkScheduledNotifs() {
             await self.registration.showNotification(m.title, {
               body: m.body, icon: 'icons/icon-192.png', badge: 'icons/icon-72.png',
               vibrate: [100, 50, 100], tag: 'calsnap-water', renotify: true,
+              data: { url: './index.html#water' },
             });
           }
           schedule[lastWaterKey] = true;
@@ -365,14 +391,22 @@ async function checkScheduledNotifs() {
   }
 }
 
-// ── Notification click — focus existing tab or open new one ─
+// ── Notification click — focus existing tab + navigate if URL differs ─
+// The previous implementation focused the first available client without
+// looking at its URL, so a notification linking to e.g. `#add` would do
+// nothing if any CalSnap tab was already open on a different screen.
 self.addEventListener('notificationclick', e => {
   e.notification.close();
   const targetUrl = e.notification.data?.url || './';
   e.waitUntil((async () => {
     const cs = await clients.matchAll({ type: 'window', includeUncontrolled: true });
-    for (const c of cs) {
-      if ('focus' in c) return c.focus();
+    // Prefer a client whose URL already matches the target.
+    let target = cs.find(c => c.url && c.url.endsWith(targetUrl));
+    // Fallback: any CalSnap tab — focus and navigate it to the target.
+    if (!target && cs.length) target = cs[0];
+    if (target) {
+      try { if ('navigate' in target) await target.navigate(targetUrl); } catch(_) {}
+      try { if ('focus' in target) return await target.focus(); } catch(_) {}
     }
     if (clients.openWindow) return clients.openWindow(targetUrl);
   })());

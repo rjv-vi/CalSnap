@@ -15,16 +15,34 @@ on:
         required: false
         default: ''
 
+# Top-level permissions intentionally minimal: per-job we narrow further.
+# `contents: write` is needed by the publish step to create a Release.
 permissions:
-  contents: write
+  contents: read
+
+# Cancel an in-progress build for the same ref when a new push lands. Tag
+# pushes are unique by definition; for workflow_dispatch we group by the
+# run id so independent manual runs don't cancel each other.
+concurrency:
+  group: android-build-${{ github.ref }}-${{ github.event.inputs.version_name || github.run_id }}
+  cancel-in-progress: true
 
 jobs:
   build:
     runs-on: ubuntu-latest
     timeout-minutes: 30
+    permissions:
+      # Needed only by `softprops/action-gh-release` to publish the Release.
+      contents: write
 
     steps:
       - uses: actions/checkout@v4
+        with:
+          # Keep the checkout shallow but make sure the tag we built from
+          # is included in the working tree (default fetch-depth=1 pulls
+          # the tag commit on tag pushes, so this is just defensive).
+          fetch-depth: 0
+          persist-credentials: false
 
       - name: Set up JDK 17
         uses: actions/setup-java@v4
@@ -184,6 +202,10 @@ jobs:
           # a strict allowlist in the Determine version step.
           name: calsnap-android-${{ steps.version.outputs.version_name }}
           path: release-artifacts/*
+          # Keep manual-run artifacts long enough to download/inspect, but
+          # not forever — APKs can pile up quickly.
+          retention-days: 14
+          if-no-files-found: error
 
       - name: Publish to GitHub Release (tag push)
         if: startsWith(github.ref, 'refs/tags/v')

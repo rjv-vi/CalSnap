@@ -1,0 +1,5 @@
+User-agent: *
+Allow: /
+
+# CalSnap PWA — fully public landing.
+Sitemap: https://rjv-vi.github.io/CalSnap/sitemap.xml

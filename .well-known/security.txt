@@ -1,0 +1,6 @@
+# Security contact for CalSnap
+# https://datatracker.ietf.org/doc/html/rfc9116
+Contact: https://github.com/rjv-vi/CalSnap/security/advisories/new
+Expires: 2030-01-01T00:00:00Z
+Preferred-Languages: ru, en
+Canonical: https://rjv-vi.github.io/CalSnap/.well-known/security.txt

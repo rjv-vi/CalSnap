@@ -1,0 +1,18 @@
+/* TEAM */
+  Developer: RJV
+  Site: https://github.com/rjv-vi
+  Github: @rjv-vi
+
+  Ideas & feedback: Rizan
+
+/* SITE */
+  Last update: 2025
+  Standards: HTML5, CSS3, ES6+, Service Workers, Web App Manifest
+  Components: Vanilla JS — no frameworks, no bundlers
+  Software: Google Gemini API, OpenFoodFacts, GitHub Pages, Bubblewrap (TWA)
+  Language: Russian / English
+
+/* THANKS */
+  Google Gemini for the AI vision
+  OpenFoodFacts for the open product database
+  All the early testers who helped polish the PWA

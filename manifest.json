@@ -2,11 +2,11 @@
   "name": "CalSnap — Счётчик калорий",
   "short_name": "CalSnap",
   "description": "AI-счётчик калорий с анализом фото еды",
-  "start_url": "./index.html",
+  "start_url": "./index.html?utm_source=pwa",
   "scope": "./",
   "id": "calsnap",
   "display": "standalone",
-  "display_override": ["window-controls-overlay", "standalone"],
+  "display_override": ["window-controls-overlay", "standalone", "minimal-ui"],
   "orientation": "portrait",
   "background_color": "#000000",
   "theme_color": "#0F0E0C",
@@ -14,34 +14,46 @@
   "dir": "ltr",
   "categories": ["health", "fitness", "food", "lifestyle"],
   "prefer_related_applications": false,
+  "launch_handler": {
+    "client_mode": ["focus-existing", "auto"]
+  },
+  "handle_links": "preferred",
+  "edge_side_panel": {
+    "preferred_width": 400
+  },
   "icons": [
-    { "src": "icons/icon-72.png",  "sizes": "72x72",   "type": "image/png" },
-    { "src": "icons/icon-96.png",  "sizes": "96x96",   "type": "image/png" },
-    { "src": "icons/icon-128.png", "sizes": "128x128", "type": "image/png" },
-    { "src": "icons/icon-144.png", "sizes": "144x144", "type": "image/png" },
-    { "src": "icons/icon-152.png", "sizes": "152x152", "type": "image/png" },
-    { "src": "icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any maskable" },
-    { "src": "icons/icon-384.png", "sizes": "384x384", "type": "image/png" },
-    { "src": "icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }
+    { "src": "icons/icon-72.png",  "sizes": "72x72",   "type": "image/png", "purpose": "any" },
+    { "src": "icons/icon-96.png",  "sizes": "96x96",   "type": "image/png", "purpose": "any" },
+    { "src": "icons/icon-128.png", "sizes": "128x128", "type": "image/png", "purpose": "any" },
+    { "src": "icons/icon-144.png", "sizes": "144x144", "type": "image/png", "purpose": "any" },
+    { "src": "icons/icon-152.png", "sizes": "152x152", "type": "image/png", "purpose": "any" },
+    { "src": "icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "maskable" },
+    { "src": "icons/icon-384.png", "sizes": "384x384", "type": "image/png", "purpose": "any" },
+    { "src": "icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
   ],
   "shortcuts": [
     {
       "name": "Добавить еду",
       "short_name": "+ Еда",
+      "description": "Открыть форму добавления приёма пищи",
       "url": "./index.html#add",
-      "icons": [{ "src": "icons/icon-96.png", "sizes": "96x96" }]
+      "icons": [{ "src": "icons/icon-96.png", "sizes": "96x96", "type": "image/png" }]
     },
     {
       "name": "Сканировать штрихкод",
       "short_name": "Штрихкод",
+      "description": "Сразу открыть сканер штрихкода",
       "url": "./index.html#scan",
-      "icons": [{ "src": "icons/icon-96.png", "sizes": "96x96" }]
+      "icons": [{ "src": "icons/icon-96.png", "sizes": "96x96", "type": "image/png" }]
     },
     {
       "name": "Виджеты",
       "short_name": "Виджеты",
+      "description": "Открыть страницу виджетов с прогрессом дня",
       "url": "./widget.html",
-      "icons": [{ "src": "icons/icon-96.png", "sizes": "96x96" }]
+      "icons": [{ "src": "icons/icon-96.png", "sizes": "96x96", "type": "image/png" }]
     }
   ],
   "share_target": {
@@ -64,6 +76,21 @@
       "data": "./widget.html",
       "type": "text/html",
       "icons": [{ "src": "icons/icon-192.png", "sizes": "192x192" }]
+    }
+  ],
+  "screenshots": [
+    {
+      "src": "icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "label": "CalSnap — главный экран с прогрессом калорий и БЖУ"
+    },
+    {
+      "src": "icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "form_factor": "wide",
+      "label": "CalSnap — desktop-вид PWA"
     }
   ]
 }

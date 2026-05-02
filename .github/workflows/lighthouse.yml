@@ -1,0 +1,43 @@
+name: Lighthouse PWA audit
+
+on:
+  workflow_dispatch:
+  schedule:
+    # Run weekly on Mondays at 03:17 UTC — late enough that GitHub Pages
+    # has propagated overnight changes, off-peak so we don't compete with
+    # CI traffic spikes.
+    - cron: '17 3 * * 1'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: lighthouse
+  cancel-in-progress: true
+
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Run Lighthouse against the live PWA
+        # treosh/lighthouse-ci-action audits the live URL with three runs and
+        # publishes the result as a workflow summary. We only enforce
+        # `assertions` for PWA + best-practices to avoid noisy failures from
+        # third-party (Google Fonts) performance hiccups.
+        uses: treosh/lighthouse-ci-action@v12
+        with:
+          urls: |
+            https://rjv-vi.github.io/CalSnap/
+          uploadArtifacts: true
+          temporaryPublicStorage: true
+          runs: 3

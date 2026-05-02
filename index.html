@@ -12,6 +12,7 @@
 <meta name="format-detection" content="telephone=no, date=no, address=no, email=no">
 <meta name="HandheldFriendly" content="true">
 <meta name="MobileOptimized" content="width">
+<meta name="referrer" content="strict-origin-when-cross-origin">
 <!--
   Single theme-color meta updated dynamically by JS on theme toggle.
   We do NOT use prefers-color-scheme media variants here because the in-app
@@ -21,14 +22,64 @@
 <meta id="tc-meta" name="theme-color" content="#F2F0EB">
 <link rel="manifest" href="manifest.json">
 <link rel="apple-touch-icon" href="icons/icon-192.png">
+<link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png">
+<link rel="icon" type="image/png" sizes="512x512" href="icons/icon-512.png">
+<link rel="canonical" href="https://rjv-vi.github.io/CalSnap/">
 <title>CalSnap — AI-счётчик калорий</title>
-<script src="assets/js/boot.js"></script>
 
-<script src="assets/js/sw-register.js"></script>
+<!-- Open Graph / Facebook -->
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="CalSnap">
+<meta property="og:url" content="https://rjv-vi.github.io/CalSnap/">
+<meta property="og:title" content="CalSnap — AI-счётчик калорий">
+<meta property="og:description" content="AI распознаёт еду по фото, тексту и штрихкоду. Дневник, прогресс, водный баланс и AI-нутрициолог. Работает офлайн.">
+<meta property="og:image" content="https://rjv-vi.github.io/CalSnap/icons/icon-512.png">
+<meta property="og:image:width" content="512">
+<meta property="og:image:height" content="512">
+<meta property="og:locale" content="ru_RU">
+<meta property="og:locale:alternate" content="en_US">
+
+<!-- Twitter Card -->
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="CalSnap — AI-счётчик калорий">
+<meta name="twitter:description" content="AI распознаёт еду по фото, тексту и штрихкоду. Дневник, прогресс, водный баланс и AI-нутрициолог. Работает офлайн.">
+<meta name="twitter:image" content="https://rjv-vi.github.io/CalSnap/icons/icon-512.png">
+
+<!-- Structured data: WebApplication / MobileApplication -->
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "WebApplication",
+  "name": "CalSnap",
+  "description": "AI-счётчик калорий с распознаванием еды по фото, тексту и штрихкоду. Работает офлайн.",
+  "applicationCategory": "HealthApplication",
+  "operatingSystem": "Any",
+  "browserRequirements": "Requires modern browser with Service Worker support",
+  "url": "https://rjv-vi.github.io/CalSnap/",
+  "image": "https://rjv-vi.github.io/CalSnap/icons/icon-512.png",
+  "inLanguage": ["ru","en"],
+  "isAccessibleForFree": true,
+  "offers": {
+    "@type": "Offer",
+    "price": "0",
+    "priceCurrency": "USD"
+  },
+  "author": {
+    "@type": "Person",
+    "name": "RJV",
+    "url": "https://github.com/rjv-vi"
+  }
+}
+</script>
+
+<script src="assets/js/boot.js"></script>
+<script src="assets/js/sw-register.js" defer></script>
 
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="dns-prefetch" href="https://generativelanguage.googleapis.com">
+<link rel="dns-prefetch" href="https://world.openfoodfacts.org">
+<link rel="preload" as="style" href="assets/css/base.css">
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;0,9..40,800;0,9..40,900;1,9..40,400&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="assets/css/base.css">
 <link rel="stylesheet" href="assets/css/components.css">
@@ -38,8 +89,21 @@
 </head>
 <body>
 
+<noscript>
+  <div style="position:fixed;inset:0;display:flex;align-items:center;justify-content:center;padding:24px;background:#0F0E0C;color:#fff;font-family:system-ui,-apple-system,sans-serif;z-index:99999;text-align:center">
+    <div style="max-width:440px">
+      <div style="font-size:48px;margin-bottom:8px" aria-hidden="true">🍎</div>
+      <h1 style="font-size:24px;font-weight:800;margin:0 0 8px">CalSnap</h1>
+      <p style="font-size:15px;line-height:1.5;color:rgba(255,255,255,.78);margin:0">
+        Для работы приложения нужен JavaScript. Включи его в настройках браузера и обнови страницу.<br><br>
+        CalSnap requires JavaScript. Please enable it in your browser settings and reload the page.
+      </p>
+    </div>
+  </div>
+</noscript>
+
 <!-- OFFLINE MODAL -->
-<div id="offlOv" style="display:none;position:fixed;inset:0;z-index:9999;align-items:flex-end;justify-content:center;padding:0">
+<div id="offlOv" role="dialog" aria-modal="true" aria-labelledby="offlTitleEl" style="display:none;position:fixed;inset:0;z-index:9999;align-items:flex-end;justify-content:center;padding:0">
   <!-- Backdrop -->
   <div onclick="/* block */" style="position:absolute;inset:0;background:rgba(0,0,0,.52);-webkit-backdrop-filter:blur(28px) saturate(180%);backdrop-filter:blur(28px) saturate(180%)"></div>
   <!-- Card -->
@@ -54,7 +118,7 @@
     </div>
     <!-- Title -->
     <div style="text-align:center;margin-bottom:6px">
-      <div style="font-size:20px;font-weight:800;color:#fff;letter-spacing:-.4px;margin-bottom:6px" data-i18n="offl_title">Нет соединения</div>
+      <div id="offlTitleEl" style="font-size:20px;font-weight:800;color:#fff;letter-spacing:-.4px;margin-bottom:6px" data-i18n="offl_title">Нет соединения</div>
       <div style="font-size:14px;color:rgba(255,255,255,.5);line-height:1.45" data-i18n-html="offl_sub">AI-функции недоступны без интернета.<br>Дневник и статистика работают офлайн.</div>
     </div>
     <!-- Features -->
@@ -92,9 +156,9 @@
 <div class="offl-bar" id="offlBar" data-i18n="offl_bar">📶 Офлайн — AI недоступен</div>
 
 <!-- SPLASH SCREEN -->
-<div class="splash-ov" id="splashOv">
-  <span class="splash-icon">🍎</span>
-  <div class="splash-title">Cal<b>Snap</b></div>
+<div class="splash-ov" id="splashOv" role="status" aria-label="CalSnap loading">
+  <span class="splash-icon" aria-hidden="true">🍎</span>
+  <div class="splash-title" aria-hidden="true">Cal<b>Snap</b></div>
   <div class="splash-sub" data-i18n="ob_tagline">AI-трекер калорий</div>
 </div>
 
@@ -412,7 +476,7 @@
 
 
 <!-- FOOD DETAIL -->
-<div id="fdOv" onclick="if(event.target===this){HFX.light();closeFd();}">
+<div id="fdOv" role="dialog" aria-modal="true" aria-labelledby="fdName" onclick="if(event.target===this){HFX.light();closeFd();}">
   <div class="fd-sheet" id="fdSheet">
     <div id="fdImgWrap"></div>
     <div class="fd-body">
@@ -591,7 +655,7 @@
 </div>
 
 <!-- NOTIFICATION SETTINGS MODAL -->
-<div class="ov" id="notifOv" onclick="if(event.target===this){HFX.light();closeNotifSettings();}">
+<div class="ov" id="notifOv" role="dialog" aria-modal="true" aria-label="Настройки уведомлений" onclick="if(event.target===this){HFX.light();closeNotifSettings();}">
   <div class="sheet" style="max-height:85vh">
     <div class="sh-handle"></div>
     <div class="sh-hdr">
@@ -683,11 +747,11 @@
 </div>
 
 <!-- EDIT FOOD MODAL -->
-<div class="edit-food-ov" id="editFoodOv" onclick="if(event.target===this)closeEditFd()">
+<div class="edit-food-ov" id="editFoodOv" role="dialog" aria-modal="true" aria-labelledby="editFoodTitle" onclick="if(event.target===this)closeEditFd()">
   <div class="edit-food-sheet">
     <div class="sh-handle"></div>
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
-      <div class="edit-food-title" data-i18n="ef_title">✏️ Редактировать</div>
+      <div class="edit-food-title" id="editFoodTitle" data-i18n="ef_title">✏️ Редактировать</div>
       <button class="sh-close" onclick="closeEditFd()">✕</button>
     </div>
     <div class="ef-field full" style="margin-bottom:10px">
@@ -738,7 +802,7 @@
 </div>
 
 <!-- AUTHORS MODAL -->
-<div class="about-ov" id="aboutOv" onclick="if(event.target===this)closeAbout()">
+<div class="about-ov" id="aboutOv" role="dialog" aria-modal="true" aria-label="О приложении" onclick="if(event.target===this)closeAbout()">
   <div class="about-sheet">
     <div class="about-handle"></div>
     <button class="sh-close about-x" onclick="HFX.light();SFX.play('sheet_close');closeAbout()" aria-label="Close" data-i18n-aria="btn_close">✕</button>
@@ -779,7 +843,7 @@
 
 
 <!-- MODEL PICKER -->
-<div id="mdlOv" style="position:fixed;inset:0;background:#00000070;z-index:300;display:none;align-items:flex-end">
+<div id="mdlOv" role="dialog" aria-modal="true" aria-label="Выбор модели Gemini" style="position:fixed;inset:0;background:#00000070;z-index:300;display:none;align-items:flex-end">
   <div style="background:var(--bg1);border-radius:24px 24px 0 0;width:100%;max-height:75vh;overflow-y:auto;padding:0 0 env(safe-area-inset-bottom)">
     <div style="padding:18px 20px 12px;display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid var(--b1);position:sticky;top:0;background:var(--bg1);z-index:1">
       <div>
@@ -804,31 +868,31 @@
   <button onclick="HFX.light();SFX.play('btn_tap');dismissInstallBanner()" style="background:none;border:none;font-size:18px;cursor:pointer;color:var(--t1);padding:0 4px">✕</button>
 </div>
 <!-- BOTTOM NAV -->
-<nav id="nav">
-  <div id="nav-pill"></div>
-  <button class="nb on" onclick="goS('home',this)">
-    <svg viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+<nav id="nav" aria-label="Основная навигация">
+  <div id="nav-pill" aria-hidden="true"></div>
+  <button class="nb on" onclick="goS('home',this)" data-i18n-aria="nav_home" aria-label="Дом">
+    <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
     <span data-i18n="nav_home">Дом</span>
   </button>
-  <button class="nb" onclick="goS('prog',this)">
-    <svg viewBox="0 0 24 24"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
+  <button class="nb" onclick="goS('prog',this)" data-i18n-aria="nav_progress" aria-label="Прогресс">
+    <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
     <span data-i18n="nav_progress">Прогресс</span>
   </button>
-  <button class="nb-add" onclick="openAdd()">
-    <svg viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+  <button class="nb-add" onclick="openAdd()" aria-label="Добавить еду" data-i18n-aria="add_food_title">
+    <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
   </button>
-  <button class="nb" onclick="goS('ai',this)">
-    <svg viewBox="0 0 24 24"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>
+  <button class="nb" onclick="goS('ai',this)" data-i18n-aria="nav_ai" aria-label="AI">
+    <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>
     <span data-i18n="nav_ai">AI</span>
   </button>
-  <button class="nb" onclick="goS('sett',this)">
-    <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-2 2 2 2 0 01-2-2v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83 0 2 2 0 010-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 01-2-2 2 2 0 012-2h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 010-2.83 2 2 0 012.83 0l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 012-2 2 2 0 012 2v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 0 2 2 0 010 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 012 2 2 2 0 01-2 2h-.09a1.65 1.65 0 00-1.51 1z"/></svg>
+  <button class="nb" onclick="goS('sett',this)" data-i18n-aria="nav_settings" aria-label="Настройки">
+    <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-2 2 2 2 0 01-2-2v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83 0 2 2 0 010-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 01-2-2 2 2 0 012-2h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 010-2.83 2 2 0 012.83 0l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 012-2 2 2 0 012 2v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 0 2 2 0 010 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 012 2 2 2 0 01-2 2h-.09a1.65 1.65 0 00-1.51 1z"/></svg>
     <span data-i18n="nav_settings">Настройки</span>
   </button>
 </nav>
 
 <!-- ADD MODAL -->
-<div class="ov" id="addOv" onclick="if(event.target===this){HFX.light();closeAdd();}">
+<div class="ov" id="addOv" role="dialog" aria-modal="true" aria-label="Добавить еду" onclick="if(event.target===this){HFX.light();closeAdd();}">
   <div class="sheet">
     <div class="sh-handle"></div>
     <div class="sh-hdr"><h3 data-i18n="add_food_title">Добавить еду</h3><button class="sh-close" onclick="HFX.light();SFX.play('sheet_close');closeAdd()">✕</button></div>
@@ -969,7 +1033,7 @@
 </div>
 
 <!-- API MODAL -->
-<div class="ed-ov" id="apiOv" onclick="if(event.target===this){HFX.light();SFX.play('back');closeApi()}">
+<div class="ed-ov" id="apiOv" role="dialog" aria-modal="true" aria-label="Gemini API ключ" onclick="if(event.target===this){HFX.light();SFX.play('back');closeApi()}">
   <div class="ed-sheet">
     <h3>🔑 API ключ Gemini</h3>
     <p style="font-size:13px;color:var(--t1);margin-bottom:16px;line-height:1.5">Получи бесплатный ключ на <a href="https://aistudio.google.com/apikey" target="_blank" style="color:var(--acc);font-weight:600">aistudio.google.com</a></p>
@@ -980,7 +1044,7 @@
 </div>
 
 <!-- EDIT MODAL -->
-<div class="ed-ov" id="edOv" onclick="if(event.target===this)closeEd()">
+<div class="ed-ov" id="edOv" role="dialog" aria-modal="true" aria-label="Редактировать профиль" onclick="if(event.target===this)closeEd()">
   <div class="ed-sheet">
     <h3 id="edtitle">Редактировать</h3>
     <div id="edcont"></div>
@@ -1143,18 +1207,18 @@
   </script>
 
   <!-- БАННЕР ОБНОВЛЕНИЯ -->
-  <div id="updateBanner" style="display:none;position:fixed;top:calc(env(safe-area-inset-top,0px) + 12px);left:12px;right:12px;background:var(--acc);color:#fff;border-radius:16px;padding:14px 16px;z-index:9999;align-items:center;gap:12px;box-shadow:0 4px 20px rgba(0,0,0,0.25)">
-    <div style="font-size:22px">🆕</div>
+  <div id="updateBanner" role="status" aria-live="polite" style="display:none;position:fixed;top:calc(env(safe-area-inset-top,0px) + 12px);left:12px;right:12px;background:var(--acc);color:#fff;border-radius:16px;padding:14px 16px;z-index:9999;align-items:center;gap:12px;box-shadow:0 4px 20px rgba(0,0,0,0.25)">
+    <div style="font-size:22px" aria-hidden="true">🆕</div>
     <div style="flex:1">
-      <div style="font-size:14px;font-weight:800">Доступно обновление!</div>
-      <div style="font-size:12px;opacity:.7;margin-top:2px">Новая версия CalSnap готова</div>
+      <div style="font-size:14px;font-weight:800" data-i18n="update_title">Доступно обновление!</div>
+      <div style="font-size:12px;opacity:.7;margin-top:2px" data-i18n="update_sub">Новая версия CalSnap готова</div>
     </div>
-    <button id="updateBtn" style="background:var(--acc);color:#fff;border:none;border-radius:10px;padding:8px 14px;font-size:13px;font-weight:700;cursor:pointer;white-space:nowrap">Обновить</button>
-    <button onclick="document.getElementById('updateBanner').style.display='none'" style="background:rgba(255,255,255,.15);border:none;border-radius:8px;color:#fff;padding:6px 8px;font-size:13px;cursor:pointer">✕</button>
+    <button id="updateBtn" data-i18n="update_btn" data-i18n-aria="update_btn" style="background:var(--acc);color:#fff;border:none;border-radius:10px;padding:8px 14px;font-size:13px;font-weight:700;cursor:pointer;white-space:nowrap">Обновить</button>
+    <button onclick="document.getElementById('updateBanner').style.display='none'" data-i18n-aria="btn_close" aria-label="Закрыть" style="background:rgba(255,255,255,.15);border:none;border-radius:8px;color:#fff;padding:6px 8px;font-size:13px;cursor:pointer">✕</button>
   </div>
 
 <!-- WEIGHT LOG MODAL -->
-<div class="wlog-ov" id="wlogOv" onclick="if(event.target===this){HFX.light();closeWlog();}">
+<div class="wlog-ov" id="wlogOv" role="dialog" aria-modal="true" aria-label="Записать вес" onclick="if(event.target===this){HFX.light();closeWlog();}">
   <div class="wlog-sheet">
     <div class="wlog-header">
       <div class="wlog-title">Записать вес</div>
@@ -1177,7 +1241,7 @@
 
 
 <!-- DRUM DATE PICKER -->
-<div class="drum-ov" id="drumOv">
+<div class="drum-ov" id="drumOv" role="dialog" aria-modal="true" aria-label="Выбор даты">
   <div class="drum-sheet">
     <div class="drum-header">
       <button class="drum-cancel" onclick="HFX.light();SFX.play('back');closeDrum()">Отмена</button>
@@ -1201,7 +1265,7 @@
 </div>
 
 <!-- CUSTOM CONFIRM MODAL -->
-<div class="cfrm-ov" id="cfrmOv">
+<div class="cfrm-ov" id="cfrmOv" role="alertdialog" aria-modal="true" aria-labelledby="cfrmTitle" aria-describedby="cfrmMsg">
   <div class="cfrm-box">
     <div class="cfrm-body">
       <span class="cfrm-icon" id="cfrmIcon">⚠️</span>
@@ -1217,7 +1281,7 @@
 
 
 <!-- DEV PANEL -->
-<div id="devOv" style="position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:500;display:none;align-items:flex-end;-webkit-backdrop-filter:blur(18px);backdrop-filter:blur(18px)" onclick="if(event.target===this)closeDevPanel()">
+<div id="devOv" role="dialog" aria-modal="true" aria-label="Dev Panel" style="position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:500;display:none;align-items:flex-end;-webkit-backdrop-filter:blur(18px);backdrop-filter:blur(18px)" onclick="if(event.target===this)closeDevPanel()">
   <div class="sheet" style="max-height:90vh;overflow-y:auto;padding:0 0 calc(env(safe-area-inset-bottom)+16px);width:100%">
     <div style="padding:16px 20px 12px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--b1);position:sticky;top:0;background:var(--bg1);z-index:1">
       <div style="font-size:17px;font-weight:800;color:var(--t0)">🛠 Dev Panel</div>
