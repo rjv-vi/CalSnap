@@ -185,9 +185,6 @@ input,textarea,select{font-family:var(--ff);}
 .nb{flex:1;display:flex;flex-direction:column;align-items:center;gap:4px;padding:10px 0 0;cursor:pointer;border:none;background:none;color:var(--t2);transition:color .22s cubic-bezier(.22,1,.36,1);min-height:58px;justify-content:center;position:relative;}
 .nb.on{color:var(--t0);font-weight:700;}
 /* Active-tab pill — sits behind the icon+label, animates in with bounce */
-.nb::before{content:'';position:absolute;left:50%;top:8px;bottom:8px;width:48px;transform:translateX(-50%) scale(.5);background:var(--b1);border-radius:14px;opacity:0;transition:opacity .26s cubic-bezier(.22,1,.36,1),transform .32s cubic-bezier(.34,1.56,.64,1);z-index:-1;pointer-events:none;}
-.nb.on::before{opacity:.85;transform:translateX(-50%) scale(1);}
-[data-theme="dark"] .nb.on::before{background:var(--b2);opacity:.7;}
 .nb.on::after{content:'';position:absolute;bottom:4px;width:4px;height:4px;border-radius:50%;background:var(--acc);animation:dotIn .28s cubic-bezier(.22,1,.36,1);}
 @keyframes dotIn{from{transform:scale(0);opacity:0}to{transform:none;opacity:1}}
 .nb span{font-size:10px;font-weight:700;letter-spacing:.2px;opacity:.55;transition:opacity .2s;}
