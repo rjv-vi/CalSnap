@@ -32,15 +32,20 @@ async function loadWeekAnalysis(force=false) {
   }
   if(days7.length<2){ document.getElementById('weekAiBody').innerHTML=`<div class="week-ai-empty">${t('week_ai_min_days')}</div>`; if(btn){btn.disabled=false;btn.textContent=t('week_ai_btn');} _weekLoading=false; return; }
 
-  // Add water data per day
-  const days7water = [];
-  for(let i=0;i<7;i++){
-    const d=new Date(); d.setDate(d.getDate()-i);
-    try{const w=JSON.parse(localStorage.getItem('water_'+ds(d))||'[]');const wml=w.reduce((s,x)=>s+x.ml,0);if(wml>0)days7water.push(d.toLocaleDateString('ru',{weekday:'short'})+': '+wml+'мл');}catch(e){}
+  // Add water data per day — only when the user has water tracking enabled.
+  // The AI must not mention water at all when the feature is turned off.
+  let waterLine = '';
+  if (isWaterOn()) {
+    const days7water = [];
+    for(let i=0;i<7;i++){
+      const d=new Date(); d.setDate(d.getDate()-i);
+      try{const w=JSON.parse(localStorage.getItem('water_'+ds(d))||'[]');const wml=w.reduce((s,x)=>s+x.ml,0);if(wml>0)days7water.push(d.toLocaleDateString('ru',{weekday:'short'})+': '+wml+'мл');}catch(e){}
+    }
+    const waterSummary = days7water.length ? days7water.join(', ') : 'нет данных';
+    waterLine = `Вода за 7 дней: ${waterSummary}\n`;
   }
   const daysSummary = days7.map(d=>`${d.day}: ${d.kcal}ккал (Б${d.prot}г У${d.carb}г Ж${d.fat}г, ${d.count} приёмов)`).join('\n');
-  const waterSummary = days7water.length ? days7water.join(', ') : 'нет данных';
-  const sys=`Ты персональный нутрициолог. Данные пользователя: ${U?.name}, цель: ${GL[U?.goal]||'—'}, норма: ${U?.kcal||2000}ккал.\nВода за 7 дней: ${waterSummary}\nВес (последние записи): ${wts.slice(0,5).map(w=>w.v+'кг').join(' → ')||'нет данных'}\nДанные за последние дни:\n${daysSummary}\n\nДай анализ в формате JSON:\n{"good":"что хорошо (1-2 предложения)","warn":"что стоит улучшить (1-2 предложения)","tip":"конкретный совет на следующую неделю (1-2 предложения)"}\nТолько JSON, по-русски, кратко.`;
+  const sys=`Ты персональный нутрициолог. Данные пользователя: ${U?.name}, цель: ${GL[U?.goal]||'—'}, норма: ${U?.kcal||2000}ккал.\n${waterLine}Вес (последние записи): ${wts.slice(0,5).map(w=>w.v+'кг').join(' → ')||'нет данных'}\nДанные за последние дни:\n${daysSummary}\n\nДай анализ в формате JSON:\n{"good":"что хорошо (1-2 предложения)","warn":"что стоит улучшить (1-2 предложения)","tip":"конкретный совет на следующую неделю (1-2 предложения)"}\nТолько JSON, по-русски, кратко.${isWaterOn()?'':' Не упоминай воду и питьевой режим.'}`;
 
   try {
     const raw = await gem([{text:'Анализ питания за неделю'}], sys, {json:true,maxOutputTokens:1024});
@@ -162,4 +167,3 @@ function renderWeekAnalysis(data) {
       ${data.tip?`<div class="week-ai-section tip"><div class="week-ai-section-title">💡 Совет на неделю</div><div class="week-ai-section-text">${data.tip}</div></div>`:''}
     </div>`;
 }
-

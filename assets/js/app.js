@@ -308,12 +308,12 @@ function addDBItem(idx){
   const f=FOOD_DB[idx]; if(!f) return;
   const entry={food:f.n,portion:f.p,kcal:f.k,prot:f.pr,fat:f.ft,carb:f.cb,time:tnow(),date:ds()};
   log.unshift(entry); S('log',JSON.stringify(log));
-  // If drink — add to water too
+  // If drink — add to water too (background bookkeeping only; UI stays hidden while tracking is off)
   if(f.isDrink && f.ml){
     const arr=getWaterToday();
     arr.push({id:f.drinkId||'other',ml:f.ml,t:tnow(),fromFood:true});
     S('water_'+ds(),JSON.stringify(arr));
-    rWater();
+    if(isWaterOn()) rWater();
   }
   HFX.success(); SFX.play('add_food');
   showToast('✅ ' + f.n + ' добавлено');
@@ -759,6 +759,7 @@ function initAi(){
   aiReady=true;
   const chatHistory=document.getElementById('aimsg')?.children?.length;
   const tl=tlog(),tt=tot(tl);
+  const _waterOn=isWaterOn();
   const _wArr=getWaterToday();
   const waterNow=_wArr.reduce((s,e)=>s+e.ml,0);
   const waterTarget=getWaterGoal().adjusted;
@@ -776,10 +777,12 @@ function initAi(){
   const _goalWord=LANG==='en'?'Goal':'Цель';
   const _leftWord=LANG==='en'?'left':'Осталось';
   const _todayWord=LANG==='en'?'Today':'Сегодня';
+  // Water tracking is opt-in — only surface it in the welcome message when the user has it enabled.
+  const _waterSeg=_waterOn?` · 💧 <b style="color:#3b82f6">${waterNow}${_mlUnit}</b> ${_ofWord} ${waterTarget}${_mlUnit}${waterTimeline ? '<br><span style="font-size:11px;color:var(--t2)">' + waterTimeline + '</span>' : ''}`:'';
   wcard.innerHTML=`
     <span class="ai-welcome-icon">🤖</span>
     <div class="ai-welcome-title">${t('ai_welcome_hi')}, ${U?.name||''}!</div>
-    <div class="ai-welcome-sub">${_todayWord}: <b style="color:#FF8C00">${tt.k} ${_kcalUnit}</b> ${_ofWord} ${U?.kcal||2000} · 💧 <b style="color:#3b82f6">${waterNow}${_mlUnit}</b> ${_ofWord} ${waterTarget}${_mlUnit}${waterTimeline ? '<br><span style="font-size:11px;color:var(--t2)">' + waterTimeline + '</span>' : ''}<br>${_goalWord}: «${GL[U?.goal]||'—'}» · ${_leftWord} <b>${Math.max(0,(U?.kcal||2000)-tt.k)}</b> ${_kcalUnit}</div>
+    <div class="ai-welcome-sub">${_todayWord}: <b style="color:#FF8C00">${tt.k} ${_kcalUnit}</b> ${_ofWord} ${U?.kcal||2000}${_waterSeg}<br>${_goalWord}: «${GL[U?.goal]||'—'}» · ${_leftWord} <b>${Math.max(0,(U?.kcal||2000)-tt.k)}</b> ${_kcalUnit}</div>
   `;
   c.appendChild(wcard);
   const lbl=document.createElement('div');
@@ -857,6 +860,8 @@ async function aiSend(){
 
   // Rich context for AI
   const tl=tlog(),tt=tot(tl);
+  // Water tracking is opt-in — the AI must never mention water when the user has it disabled.
+  const waterEnabled=isWaterOn();
   const waterToday=getWaterToday();
   const totalWaterMl=waterToday.reduce((s,e)=>s+e.ml,0);
   const waterGoal=getWaterGoal().adjusted;
@@ -873,6 +878,9 @@ async function aiSend(){
 
   const prefsStr = U?.prefs?.length ? '\n• Предпочтения: ' + U.prefs.join(', ') : '';
   const allergStr = U?.allerg ? '\n• Аллергии/ограничения: ' + U.allerg : '';
+  const waterTodayLine = waterEnabled ? `Вода сегодня: ${totalWaterMl}мл из ${waterGoal}мл${waterToday.length ? ' ('+waterToday.map(e=>e.ml+'мл в '+e.t).join(', ')+')' : ''}\n` : '';
+  const water7dLine = waterEnabled ? `ВОДА (последние 7 дней): ${(()=>{const r=[];for(let i=1;i<=7;i++){const d=new Date();d.setDate(d.getDate()-i);try{const w=JSON.parse(localStorage.getItem('water_'+d.toDateString())||'[]');const tot=w.reduce((s,x)=>s+x.ml,0);if(tot>0)r.push(d.toLocaleDateString('ru',{weekday:'short'})+': '+tot+'мл');}catch(e){}}return r.length?r.join(', '):'нет данных';})()}\n` : '';
+  const waterInstruction = waterEnabled ? '' : '\n- Трекинг воды у пользователя отключён — НЕ упоминай воду и питьевой режим, если пользователь сам не спросит';
   const sys=`Ты персональный AI-нутрициолог CalSnap. Ты умный, внимательный, мотивирующий.
 
 ДАННЫЕ ПОЛЬЗОВАТЕЛЯ:
@@ -886,11 +894,9 @@ ${foodLog}
 Итого: ${tt.k||0}ккал из ${U?.kcal||2000} (${Math.round((tt.k||0)/(U?.kcal||2000)*100)}%)
 Макро: Б${Math.round(tt.p||0)}г У${Math.round(tt.c||0)}г Ж${Math.round(tt.f||0)}г
 Осталось: ${Math.max(0,(U?.kcal||2000)-(tt.k||0))}ккал
-Вода сегодня: ${totalWaterMl}мл из ${waterGoal}мл${waterToday.length ? ' ('+waterToday.map(e=>e.ml+'мл в '+e.t).join(', ')+')' : ''}
-
+${waterTodayLine}
 ИСТОРИЯ НЕДЕЛИ: ${week7.length?week7.join(', '):'нет данных'}
-ВОДА (последние 7 дней): ${(()=>{const r=[];for(let i=1;i<=7;i++){const d=new Date();d.setDate(d.getDate()-i);try{const w=JSON.parse(localStorage.getItem('water_'+d.toDateString())||'[]');const tot=w.reduce((s,x)=>s+x.ml,0);if(tot>0)r.push(d.toLocaleDateString('ru',{weekday:'short'})+': '+tot+'мл');}catch(e){}}return r.length?r.join(', '):'нет данных';})()}
-ВЕС (последние записи): ${wts.slice(0,5).map(w=>new Date(w.d).toLocaleDateString('ru',{day:'numeric',month:'short'})+': '+w.v+'кг').join(', ')||'нет данных'}
+${water7dLine}ВЕС (последние записи): ${wts.slice(0,5).map(w=>new Date(w.d).toLocaleDateString('ru',{day:'numeric',month:'short'})+': '+w.v+'кг').join(', ')||'нет данных'}
 
 ИНСТРУКЦИИ:
 - Отвечай по-русски, конкретно, дружески
@@ -898,7 +904,7 @@ ${foodLog}
 - Давай точные советы (конкретные блюда, граммовки, время)
 - Если спрашивают что съесть — предлагай реальные блюда с калориями
 - До 180 слов, используй эмодзи умеренно
-- НЕ повторяй данные которые пользователь уже знает`;
+- НЕ повторяй данные которые пользователь уже знает${waterInstruction}`;
 
   // Show typing indicator
   const lm=document.createElement('div');lm.className='msg msg-ai';
@@ -1260,18 +1266,21 @@ function addRes(t){
   const item=cur[t];if(!item)return;
   HFX.success(); SFX.play('add_food');
   log.unshift(item); S('log',JSON.stringify(log));
-  // Auto-detect beverage → add to water tracker
+  // Auto-detect beverage → add to water tracker (background bookkeeping only;
+  // the toast + widget refresh are gated behind the water-tracking toggle so
+  // the feature stays invisible while it's off).
   const bev = _detectBeverage(item);
   if (bev) {
     const arr = getWaterToday();
     arr.push({ id: bev.drinkId, ml: bev.ml, t: item.time || tnow(), fromFood: true });
     S('water_'+ds(), JSON.stringify(arr));
-    rWater();
-    showToast(tf('water_added_toast',{ml:bev.ml}));
+    if (isWaterOn()) {
+      rWater();
+      showToast(tf('water_added_toast',{ml:bev.ml}));
+    }
   }
   rH(); closeAdd();
   if(t==='photo') rstPhoto();
   if(t==='text')  rstText();
   if(t==='barcode'){document.getElementById('bcres').classList.remove('on');document.getElementById('bcAddbtn').style.display='none';}
 }
-

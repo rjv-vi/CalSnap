@@ -30,6 +30,13 @@ const DRINKS = new Proxy(_DRINKS_BASE, {
 
 
 function _updateMiniWater() {
+  const row = document.getElementById('miniWaterRow');
+  // Water tracking is opt-in — hide the Home widget entirely when it's off.
+  if (!isWaterOn()) {
+    if (row) row.style.display = 'none';
+    return;
+  }
+  if (row) row.style.display = '';
   const arr = getWaterToday();
   const total = arr.reduce((s,e) => s + e.ml, 0);
   const goal = getWaterGoal().adjusted;
@@ -155,6 +162,13 @@ function addWaterCustom(){
 
 function rWater() {
   if(!U) return;
+  const card = document.getElementById('waterCard');
+  // Water tracking is opt-in — hide the Progress widget entirely when it's off.
+  if (!isWaterOn()) {
+    if (card) card.style.display = 'none';
+    return;
+  }
+  if (card) card.style.display = '';
   const { goal, hasSalt, adjusted } = getWaterGoal();
   const arr = getWaterToday();
   const totalMl = arr.reduce((s,e) => s+e.ml, 0);
@@ -242,4 +256,3 @@ function rWater() {
   const undoBtn = document.getElementById('waterUndoBtn');
   if(undoBtn) undoBtn.style.display = arr.length ? 'flex' : 'none';
 }
-

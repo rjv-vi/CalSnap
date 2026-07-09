@@ -17,6 +17,7 @@ function rSet(){
   const tog=document.getElementById('themeToggle');if(tog)tog.classList.toggle('on',dark);
   const sfxTog=document.getElementById('sfxToggle');if(sfxTog)sfxTog.classList.toggle('on',SFX.isEnabled());
   const hfxTog=document.getElementById('hfxToggle');if(hfxTog)hfxTog.classList.toggle('on',HFX.isOn());
+  const waterTog=document.getElementById('waterTrackingToggle');if(waterTog)waterTog.classList.toggle('on',isWaterOn());
   const sl=document.getElementById('slang');if(sl)sl.textContent = LANG === 'en' ? 'EN' : 'RU';
   // Notif status
   if(typeof Notification!=='undefined'&&Notification.permission==='granted') _updateNotifStatus(true);
@@ -176,6 +177,7 @@ function exportJSON(){
       sfx:G('sfx_enabled','1'),
       notif:G('notif_enabled','0'),
       notifCfg:G('notif_cfg',''),
+      waterEnabled:G('water_enabled','0'),
     };
     // Сохраняем water_ ключи
     const waterKeys={};
@@ -215,6 +217,7 @@ function importJSON(input){
         if(data.sfx)S('sfx_enabled',data.sfx);
         if(data.notif)S('notif_enabled',data.notif);
         if(data.notifCfg)S('notif_cfg',data.notifCfg);
+        if(data.waterEnabled!=null)S('water_enabled',data.waterEnabled);
         HFX.success(); SFX.play('import_done');
         if(data.water){Object.entries(data.water).forEach(([k,v])=>localStorage.setItem(k,v));}
         setTimeout(()=>window.location.reload(),300);
@@ -277,7 +280,7 @@ function clrAll(){
     SFX.play('reset_confirm'); HFX.heavy();
     log=[];S('log','[]');wts=[];S('wts','[]');S('u','null');U=null;S('key','');key='';S('mdl','');
     // Clear water data for all dates
-    const keysToRemove=[];for(let i=0;i<localStorage.length;i++){const k=localStorage.key(i);if(k&&(k.startsWith('water_')||k.startsWith('tip_')||k==='notif_cfg'||k==='notif_enabled'))keysToRemove.push(k);}
+    const keysToRemove=[];for(let i=0;i<localStorage.length;i++){const k=localStorage.key(i);if(k&&(k.startsWith('water_')||k.startsWith('tip_')||k==='notif_cfg'||k==='notif_enabled'||k==='water_enabled'))keysToRemove.push(k);}
     keysToRemove.forEach(k=>{ localStorage.removeItem(k); Ginvalidate(k); });
     document.getElementById('nav').style.display='none';
     // Brief delay for animation
@@ -305,6 +308,19 @@ function toggleSfx(){
   if(tog)tog.classList.toggle('on',newVal);
 }
 
+// Water tracking master toggle — OFF by default (opt-in). Flips visibility of
+// the Home mini-widget + Progress card, and gates whether the AI assistant
+// is allowed to mention water anywhere in its responses.
+function toggleWaterTracking(){
+  const newVal=!isWaterOn();
+  S('water_enabled', newVal?'1':'0');
+  const tog=document.getElementById('waterTrackingToggle');
+  if(tog)tog.classList.toggle('on',newVal);
+  showToast(newVal ? t('toast_water_on','💧 Трекинг воды включён') : t('toast_water_off','Трекинг воды выключен'));
+  try { rH && rH(); } catch(e){}
+  try { if(document.getElementById('prog')?.classList.contains('active')) rWater(); } catch(e){}
+}
+
 function showErr(id,msg){const e=document.getElementById(id);e.textContent='⚠️ '+(msg||'Неизвестная ошибка');e.classList.add('on');}
 
 // Тема применена в <head>; здесь только следим за системными изменениями темы (если юзер не выбрал явно)
@@ -322,4 +338,3 @@ try {
     });
   }
 } catch (e) {}
-

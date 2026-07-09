@@ -22,6 +22,11 @@ const S=(k,v)=>{
 const Ginvalidate=(k)=>{ if(k==null){ for(const x in _lsCache) delete _lsCache[x]; } else { delete _lsCache[k]; } };
 try { window.addEventListener('storage', e => { if (e.key) delete _lsCache[e.key]; else Ginvalidate(); }); } catch(e) {}
 
+// Water tracking — opt-in feature, OFF by default until the user enables it
+// in Settings → Питание. Used to gate water widgets (Home/Progress) and to
+// decide whether the AI assistant is allowed to mention water at all.
+const isWaterOn = () => G('water_enabled','0') === '1';
+
 // State
 let U=JSON.parse(G('u','null')),
     log=JSON.parse(G('log','[]')),
@@ -258,4 +263,3 @@ function _isFreezeUsedThisWeek(freezes){
 }
 
 // HOME
-
