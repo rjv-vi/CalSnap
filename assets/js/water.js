@@ -29,7 +29,7 @@ const DRINKS = new Proxy(_DRINKS_BASE, {
 });
 
 
-function _updateMiniWater() {
+function _updateMiniWater(dateStr) {
   const row = document.getElementById('miniWaterRow');
   // Water tracking is opt-in — hide the Home widget entirely when it's off.
   if (!isWaterOn()) {
@@ -37,7 +37,12 @@ function _updateMiniWater() {
     return;
   }
   if (row) row.style.display = '';
-  const arr = getWaterToday();
+  // Respect whichever day is selected on Home (calendar strip), same as
+  // the calorie ring does — otherwise this always showed today's water
+  // even while browsing a past day's food log.
+  const targetDate = dateStr || ds();
+  const isToday = targetDate === ds();
+  const arr = getWaterToday(targetDate);
   const total = arr.reduce((s,e) => s + e.ml, 0);
   const goal = getWaterGoal().adjusted;
   const pct = Math.min(total / goal * 100, 100);
@@ -45,6 +50,9 @@ function _updateMiniWater() {
   const labelEl = document.getElementById('miniWaterLabel');
   if (fillEl) fillEl.style.width = pct + '%';
   if (labelEl) labelEl.textContent = total + ' / ' + goal + ' ' + t('water_ml');
+  // Past-day view is read-only — the button still opens Progress, but
+  // dim it slightly so it doesn't look like "today" data.
+  if (row) row.style.opacity = isToday ? '1' : '.6';
 }
 
 function getWaterGoal() {
@@ -55,8 +63,8 @@ function getWaterGoal() {
   return { goal, hasSalt, adjusted: hasSalt ? Math.round(goal * 1.2 / 50) * 50 : goal };
 }
 
-function getWaterToday() {
-  try { return JSON.parse(G('water_'+ds(),'[]')); } catch(e) { return []; }
+function getWaterToday(dateStr) {
+  try { return JSON.parse(G('water_'+(dateStr||ds()),'[]')); } catch(e) { return []; }
 }
 
 function addWater(drinkId) {

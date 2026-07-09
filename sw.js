@@ -8,7 +8,7 @@
 // • Navigation Preload speeds up the very first network-first nav request
 // ═══════════════════════════════════════════════════
 
-const CACHE = 'calsnap-v9';
+const CACHE = 'calsnap-v10';
 const NOTIF_CACHE = 'calsnap-notif';
 const API_CACHE = 'calsnap-api-v1';
 // Hard cap so a single user runaway (lots of barcodes) cannot grow the API
@@ -229,7 +229,29 @@ self.addEventListener('fetch', e => {
     return;
   }
 
-  // Everything else — cache-first
+  // JS / CSS bundles — stale-while-revalidate. This is the key fix for the
+  // "I pushed a change but the app still behaves like the old version"
+  // problem: previously these were cache-first (never re-checked against
+  // the network unless the whole CACHE constant was bumped). Now every
+  // load serves the cached copy instantly but also kicks off a background
+  // fetch to refresh the cache, so the *next* load already has the update
+  // — no manual version bump required for ordinary code changes.
+  if (url.endsWith('.js') || url.endsWith('.css')) {
+    e.respondWith((async () => {
+      const cached = await caches.match(req);
+      const fetchP = fetch(req).then(res => {
+        if (res.ok) {
+          const copy = res.clone();
+          caches.open(CACHE).then(c => c.put(req, copy).catch(() => {}));
+        }
+        return res;
+      }).catch(() => cached);
+      return cached || fetchP;
+    })());
+    return;
+  }
+
+  // Everything else (icons, sounds) — cache-first, rarely changes.
   e.respondWith((async () => {
     const cached = await caches.match(req);
     if (cached) return cached;

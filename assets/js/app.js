@@ -85,8 +85,8 @@ function rH(){
   document.getElementById('hcbar').style.width=Math.min(tt.c/(U.cb||100)*100,100)+'%';
   document.getElementById('hfbar').style.width=Math.min(tt.f/(U.ft||100)*100,100)+'%';
 
-  // Mini water — always refresh
-  _updateMiniWater();
+  // Mini water — reflect whichever day is selected (matches the calorie ring above)
+  _updateMiniWater(activeDayStr);
   const logEl=document.getElementById('hlog');
   if(!tl.length){logEl.innerHTML=`<div class="empty"><span class="ei">🥗</span><p>${t('h_tap_plus')}</p></div>`;return;}
 
