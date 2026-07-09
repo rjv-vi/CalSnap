@@ -755,6 +755,12 @@ function rWChart(){
 }
 
 // AI
+// Conversation memory — opt-in (Settings → toggle), OFF by default. Tracks
+// the visible chat turns in-memory only (not persisted across reloads,
+// matching how the visible chat itself already resets on reload). Only
+// included in the Gemini request payload when the user has explicitly
+// enabled it, since sending prior turns costs meaningfully more tokens.
+let aiConvo = []; // {role:'user'|'model', text}
 function initAi(){
   aiReady=true;
   const chatHistory=document.getElementById('aimsg')?.children?.length;
@@ -793,6 +799,9 @@ function initAi(){
 }
 function clearAiChat(){
   showConfirm('💬',t('confirm_clear_chat_title'),t('confirm_clear_chat_body'),t('confirm_clear_chat_btn'),()=>{
+    const c=document.getElementById('aimsg');
+    if(c) c.innerHTML='';
+    aiConvo.length=0; // drop remembered context along with the visible chat
     initAi();
   });
 }
@@ -906,18 +915,28 @@ ${water7dLine}ВЕС (последние записи): ${wts.slice(0,5).map(w=>
 - До 180 слов, используй эмодзи умеренно
 - НЕ повторяй данные которые пользователь уже знает${waterInstruction}`;
 
+  // Conversation memory — only include prior turns when the user has opted in
+  // via Settings, since this meaningfully increases token usage per request.
+  const memoryOn = isChatMemoryOn();
+  const history = memoryOn ? aiConvo.map(m => ({ role: m.role, parts: [{ text: m.text }] })) : [];
+
   // Show typing indicator
   const lm=document.createElement('div');lm.className='msg msg-ai';
   lm.innerHTML='<div class="msg-ai-wrap"><div class="msg-ai-ava">🤖</div><div class="typing-indicator"><div class="typing-dot"></div><div class="typing-dot"></div><div class="typing-dot"></div></div></div>';
   const _c=document.getElementById('aimsg');_c.appendChild(lm);_c.scrollTop=_c.scrollHeight;
   try{
-    const r=await gem([{text:txt}],sys);
+    const r=await gem([{text:txt}],sys,{},history);
     HFX.double();_aiThinkStop();
     SFX.play('ai_reply');
     const _bbl=document.createElement('div');_bbl.className='bbl';_bbl.innerHTML=fmt(r);
     lm.innerHTML='<div class="msg-ai-wrap"><div class="msg-ai-ava">🤖</div></div>';
     lm.querySelector('.msg-ai-wrap').appendChild(_bbl);
     _c.scrollTop=_c.scrollHeight;
+    // Record this turn for future requests (kept regardless of the toggle so
+    // turning memory on mid-conversation immediately has context to use).
+    aiConvo.push({ role: 'user', text: txt });
+    aiConvo.push({ role: 'model', text: r });
+    if (aiConvo.length > 40) aiConvo.splice(0, aiConvo.length - 40); // cap growth
   }
   catch(e){
     HFX.error();SFX.play('error');

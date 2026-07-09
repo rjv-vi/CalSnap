@@ -61,8 +61,16 @@ let ALL_MODELS=[
   // ── Robotics ──
   {id:'gemini-robotics-er-1.5-preview',       name:'Gemini Robotics Er 1.5 Preview',    desc:'🤖 Роботика · Preview'},
 ];
-let selModel=localStorage.getItem('model')||'gemini-2.5-flash-lite-preview-06-17';
-const MODELS=[selModel,'gemini-2.5-flash-lite-preview-06-17','gemini-2.0-flash-lite','gemini-2.0-flash'].filter((v,i,a)=>a.indexOf(v)===i);
+
+// Models we actively recommend — shown with a "Recommended" badge and
+// sorted to the top of the picker. Kept as an id allowlist (rather than a
+// per-entry flag) so the recommendation survives ALL_MODELS being replaced
+// wholesale by fetchGeminiModels() once the live API list loads.
+const RECOMMENDED_MODEL_IDS = ['gemini-flash-lite-latest','gemini-flash-latest'];
+const isRecommendedModel = (id) => RECOMMENDED_MODEL_IDS.includes(id);
+
+let selModel=localStorage.getItem('model')||'gemini-flash-lite-latest';
+const MODELS=[selModel,'gemini-flash-lite-latest','gemini-flash-latest','gemini-2.0-flash-lite','gemini-2.0-flash'].filter((v,i,a)=>a.indexOf(v)===i);
 
 // Fetch all available models from Gemini API
 async function fetchGeminiModels(){
@@ -90,6 +98,32 @@ async function fetchGeminiModels(){
   }catch(e){console.log('Model fetch failed:',e.message);}
 }
 
+// Recommended models first, then the rest in their existing order.
+function _sortedModelsForPicker(){
+  const recommended = ALL_MODELS.filter(m => isRecommendedModel(m.id));
+  const rest = ALL_MODELS.filter(m => !isRecommendedModel(m.id));
+  return [...recommended, ...rest];
+}
+
+function _modelRowHtml(m){
+  const badge = isRecommendedModel(m.id)
+    ? `<span style="display:inline-block;margin-left:6px;padding:2px 7px;border-radius:8px;font-size:10px;font-weight:800;letter-spacing:.2px;background:${m.id===selModel?'rgba(255,255,255,.25)':'var(--acc)'};color:${m.id===selModel?'#fff':'#fff'};vertical-align:middle">${t('model_recommended','Рекомендуемая')}</span>`
+    : '';
+  return `
+    <div onclick="HFX.tick();SFX.play('select');selectModel('${m.id}')" style="
+      padding:14px 16px;border-radius:14px;cursor:pointer;
+      background:${m.id===selModel?'var(--acc)':'var(--bg0)'};
+      border:1.5px solid ${m.id===selModel?'var(--acc)':'var(--b0)'};
+      display:flex;justify-content:space-between;align-items:center;transition:all .15s">
+      <div>
+        <div style="font-size:14px;font-weight:700;color:${m.id===selModel?'#fff':'var(--t0)'}">${m.name}${badge}</div>
+        <div style="font-size:11px;margin-top:2px;color:${m.id===selModel?'rgba(255,255,255,0.8)':'var(--t1)'}">${m.desc}</div>
+      </div>
+      ${m.id===selModel?'<span style="font-size:18px;color:#fff">✓</span>':''}
+    </div>
+  `;
+}
+
 function openModelPicker(){
   const ov=document.getElementById('mdlOv');
   const list=document.getElementById('mdlList');
@@ -99,20 +133,9 @@ function openModelPicker(){
   const searchBox = document.getElementById('mdlSearch');
   if(searchBox){ searchBox.value=''; }
   const renderModels = (filter='') => {
-    const filtered = filter ? ALL_MODELS.filter(m=>m.name.toLowerCase().includes(filter.toLowerCase())||m.id.toLowerCase().includes(filter.toLowerCase())) : ALL_MODELS;
-    list.innerHTML=filtered.map(m=>`
-    <div onclick="HFX.tick();SFX.play('select');selectModel('${m.id}')" style="
-      padding:14px 16px;border-radius:14px;cursor:pointer;
-      background:${m.id===selModel?'var(--acc)':'var(--bg0)'};
-      border:1.5px solid ${m.id===selModel?'var(--acc)':'var(--b0)'};
-      display:flex;justify-content:space-between;align-items:center;transition:all .15s">
-      <div>
-        <div style="font-size:14px;font-weight:700;color:${m.id===selModel?'#fff':'var(--t0)'}">${m.name}</div>
-        <div style="font-size:11px;margin-top:2px;color:${m.id===selModel?'rgba(255,255,255,0.8)':'var(--t1)'}">${m.desc}</div>
-      </div>
-      ${m.id===selModel?'<span style="font-size:18px;color:#fff">✓</span>':''}
-    </div>
-  `).join('');
+    const source = _sortedModelsForPicker();
+    const filtered = filter ? source.filter(m=>m.name.toLowerCase().includes(filter.toLowerCase())||m.id.toLowerCase().includes(filter.toLowerCase())) : source;
+    list.innerHTML=filtered.map(_modelRowHtml).join('');
   };
   renderModels();
   ov.style.display='flex';
@@ -125,34 +148,24 @@ function selectModel(id){
   localStorage.setItem('model',id);
   // Update MODELS array to put selected first
   MODELS.length=0;
-  [id,'gemini-2.5-flash-lite-preview-06-17','gemini-2.0-flash-lite','gemini-2.0-flash'].filter((v,i,a)=>a.indexOf(v)===i).forEach(m=>MODELS.push(m));
+  [id,'gemini-flash-lite-latest','gemini-flash-latest','gemini-2.0-flash-lite','gemini-2.0-flash'].filter((v,i,a)=>a.indexOf(v)===i).forEach(m=>MODELS.push(m));
   document.getElementById('smodel').textContent=ALL_MODELS.find(m=>m.id===id)?.name||id;
   document.getElementById('mdlOv').style.display='none';
   // Re-render list
   const list=document.getElementById('mdlList');
-  list.innerHTML=ALL_MODELS.map(m=>`
-    <div onclick="HFX.tick();SFX.play('select');selectModel('${m.id}')" style="
-      padding:14px 16px;border-radius:14px;cursor:pointer;
-      background:${m.id===selModel?'var(--acc)':'var(--bg0)'};
-      border:1.5px solid ${m.id===selModel?'var(--acc)':'var(--b0)'};
-      display:flex;justify-content:space-between;align-items:center">
-      <div>
-        <div style="font-size:14px;font-weight:700;color:${m.id===selModel?'#fff':'var(--t0)'}">${m.name}</div>
-        <div style="font-size:11px;margin-top:2px;color:${m.id===selModel?'rgba(255,255,255,0.8)':'var(--t1)'}">${m.desc}</div>
-      </div>
-      ${m.id===selModel?'<span style="font-size:18px;color:#fff">✓</span>':''}
-    </div>
-  `).join('');
+  list.innerHTML=_sortedModelsForPicker().map(_modelRowHtml).join('');
 }
-async function gem(parts,sys='',opts={}){
+async function gem(parts,sys='',opts={},history=[]){
   if(!key) throw new Error('API ключ не установлен. Добавь в Настройках → API');
-  const models=[selModel,'gemini-2.5-flash-lite-preview-06-17','gemini-2.0-flash-lite','gemini-2.0-flash'].filter((v,i,a)=>a.indexOf(v)===i);
+  const models=[selModel,'gemini-flash-lite-latest','gemini-flash-latest','gemini-2.0-flash-lite','gemini-2.0-flash'].filter((v,i,a)=>a.indexOf(v)===i);
   let lastErr;
   for(const m of models){
     try{
       const generationConfig={temperature:opts.temperature ?? 0.2, maxOutputTokens:opts.maxOutputTokens ?? 2048};
       if(opts.json) generationConfig.responseMimeType='application/json';
-      const body={contents:[{parts}],generationConfig};
+      // Conversation memory (opt-in): prior turns go first, current message last.
+      const contents=[...(history||[]),{role:'user',parts}];
+      const body={contents,generationConfig};
       if(sys)body.system_instruction={parts:[{text:sys}]};
       // No AbortSignal — SW structured clone fails with it
       const r=await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${m}:generateContent?key=${key}`,

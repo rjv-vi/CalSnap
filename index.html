@@ -601,6 +601,7 @@
     <div class="st-card">
       <div class="st-row" onclick="HFX.light();SFX.play('sheet_open');openApi()"><div class="sr-ico-wrap indigo" style="filter:drop-shadow(0 1px 1px rgba(0,0,0,.3))">🔑</div><div class="sr-txt"><div class="sr-t" data-i18n="set_api_key">Gemini API ключ</div><div class="sr-s" id="sapi" data-i18n="set_api_unset">Не установлен</div></div><span class="sr-arr">›</span></div>
       <div class="st-row" onclick="HFX.light();SFX.play('sheet_open');openModelPicker()"><div class="sr-ico-wrap purple" style="filter:drop-shadow(0 1px 1px rgba(0,0,0,.25))">🧠</div><div class="sr-txt"><div class="sr-t" data-i18n="set_model">Модель Gemini</div><div class="sr-s" id="smodel">gemini-2.0-flash-lite</div></div><span class="sr-arr">›</span></div>
+      <div class="st-row" onclick="HFX.tick();SFX.play('toggle');toggleChatMemory()"><div class="sr-ico-wrap" style="background:linear-gradient(135deg,#f472b6,#db2777)">🧠</div><div class="sr-txt"><div class="sr-t" data-i18n="set_chat_memory">Запоминать контекст переписки</div><div class="sr-s" data-i18n="set_chat_memory_sub">ИИ учитывает прошлые сообщения (тратит больше лимита)</div></div><div class="toggle" id="chatMemoryToggle"></div></div>
     </div>
   </div>
   <div class="st-sec">

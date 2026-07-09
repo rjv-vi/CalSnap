@@ -18,6 +18,7 @@ function rSet(){
   const sfxTog=document.getElementById('sfxToggle');if(sfxTog)sfxTog.classList.toggle('on',SFX.isEnabled());
   const hfxTog=document.getElementById('hfxToggle');if(hfxTog)hfxTog.classList.toggle('on',HFX.isOn());
   const waterTog=document.getElementById('waterTrackingToggle');if(waterTog)waterTog.classList.toggle('on',isWaterOn());
+  const memTog=document.getElementById('chatMemoryToggle');if(memTog)memTog.classList.toggle('on',isChatMemoryOn());
   const sl=document.getElementById('slang');if(sl)sl.textContent = LANG === 'en' ? 'EN' : 'RU';
   // Notif status
   if(typeof Notification!=='undefined'&&Notification.permission==='granted') _updateNotifStatus(true);
@@ -319,6 +320,28 @@ function toggleWaterTracking(){
   showToast(newVal ? t('toast_water_on','💧 Трекинг воды включён') : t('toast_water_off','Трекинг воды выключен'));
   try { rH && rH(); } catch(e){}
   try { if(document.getElementById('prog')?.classList.contains('active')) rWater(); } catch(e){}
+}
+
+// AI chat memory toggle — opt-in, OFF by default. Turning it ON costs more
+// tokens per message (prior turns get resent every time), so we warn before
+// enabling. Turning it OFF needs no confirmation.
+function toggleChatMemory(){
+  if(isChatMemoryOn()){
+    S('chat_memory_enabled','0');
+    const tog=document.getElementById('chatMemoryToggle');
+    if(tog)tog.classList.remove('on');
+    showToast(t('toast_chat_memory_off','Запоминание контекста выключено'));
+    return;
+  }
+  showConfirm('🧠',t('confirm_chat_memory_title','Включить запоминание контекста?'),
+    t('confirm_chat_memory_body','ИИ будет учитывать предыдущие сообщения в чате. Это увеличивает расход лимита запросов Gemini API, так как история переписки будет отправляться заново с каждым сообщением.'),
+    t('confirm_chat_memory_btn','Включить'),
+    ()=>{
+      S('chat_memory_enabled','1');
+      const tog=document.getElementById('chatMemoryToggle');
+      if(tog)tog.classList.add('on');
+      showToast(t('toast_chat_memory_on','🧠 Запоминание контекста включено'));
+    });
 }
 
 function showErr(id,msg){const e=document.getElementById(id);e.textContent='⚠️ '+(msg||'Неизвестная ошибка');e.classList.add('on');}

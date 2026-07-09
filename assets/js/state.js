@@ -27,6 +27,11 @@ try { window.addEventListener('storage', e => { if (e.key) delete _lsCache[e.key
 // decide whether the AI assistant is allowed to mention water at all.
 const isWaterOn = () => G('water_enabled','0') === '1';
 
+// AI chat memory — opt-in, OFF by default. When enabled, prior chat turns
+// are sent back to Gemini as conversation history so the assistant can
+// reference earlier messages — at the cost of more tokens per request.
+const isChatMemoryOn = () => G('chat_memory_enabled','0') === '1';
+
 // State
 let U=JSON.parse(G('u','null')),
     log=JSON.parse(G('log','[]')),
