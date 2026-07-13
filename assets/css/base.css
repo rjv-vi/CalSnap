@@ -302,15 +302,15 @@ input,textarea,select{font-family:var(--ff);}
 .pg-hdr{padding:calc(env(safe-area-inset-top,44px) + 12px) 20px 14px;background:var(--bg-nav);-webkit-backdrop-filter:saturate(200%) blur(40px);backdrop-filter:saturate(200%) blur(40px);border-bottom:.5px solid var(--b0);box-shadow:inset 0 -1px 0 var(--b1);position:sticky;top:0;z-index:10;display:flex;align-items:center;justify-content:space-between;}
 .pg-hdr h2{font-size:32px;font-weight:900;letter-spacing:-1.5px;}
 /* Streak big card — ORANGE */
-.streak-big-card{margin:14px 14px 12px;background:linear-gradient(145deg,var(--streak) 0%,#C84000 100%);border-radius:var(--r5);padding:22px 20px;display:flex;align-items:center;gap:16px;box-shadow:0 8px 32px rgba(255,85,0,.28),0 2px 8px rgba(255,85,0,.18),inset 0 1px 0 rgba(255,200,100,.22);}
+.streak-big-card{margin:14px 14px 12px;background:linear-gradient(145deg,var(--streak) 0%,#C84000 100%);border-radius:var(--r5);padding:22px 20px;display:flex;align-items:center;gap:16px;box-shadow:0 8px 32px rgba(255,85,0,.28),0 2px 8px rgba(255,85,0,.18),inset 0 1px 0 rgba(255,200,100,.22);overflow:hidden;}
 .sbc-left{text-align:center;flex-shrink:0;}
 .sbc-fire{font-size:42px;display:block;filter:drop-shadow(0 4px 12px rgba(0,0,0,.22));}
 .sbc-days{font-size:48px;font-weight:900;color:#fff;line-height:1;letter-spacing:-3px;font-variant-numeric:tabular-nums;}
 .sbc-lbl{font-size:10px;color:rgba(255,255,255,.72);font-weight:700;letter-spacing:1.5px;text-transform:uppercase;margin-top:3px;}
-.sbc-right{flex:1;}
+.sbc-right{flex:1;min-width:0;}
 .sbc-right p{font-size:13px;color:rgba(255,255,255,.68);margin-bottom:12px;}
-.wk-dots{display:flex;gap:5px;overflow:hidden;}
-.wd{width:30px;height:30px;border-radius:50%;flex-shrink:1;background:rgba(255,255,255,.16);display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:700;color:rgba(255,255,255,.5);}
+.wk-dots{display:flex;gap:5px;overflow:hidden;min-width:0;}
+.wd{width:30px;height:30px;min-width:0;border-radius:50%;flex:1 1 30px;background:rgba(255,255,255,.16);display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:700;color:rgba(255,255,255,.5);}
 .wd.done{background:rgba(255,255,255,.88);color:#C84000;font-weight:900;}
 .wd.today{background:transparent;border:2px solid rgba(255,255,255,.65);color:#fff;}
 /* Stat cards */
@@ -728,5 +728,3 @@ canvas{display:block;max-width:100%;}
 @keyframes countPop{from{transform:scale(.4);opacity:0}to{transform:none;opacity:1}}
 @keyframes shimmer{0%{background-position:200% 0}100%{background-position:-200% 0}}
 @keyframes dropPop{from{transform:scale(0) translateY(4px);opacity:0}to{transform:none;opacity:1}}
-
-
