@@ -1,12 +1,3 @@
-// ── MEAL CATEGORY ──
-// ── RECENT FOODS ──
-
-function getRecents(){try{return JSON.parse(G('recents','[]'));}catch(e){return [];}}
-
-
-
-// ── FAVORITES ──
-
 let ALL_MODELS=[
   // ── Gemini 3.x (новейшие — из API) ──
   {id:'gemini-3.1-pro-preview-customtools',   name:'Gemini 3.1 Pro Preview Customtools'},
@@ -70,7 +61,6 @@ const RECOMMENDED_MODEL_IDS = ['gemini-flash-lite-latest','gemini-flash-latest']
 const isRecommendedModel = (id) => RECOMMENDED_MODEL_IDS.includes(id);
 
 let selModel=localStorage.getItem('model')||'gemini-flash-lite-latest';
-const MODELS=[selModel,'gemini-flash-lite-latest','gemini-flash-latest','gemini-2.0-flash-lite','gemini-2.0-flash'].filter((v,i,a)=>a.indexOf(v)===i);
 
 // Fetch all available models from Gemini API
 async function fetchGeminiModels(){
@@ -135,7 +125,7 @@ function _sortedModelsForPicker(){
 
 function _modelRowHtml(m){
   const badge = isRecommendedModel(m.id)
-    ? `<span style="display:inline-block;margin-left:6px;padding:2px 7px;border-radius:8px;font-size:10px;font-weight:800;letter-spacing:.2px;background:${m.id===selModel?'rgba(255,255,255,.25)':'var(--acc)'};color:#fff;vertical-align:middle">${t('model_recommended')}</span>`
+    ? `<span style="display:inline-block;margin-left:6px;padding:2px 7px;border-radius:8px;font-size:10px;font-weight:800;letter-spacing:.2px;background:${m.id===selModel?'color-mix(in srgb,var(--on-acc) 22%,transparent)':'var(--acc)'};color:var(--on-acc);vertical-align:middle">${t('model_recommended')}</span>`
     : '';
   return `
     <div onclick="HFX.tick();SFX.play('select');selectModel('${m.id}')" style="
@@ -144,10 +134,10 @@ function _modelRowHtml(m){
       border:1.5px solid ${m.id===selModel?'var(--acc)':'var(--b0)'};
       display:flex;justify-content:space-between;align-items:center;transition:all .15s">
       <div>
-        <div style="font-size:14px;font-weight:700;color:${m.id===selModel?'#fff':'var(--t0)'}">${esc(m.name)}${badge}</div>
-        <div style="font-size:11px;margin-top:2px;color:${m.id===selModel?'rgba(255,255,255,0.8)':'var(--t1)'}">${esc(_modelDescFor(m))}</div>
+        <div style="font-size:14px;font-weight:700;color:${m.id===selModel?'var(--on-acc)':'var(--t0)'}">${esc(m.name)}${badge}</div>
+        <div style="font-size:11px;margin-top:2px;color:${m.id===selModel?'color-mix(in srgb,var(--on-acc) 78%,transparent)':'var(--t1)'}">${esc(_modelDescFor(m))}</div>
       </div>
-      ${m.id===selModel?'<span style="font-size:18px;color:#fff">✓</span>':''}
+      ${m.id===selModel?'<span style="font-size:18px;color:var(--on-acc)">✓</span>':''}
     </div>
   `;
 }
@@ -173,16 +163,15 @@ function openModelPicker(){
 }
 function closeModelPicker(){
   const ov=document.getElementById('mdlOv');
-  if(ov) ov.style.display='none';
+  if(!ov || ov.style.display==='none') return;
+  HFX.light(); SFX.play('sheet_close');
+  ov.style.display='none';
   lockScroll(false);
 }
 
 function selectModel(id){
   selModel=id;
-  localStorage.setItem('model',id);
-  // Update MODELS array to put selected first
-  MODELS.length=0;
-  [id,'gemini-flash-lite-latest','gemini-flash-latest','gemini-2.0-flash-lite','gemini-2.0-flash'].filter((v,i,a)=>a.indexOf(v)===i).forEach(m=>MODELS.push(m));
+  S('model',id);
   document.getElementById('smodel').textContent=ALL_MODELS.find(m=>m.id===id)?.name||id;
   closeModelPicker();
   // Re-render list

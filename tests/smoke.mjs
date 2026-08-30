@@ -140,8 +140,8 @@ async function boot({ lang = 'ru', quota = Infinity, seed = {}, fetchImpl = null
   // properties, so surface the ones the tests poke at.
   const LEXICAL = ['I18N', 'S', 'G', 'Ginvalidate', 'LANG', 'U', 'log', 'wts', 'key', 'cur',
                    'IMG', 'SFX', 'HFX', 'DRINKS', 'GL', 'MEAL_META', 'ds', 'tnow', 'tlog', 'dlog', 'tot',
-                   'onIdle', 'FOOD_DB', 'ALL_MODELS', 'RECOMMENDED_MODEL_IDS', 'KEY_COOLDOWNS',
-                   'QUEUE_MAX_ATTEMPTS', 'GEM_MAX_ATTEMPTS',
+                   'onIdle', 'ALL_MODELS', 'OVERLAYS', 'SFX', 'RECOMMENDED_MODEL_IDS', 'KEY_COOLDOWNS',
+                   'QUEUE_MAX_ATTEMPTS', 'GEM_MAX_ATTEMPTS', 'OVERLAYS',
                    'RESET_KEEP_KEYS', 'EMO_RULES', 'isWaterOn', 'isChatMemoryOn', 'isFullscreenPref',
                    'selDay', 'aiConvo'];
   const expose = doc.createElement('script');
@@ -578,40 +578,6 @@ console.log('CalSnap smoke tests\n');
 }
 
 // ══════════════════════════════════════════════════════════════════
-// ── 22. Offline food database is reachable and localised ───────────
-{
-  const { window } = await boot({
-    lang: 'en',
-    seed: { u: JSON.stringify({ name: 'A', kcal: 2000, goal: 'maintain', w: 80, h: 180, age: 30, gen: 'm', pr: 100, ft: 60, cb: 200 }), wts: '[]' },
-  });
-  const db = window.__read('FOOD_DB');
-  ok('database is non-empty', db.length > 100, String(db.length));
-  ok('every item has an English name', db.every(f => typeof f.e === 'string' && f.e.length > 1),
-     JSON.stringify(db.filter(f => !f.e).slice(0, 3)));
-  ok('no English name left in Cyrillic', !db.some(f => /[А-Яа-яЁё]/.test(f.e)),
-     JSON.stringify(db.filter(f => /[А-Яа-яЁё]/.test(f.e)).slice(0, 3)));
-
-  // The search UI exists and renders.
-  ok('search input is present', !!window.document.getElementById('dbSearchInp'));
-  window.searchDB('buckwheat');
-  const rows = window.document.querySelectorAll('#searchResults .db-item');
-  ok('English query finds an item', rows.length > 0, String(rows.length));
-  ok('row shows the English name', /Buckwheat/.test(rows[0].textContent), rows[0]?.textContent);
-  window.searchDB('гречка');
-  ok('Russian query still works in EN mode',
-     window.document.querySelectorAll('#searchResults .db-item').length > 0);
-
-  // Adding from the database writes a localised entry.
-  window.searchDB('Apple');
-  const appleIdx = db.findIndex(f => f.e === 'Apple');
-  window.log.length = 0;
-  window.addDBItem(appleIdx);
-  const entry = window.__read('log')[0];
-  eq('entry uses the English name', entry.food, 'Apple');
-  ok('portion units converted', /g|pcs/.test(entry.portion) && !/[А-Яа-яЁё]/.test(entry.portion), entry.portion);
-  window.close();
-}
-
 // ── 23. Model picker descriptions follow the language ─────────────
 {
   const { window } = await boot({ lang: 'en' });
@@ -1008,6 +974,149 @@ console.log('CalSnap smoke tests\n');
   window.addApiKey('AIzaSyTESTKEY_0000000000000000000009');
   window.rH();
   eq('bar hidden once a key exists', window.document.getElementById('abar').style.display, 'none');
+  window.close();
+}
+
+// ── 39. Back / Escape peel overlays instead of leaving the app ─────
+{
+  const PROFILE = JSON.stringify({ name: 'A', kcal: 2000, goal: 'maintain', w: 80, h: 180, age: 30, gen: 'm', pr: 100, ft: 60, cb: 200 });
+  const { window } = await boot({ seed: { u: PROFILE, wts: '[]' } });
+  const doc = window.document;
+  window.log.length = 0;
+  window.log.push({ food: 'x', kcal: 10, prot: 1, fat: 1, carb: 1, time: '10:00', date: window.ds() });
+  window.saveLog();
+
+  eq('nothing open at rest', window.anyOverlayOpen(), false);
+  eq('closeTopOverlay is a no-op when idle', window.closeTopOverlay(), false);
+
+  // Stack: food detail → edit → confirm. Each Escape must peel exactly one.
+  window.openFd(0);
+  eq('detail sheet is the top overlay', window.topOverlay().sel, '#fdOv');
+  window.editFd();
+  eq('edit sheet is now on top', window.topOverlay().sel, '#editFoodOv');
+  const esc = () => doc.dispatchEvent(new window.KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+  esc();
+  ok('edit sheet closed', !doc.getElementById('editFoodOv').classList.contains('on'));
+  eq('detail sheet is still open underneath', window.topOverlay().sel, '#fdOv');
+  eq('scroll stays locked', doc.body.style.overflow, 'hidden');
+  esc();
+  eq('everything closed', window.anyOverlayOpen(), false);
+  eq('scroll released', doc.body.style.overflow, '');
+
+  // The hardware back gesture arrives as popstate.
+  window.openAdd();
+  eq('add sheet open', window.topOverlay().sel, '#addOv');
+  window.dispatchEvent(new window.PopStateEvent('popstate', { state: null }));
+  eq('back closed the sheet', window.anyOverlayOpen(), false);
+
+  // The AI screen is an overlay too — back returns Home rather than exiting.
+  const nbs = [...doc.querySelectorAll('.nb')];
+  const aiBtn = nbs.find(b => (b.getAttribute('onclick') || '').includes("'ai'"));
+  window.goS('ai', aiBtn);
+  eq('AI counts as an overlay', window.topOverlay().sel, '#ai');
+  window.dispatchEvent(new window.PopStateEvent('popstate', { state: null }));
+  eq('back left the AI screen', doc.getElementById('ai').style.display, 'none');
+  ok('home is showing again', doc.getElementById('home').classList.contains('active'));
+  window.close();
+}
+
+// ── 40. Missing sound files fall back to synthesis, never silence ──
+{
+  const { window } = await boot({});
+  const src = readFileSync(path.join(ROOT, 'assets/js/sound.js'), 'utf8');
+  const volumes = [...src.matchAll(/^\s{4}([a-z_]+):\s*[\d.]+,/gm)].map(m => m[1]);
+  const synth = [...(src.match(/const SYNTH = \{([\s\S]*?)\n  \};/) || [, ''])[1].matchAll(/^\s{4}([a-z_]+):/gm)].map(m => m[1]);
+  const played = [...new Set([
+    ...readFileSync(path.join(ROOT, 'index.html'), 'utf8').matchAll(/SFX\.play\('([a-z_]+)'\)/g),
+    ...readdirSync(path.join(ROOT, 'assets/js')).flatMap(f =>
+      [...readFileSync(path.join(ROOT, 'assets/js', f), 'utf8').matchAll(/SFX\.play\('([a-z_]+)'\)/g)]),
+  ].map(m => m[1]))];
+
+  ok('every played sound has a volume', played.every(n => volumes.includes(n)),
+     played.filter(n => !volumes.includes(n)).join(', '));
+  ok('every played sound has a synth recipe', played.every(n => synth.includes(n)),
+     played.filter(n => !synth.includes(n)).join(', '));
+
+  // Names with no file on disk must still be covered — those were the silent ones.
+  const onDisk = readdirSync(path.join(ROOT, 'sounds')).filter(f => f.endsWith('.mp3')).map(f => f.replace('.mp3', ''));
+  const fileless = played.filter(n => !onDisk.includes(n));
+  ok('sounds without a file are synthesised', fileless.every(n => synth.includes(n)),
+     fileless.join(', '));
+  ok('there really are file-less sounds to cover', fileless.length > 0, String(fileless.length));
+
+  // Playing one must not throw even without AudioContext (jsdom).
+  window.SFX.play('sheet_close');
+  window.SFX.play('does_not_exist');
+  ok('SFX.play never throws', true);
+  window.close();
+}
+
+// ── 41. Interactions that should make a sound do ───────────────────
+{
+  const js = readdirSync(path.join(ROOT, 'assets/js'))
+    .map(f => [f, readFileSync(path.join(ROOT, 'assets/js', f), 'utf8')]);
+  const find = (file) => js.find(([f]) => f === file)?.[1] || '';
+  // Search the whole function body, not a fixed-size slice: showConfirm() is
+  // long enough that a short window missed the call at its end.
+  const has = (file, fn, sound) => {
+    const src = find(file);
+    const i = src.indexOf(fn);
+    if (i < 0) return false;
+    const end = src.indexOf('\n}', i);
+    return src.slice(i, end < 0 ? src.length : end).includes(`SFX.play('${sound}'`);
+  };
+  ok('closing a sheet is audible',        has('ui.js', 'function closeEd(', 'sheet_close'));
+  ok('closing the model picker is audible', has('gemini.js', 'function closeModelPicker(', 'sheet_close'));
+  ok('opening a confirm dialog is audible', has('confirm.js', 'function showConfirm(', 'sheet_open'));
+  ok('dismissing the daily summary is audible', has('daily-ai.js', 'function dismissDailyAi(', 'sheet_close'));
+  ok('a finished weekly analysis is audible', find('daily.js').includes("SFX.play('scan_success')"));
+  ok('a drained offline queue is audible', find('queue.js').includes("SFX.play('scan_success')"));
+  ok('a growing streak is audible', find('app.js').includes("SFX.play('streak_up')"));
+}
+
+// ── 42. No dead exports left behind ───────────────────────────────
+{
+  const files = readdirSync(path.join(ROOT, 'assets/js')).filter(f => f.endsWith('.js'));
+  const all = files.map(f => readFileSync(path.join(ROOT, 'assets/js', f), 'utf8')).join('\n')
+    + readFileSync(path.join(ROOT, 'index.html'), 'utf8');
+  for (const gone of ['FOOD_DB', 'getRecents', 'setSkeleton', 'scrollDrumTo', 'debouncedRender', 'setupNotifications', '_drumStates']) {
+    ok(`"${gone}" is gone`, !all.includes(gone), gone + ' still referenced');
+  }
+  ok('the hold-to-repeat weight stepper is wired', all.includes('_wlogHold(this'));
+  ok('steppers cancel on pointercancel', (all.match(/onpointercancel="_qtyClear\(\)"/g) || []).length === 2);
+}
+
+// ── 42. Closing a sheet normally releases the back sentinel ────────
+{
+  const PROFILE = JSON.stringify({ name: 'A', kcal: 2000, goal: 'maintain', w: 80, h: 180, age: 30, gen: 'm', pr: 100, ft: 60, cb: 200 });
+  const { window } = await boot({ seed: { u: PROFILE, wts: '[]' } });
+  let pushed = 0, went = 0;
+  const realPush = window.history.pushState.bind(window.history);
+  window.history.pushState = (...a) => { pushed++; return realPush(...a); };
+  // Emulate the browser: back() pops the entry and fires popstate.
+  try { window.history.back = () => { went++; window.dispatchEvent(new window.PopStateEvent('popstate', { state: null })); }; } catch(e) {}
+  const frame = () => new Promise(r => window.requestAnimationFrame ? window.requestAnimationFrame(r) : setTimeout(r, 16));
+
+  window.openAdd();
+  eq('opening a sheet pushes one sentinel', pushed, 1);
+  window.closeAdd();          // closed with ✕, not with the back gesture
+  await frame();
+  eq('closing it consumes the sentinel', went, 1);
+
+  // Stacked: only one sentinel for the whole stack, released once at the end.
+  pushed = 0; went = 0;
+  window.log.length = 0;
+  window.log.push({ food: 'x', kcal: 10, prot: 1, fat: 1, carb: 1, time: '10:00', date: window.ds() });
+  window.saveLog();
+  window.openFd(0);
+  window.editFd();
+  eq('a stack still only pushes once', pushed, 1);
+  window.closeEditFd();
+  await frame();
+  eq('nothing released while a layer remains', went, 0);
+  window.closeFd();
+  await frame();
+  eq('released after the last layer', went, 1);
   window.close();
 }
 

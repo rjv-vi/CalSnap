@@ -4,8 +4,10 @@
   "private": true,
   "description": "CalSnap — AI calorie tracker PWA. Static site; this manifest exists only to run the test suite.",
   "scripts": {
-    "test": "node tests/smoke.mjs",
-    "lint": "node -e \"const{readdirSync}=require('fs');const{execFileSync}=require('child_process');for(const d of ['assets/js']) for(const f of readdirSync(d)) if(f.endsWith('.js')) execFileSync(process.execPath,['--check',d+'/'+f]); execFileSync(process.execPath,['--check','sw.js']); console.log('syntax OK')\""
+    "test": "node tests/contrast.mjs && node tests/smoke.mjs",
+    "lint": "node -e \"const{readdirSync}=require('fs');const{execFileSync}=require('child_process');for(const d of ['assets/js']) for(const f of readdirSync(d)) if(f.endsWith('.js')) execFileSync(process.execPath,['--check',d+'/'+f]); execFileSync(process.execPath,['--check','sw.js']); console.log('syntax OK')\"",
+    "test:contrast": "node tests/contrast.mjs",
+    "test:smoke": "node tests/smoke.mjs"
   },
   "devDependencies": {
     "jsdom": "^30.0.1"

@@ -49,12 +49,6 @@ function tweenNumber(el, target, opts) {
   el._tweenRaf = requestAnimationFrame(step);
 }
 
-// Show or hide a skeleton placeholder inside `el`. When show=true the element
-// gets a `.skel-on` class which the CSS uses to render a shimmer placeholder.
-function setSkeleton(el, show) {
-  if (!el) return;
-  el.classList.toggle('skel-on', !!show);
-}
 
 // ── SCROLL LOCK (reference counted) ───────────────────────────────
 // Modals stack: opening the food-detail sheet, then Edit, then closing Edit
@@ -66,9 +60,95 @@ function lockScroll(on){
   if (on) _scrollLocks++;
   else _scrollLocks = Math.max(0, _scrollLocks - 1);
   document.body.style.overflow = _scrollLocks > 0 ? 'hidden' : '';
+  // Every overlay open/close goes through here, so this is the natural place to
+  // arm and release the hardware-back guard (see OVERLAYS below).
+  if (on) { try { armBackGuard(); } catch(e) {} }
+  else if (_scrollLocks === 0) {
+    // Check after the caller has finished removing its `.on` class.
+    requestAnimationFrame(() => { try { if (!anyOverlayOpen()) disarmBackGuard(); } catch(e) {} });
+  }
 }
 // Escape hatch for reset/import flows that tear down the whole UI.
 function resetScrollLock(){
   _scrollLocks = 0;
   document.body.style.overflow = '';
 }
+
+// ── OVERLAY STACK: hardware back + Escape ─────────────────────────
+// On Android the system back gesture used to leave the app (or the installed
+// PWA) even with a sheet open, which is the single most jarring thing about
+// using this as an app. Every overlay is registered here with the function that
+// closes it, ordered top-down by z-index, so back / Escape peel one layer at a
+// time and only exit once nothing is open.
+const OVERLAYS = [
+  { sel: '#waterCustomOv', open: el => !!el,                                   close: () => closeWaterCustom() },
+  { sel: '#editFoodOv',    open: el => el.classList.contains('on'),            close: () => closeEditFd() },
+  { sel: '#cfrmOv',        open: el => el.classList.contains('on'),            close: () => cfrmCancel() },
+  { sel: '#devOv',         open: el => el.style.display === 'flex',            close: () => closeDevPanel() },
+  { sel: '#drumOv',        open: el => el.classList.contains('on'),            close: () => closeDrum() },
+  { sel: '#wlogOv',        open: el => el.classList.contains('on'),            close: () => closeWlog() },
+  { sel: '#mdlOv',         open: el => el.style.display === 'flex',            close: () => closeModelPicker() },
+  { sel: '#aboutOv',       open: el => el.classList.contains('on'),            close: () => closeAbout() },
+  { sel: '#notifOv',       open: el => el.classList.contains('on'),            close: () => closeNotifSettings() },
+  { sel: '#apiOv',         open: el => el.classList.contains('on'),            close: () => closeApi() },
+  { sel: '#edOv',          open: el => el.classList.contains('on'),            close: () => closeEd() },
+  { sel: '#addOv',         open: el => el.classList.contains('on'),            close: () => closeAdd() },
+  { sel: '#fdOv',          open: el => el.classList.contains('on'),            close: () => closeFd() },
+  // The AI screen is an overlay too, so back returns to Home rather than exiting.
+  { sel: '#ai',            open: el => el.style.display === 'flex',
+    close: () => { const nb = document.querySelector('#nav .nb'); if (nb) goS('home', nb); } },
+];
+
+function topOverlay(){
+  for (const o of OVERLAYS) {
+    const el = document.querySelector(o.sel);
+    if (el && o.open(el)) return o;
+  }
+  return null;
+}
+function anyOverlayOpen(){ return !!topOverlay(); }
+
+function closeTopOverlay(){
+  const o = topOverlay();
+  if (!o) return false;
+  try { o.close(); } catch(e) { return false; }
+  return true;
+}
+
+// A single sentinel history entry stands in front of the app while anything is
+// open; consuming it is what the back gesture does.
+let _backGuardArmed = false;
+let _disarmingGuard = false;
+function armBackGuard(){
+  if (_backGuardArmed) return;
+  try {
+    history.pushState({ csOverlay: true }, '');
+    _backGuardArmed = true;
+  } catch(e) {}
+}
+// When the last overlay is closed by tapping ✕ or the backdrop, the sentinel is
+// still on the stack. Without removing it the *next* back press would be
+// swallowed doing nothing, which feels like the app ignored you.
+let _disarmTimer = null;
+function disarmBackGuard(){
+  if (!_backGuardArmed || _disarmingGuard) return;
+  _backGuardArmed = false;
+  _disarmingGuard = true;
+  // Safety net: if popstate never arrives (some WebViews swallow it) the flag
+  // must not stay set, or every later disarm would be a no-op.
+  clearTimeout(_disarmTimer);
+  _disarmTimer = setTimeout(() => { _disarmingGuard = false; }, 400);
+  try { history.back(); } catch(e) { _disarmingGuard = false; }
+}
+window.addEventListener('popstate', () => {
+  if (_disarmingGuard) { _disarmingGuard = false; clearTimeout(_disarmTimer); return; }
+  _backGuardArmed = false;
+  if (closeTopOverlay()) {
+    // More layers underneath? Re-arm so the next back press peels the next one.
+    if (anyOverlayOpen()) armBackGuard();
+  }
+});
+document.addEventListener('keydown', (e) => {
+  if (e.key !== 'Escape') return;
+  if (closeTopOverlay()) e.preventDefault();
+});

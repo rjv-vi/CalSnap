@@ -425,11 +425,11 @@
     <h4 data-i18n="heatmap_title">Активность за 28 дней</h4>
     <div class="hgrid" id="hgrid"></div>
     <div class="h-legend">
-      <div class="h-sq" style="background:var(--bg0);border:1px solid var(--b0)"></div><span data-i18n="heat_none">Нет</span>
-      <div class="h-sq" style="background:#FFE8DC"></div><span data-i18n="heat_low">Мало</span>
-      <div class="h-sq" style="background:#FF9B6A"></div><span data-i18n="heat_norm">Норма</span>
-      <div class="h-sq" style="background:var(--acc)"></div><span data-i18n="heat_goal">Цель</span>
-      <div class="h-sq" style="background:#EF4444"></div><span data-i18n="heat_over">Перебор</span>
+      <div class="h-sq hcell"></div><span data-i18n="heat_none">Нет</span>
+      <div class="h-sq hcell c1"></div><span data-i18n="heat_low">Мало</span>
+      <div class="h-sq hcell c3"></div><span data-i18n="heat_norm">Норма</span>
+      <div class="h-sq hcell c4"></div><span data-i18n="heat_goal">Цель</span>
+      <div class="h-sq hcell ov2"></div><span data-i18n="heat_over">Перебор</span>
     </div>
   </div>
   <!-- DAILY AI SUMMARY -->
@@ -505,9 +505,9 @@
       <div class="fd-qty-row">
         <span class="fd-qty-label" data-i18n="portion_count">Количество порций</span>
         <div class="fd-qty-ctrl">
-          <button class="fd-qty-btn minus" onclick="HFX.tick();SFX.play('btn_tap');changeQty(-1)" onpointerdown="_qtyHold(-1)" onpointerup="_qtyClear()" onpointerleave="_qtyClear()">−</button>
+          <button class="fd-qty-btn minus" onclick="HFX.tick();SFX.play('btn_tap');changeQty(-1)" onpointerdown="_qtyHold(-1)" onpointerup="_qtyClear()" onpointerleave="_qtyClear()" onpointercancel="_qtyClear()">−</button>
           <span class="fd-qty-num" id="fdQty">1</span>
-          <button class="fd-qty-btn" onclick="HFX.tick();SFX.play('btn_tap');changeQty(1)" onpointerdown="_qtyHold(1)" onpointerup="_qtyClear()" onpointerleave="_qtyClear()">+</button>
+          <button class="fd-qty-btn" onclick="HFX.tick();SFX.play('btn_tap');changeQty(1)" onpointerdown="_qtyHold(1)" onpointerup="_qtyClear()" onpointerleave="_qtyClear()" onpointercancel="_qtyClear()">+</button>
         </div>
       </div>
       <div style="display:flex;gap:8px;margin-top:14px">
@@ -862,7 +862,7 @@
         <div style="font-size:17px;font-weight:800;color:var(--t0)" data-i18n="mdl_title">🧠 Модель Gemini</div>
         <div style="font-size:12px;color:var(--t1);margin-top:2px" id="mdlCount" data-i18n="mdl_loading">Загрузка…</div>
       </div>
-      <button onclick="HFX.light();SFX.play('sheet_close');closeModelPicker()" aria-label="Close" data-i18n-aria="btn_close"
+      <button onclick="closeModelPicker()" aria-label="Close" data-i18n-aria="btn_close"
         style="width:34px;height:34px;border-radius:50%;background:var(--bg0);border:none;font-size:16px;cursor:pointer;color:var(--t0)">✕</button>
     </div>
     <div id="mdlList" style="padding:12px 16px;display:flex;flex-direction:column;gap:8px"></div>
@@ -876,7 +876,7 @@
     <div style="font-size:14px;font-weight:800;color:var(--t0)" data-i18n="install_title">Установить CalSnap</div>
     <div style="font-size:12px;color:var(--t1);margin-top:2px" data-i18n="install_sub">Работает без интернета</div>
   </div>
-  <button onclick="HFX.medium();SFX.play('install');installPWA()" style="background:var(--acc);color:#fff;border:none;border-radius:12px;padding:8px 16px;font-size:13px;font-weight:700;cursor:pointer" data-i18n="install_btn">Установить</button>
+  <button onclick="HFX.medium();SFX.play('install');installPWA()" style="background:var(--acc);color:var(--on-acc);border:none;border-radius:12px;padding:8px 16px;font-size:13px;font-weight:700;cursor:pointer" data-i18n="install_btn">Установить</button>
   <button onclick="HFX.light();SFX.play('btn_tap');dismissInstallBanner()" style="background:none;border:none;font-size:18px;cursor:pointer;color:var(--t1);padding:0 4px">✕</button>
 </div>
 <!-- BOTTOM NAV -->
@@ -1039,18 +1039,9 @@
       </div>
     </div>
 
-    <!-- FAVOURITES + OFFLINE FOOD DATABASE -->
+    <!-- FAVOURITES PANEL -->
     <div class="panel" id="tp-favs">
-      <div id="favsList" style="padding:4px 0 12px;min-height:80px"></div>
-      <!-- The built-in database is the only way to log food with no API key
-           (and the only one that works offline), so it lives right here. -->
-      <div class="db-sec">
-        <div class="db-sec-hdr" data-i18n="db_title">🗂 База продуктов</div>
-        <input class="db-search" id="dbSearchInp" type="search" autocomplete="off"
-          placeholder="Найти продукт…" data-i18n-placeholder="db_search_ph"
-          oninput="searchDB(this.value)">
-        <div id="searchResults"></div>
-      </div>
+      <div id="favsList" style="padding:4px 0 20px;min-height:120px"></div>
     </div>
 
 
@@ -1081,7 +1072,7 @@
     <h3 id="edtitle" data-i18n="ed_title">Редактировать</h3>
     <div id="edcont"></div>
     <button class="btn" onclick="HFX.medium();SFX.play('save');saveEd()" data-i18n="btn_save">Сохранить</button>
-    <button class="btn2" onclick="HFX.light();SFX.play('back');closeEd()" data-i18n="btn_cancel">Отмена</button>
+    <button class="btn2" onclick="closeEd()" data-i18n="btn_cancel">Отмена</button>
   </div>
 </div>
 
@@ -1198,13 +1189,19 @@
 
     function showUpdateBanner(newSW) {
       const b = document.getElementById('updateBanner');
-      if (!b) return;
-      b.style.display = 'flex';
+      if (!b || b.classList.contains('show')) return;
+      b.classList.add('show');
+      try { SFX.play('notif_save'); HFX.light(); } catch(e) {}
       document.getElementById('updateBtn').onclick = () => {
-        b.style.display = 'none';
+        try { HFX.medium(); SFX.play('install'); } catch(e) {}
+        b.classList.remove('show');
         window._swUserUpdate = true;  // Пользователь явно нажал "Обновить"
         newSW.postMessage('skipWaiting');
       };
+    }
+    function dismissUpdateBanner() {
+      try { HFX.light(); SFX.play('sheet_close'); } catch(e) {}
+      document.getElementById('updateBanner')?.classList.remove('show');
     }
 
     // ── PWA INSTALL PROMPT ──
@@ -1248,15 +1245,17 @@
     });
   </script>
 
-  <!-- БАННЕР ОБНОВЛЕНИЯ -->
-  <div id="updateBanner" role="status" aria-live="polite" style="display:none;position:fixed;top:calc(env(safe-area-inset-top,0px) + 12px);left:12px;right:12px;background:var(--acc);color:#fff;border-radius:16px;padding:14px 16px;z-index:9999;align-items:center;gap:12px;box-shadow:0 4px 20px rgba(0,0,0,0.25)">
+  <!-- БАННЕР ОБНОВЛЕНИЯ — стили в base.css (#updateBanner), не инлайном:
+       прежний инлайн красил фон в var(--acc), который в тёмной теме почти
+       белый, и белый текст на нём был нечитаем. -->
+  <div id="updateBanner" role="status" aria-live="polite">
     <div style="font-size:22px" aria-hidden="true">🆕</div>
-    <div style="flex:1">
+    <div style="flex:1;min-width:0">
       <div style="font-size:14px;font-weight:800" data-i18n="update_title">Доступно обновление!</div>
-      <div style="font-size:12px;opacity:.7;margin-top:2px" data-i18n="update_sub">Новая версия CalSnap готова</div>
+      <div style="font-size:12px;opacity:.82;margin-top:2px" data-i18n="update_sub">Новая версия CalSnap готова</div>
     </div>
-    <button id="updateBtn" data-i18n="update_btn" data-i18n-aria="update_btn" style="background:var(--acc);color:#fff;border:none;border-radius:10px;padding:8px 14px;font-size:13px;font-weight:700;cursor:pointer;white-space:nowrap">Обновить</button>
-    <button onclick="document.getElementById('updateBanner').style.display='none'" data-i18n-aria="btn_close" aria-label="Закрыть" style="background:rgba(255,255,255,.15);border:none;border-radius:8px;color:#fff;padding:6px 8px;font-size:13px;cursor:pointer">✕</button>
+    <button id="updateBtn" data-i18n="update_btn" data-i18n-aria="update_btn">Обновить</button>
+    <button class="banner-x" onclick="dismissUpdateBanner()" data-i18n-aria="btn_close" aria-label="Закрыть">✕</button>
   </div>
 
 <!-- WEIGHT LOG MODAL -->
@@ -1268,12 +1267,12 @@
     </div>
     <div class="wlog-sub" data-i18n="wlog_sub">Введи текущий вес для отслеживания динамики</div>
     <div class="wlog-weight-row">
-      <button class="wlog-step-btn" onclick="HFX.tick();SFX.play('btn_tap');wlogStep(-0.1)">−</button>
+      <button class="wlog-step-btn" onclick="HFX.tick();SFX.play('btn_tap');wlogStep(-0.1)" onpointerdown="_wlogHold(this,-0.1)" onpointerup="_wlogClear()" onpointerleave="_wlogClear()" onpointercancel="_wlogClear()" aria-label="−">−</button>
       <div>
         <div class="wlog-weight-val" id="wlogVal">70.0</div>
       </div>
       <span class="wlog-weight-unit" data-i18n="unit_kg">кг</span>
-      <button class="wlog-step-btn" onclick="HFX.tick();SFX.play('btn_tap');wlogStep(0.1)">+</button>
+      <button class="wlog-step-btn" onclick="HFX.tick();SFX.play('btn_tap');wlogStep(0.1)" onpointerdown="_wlogHold(this,0.1)" onpointerup="_wlogClear()" onpointerleave="_wlogClear()" onpointercancel="_wlogClear()" aria-label="+">+</button>
     </div>
     <div class="wlog-trend" id="wlogTrend"></div>
     <button class="btn" onclick="saveWlog()" style="margin-bottom:10px" data-i18n="wlog_save">💾 Сохранить</button>

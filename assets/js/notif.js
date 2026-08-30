@@ -234,10 +234,6 @@ async function _registerPeriodicSync() {
   } catch(e) {}
 }
 
-function setupNotifications() {
-  openNotifSettings();
-}
-
 function _updateNotifStatus(on) {
   const st = document.getElementById('notifStatus');
   const arr = document.getElementById('notifArr');

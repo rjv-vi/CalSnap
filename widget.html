@@ -67,7 +67,7 @@ h2 {
   position: relative; width: 72px; height: 72px; flex-shrink: 0;
 }
 .w-ring-wrap svg { width: 72px; height: 72px; transform: rotate(-90deg); }
-.w-ring-bg { fill: none; stroke: rgba(255,107,0,.12); stroke-width: 5; }
+.w-ring-bg { fill: none; stroke: color-mix(in srgb, var(--orange) 16%, transparent); stroke-width: 5; }
 .w-ring-fill {
   fill: none; stroke: var(--orange); stroke-width: 5;
   stroke-linecap: round;
@@ -256,8 +256,8 @@ h2 {
       </div>
       <div class="w-med-ring">
         <svg viewBox="0 0 60 60">
-          <circle fill="none" stroke="rgba(255,107,0,.1)" stroke-width="5" cx="30" cy="30" r="24"/>
-          <circle fill="none" stroke="#FF6B00" stroke-width="5" stroke-linecap="round"
+          <circle fill="none" stroke="color-mix(in srgb,var(--orange) 14%,transparent)" stroke-width="5" cx="30" cy="30" r="24"/>
+          <circle fill="none" stroke="var(--orange)" stroke-width="5" stroke-linecap="round"
             cx="30" cy="30" r="24" id="wMedRing"
             stroke-dasharray="150.8" stroke-dashoffset="150.8"
             transform="rotate(-90 30 30)"/>
@@ -512,8 +512,14 @@ setInterval(loadData, 30000);
     r.setProperty('--card2', '#F7F5F1');
     r.setProperty('--text',  '#141210');
     r.setProperty('--text2', 'rgba(20,18,16,.62)');
-    r.setProperty('--text3', 'rgba(20,18,16,.38)');
+    r.setProperty('--text3', 'rgba(20,18,16,.45)');
     r.setProperty('--sep',   'rgba(20,18,16,.10)');
+    // The accent set is tuned for a dark card; on white it needs deeper
+    // values or the labels and pills wash out.
+    r.setProperty('--orange', '#C24A00');
+    r.setProperty('--green',  '#0F7A38');
+    r.setProperty('--blue',   '#1740B0');
+    r.setProperty('--red',    '#A81D1D');
     document.querySelector('meta[name="theme-color"]')?.setAttribute('content','#F2F0EB');
   }
 })();

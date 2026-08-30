@@ -66,9 +66,10 @@ async function loadWeekAnalysis(force=false) {
     const data = {good:r.good||'',warn:r.warn||'',tip:r.tip||'', date:ds(), at:tnow()};
     S(wkKey, JSON.stringify(data));
     renderWeekAnalysis(data);
-    HFX.success();
+    HFX.success(); SFX.play('scan_success');
   } catch(e) {
-    document.getElementById('weekAiBody').innerHTML=`<div class="week-ai-empty">${t('week_ai_load_error')}</div>`;
+    HFX.error(); SFX.play('ai_error');
+    document.getElementById('weekAiBody').innerHTML=`<div class="week-ai-empty">${esc(String(e?.message||t('week_ai_load_error')))}</div>`;
   }
   _weekLoading=false;
   if(btn){btn.disabled=false;btn.textContent=t('week_ai_refresh');}

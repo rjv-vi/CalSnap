@@ -2,6 +2,7 @@
 // DAILY AI SUMMARY — вечером после 19:00
 // ══════════════════════════════════════════════════
 function dismissDailyAi(){
+  HFX.light(); SFX.play('sheet_close');
   const c = document.getElementById('dailyAiCard');
   if(c) c.style.display = 'none';
   try { localStorage.setItem('daily_ai_dismissed_'+ds(), '1'); } catch(e){}

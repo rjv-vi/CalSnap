@@ -24,6 +24,7 @@ function showConfirm(icon,title,msg,okLabel,cb){
   // memory), so remember whether to play the delete sound on OK.
   _cfrmDanger = !!okLabel && /удал|delete|сброс|reset|очист|clear/i.test(okLabel);
   document.getElementById('cfrmOv').classList.add('on');
+  HFX.light(); SFX.play('sheet_open');
   lockScroll(true);
 }
 function cfrmConfirm(){

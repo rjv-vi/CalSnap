@@ -77,15 +77,6 @@ function buildDrumCols(){
 }
 // ── DRUM PICKER — native scroll-snap (compositor thread) ──
 const ITEM_H = 44;
-const _drumStates = {};
-
-function scrollDrumTo(colId, idx) {
-  const col = document.getElementById(colId);
-  if (!col) return;
-  // instant scroll to position (no animation needed — called before display)
-  col.scrollTop = idx * ITEM_H;
-  _updateSelClass(colId, idx);
-}
 
 function attachDrumScroll(colId, axis, min, max) {
   const col = document.getElementById(colId);
@@ -102,8 +93,6 @@ function attachDrumScroll(colId, axis, min, max) {
       updateDrumVal(colId, axis, min, max, idx);
     }
   }, { passive: true });
-
-  _drumStates[colId] = { col, count, axis, min, max };
 }
 
 function _updateSelClass(colId, idx) {

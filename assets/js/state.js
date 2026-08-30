@@ -386,9 +386,12 @@ function goS(id,btn){
   if(id==='ai'){
     if(aiEl) aiEl.style.display='flex';
     initAi();
+    try { armBackGuard(); } catch(e) {}
     return;
   }
   if(aiEl) aiEl.style.display='none';
+  // Leaving the AI overlay releases the back-guard it armed.
+  try { if(!anyOverlayOpen()) disarmBackGuard(); } catch(e) {}
   // Show new screen with fresh animation
   const next = document.getElementById(id);
   if(next){

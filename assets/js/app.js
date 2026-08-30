@@ -20,14 +20,6 @@ function mealMeta(){
 // Backward-compat getter (some legacy code references MEAL_META object)
 const MEAL_META = new Proxy({}, { get(_,k){ return mealMeta()[k]; } });
 
-// Debounced render utility — coalesces rapid state-change re-renders
-// so that many fast LS writes only trigger one DOM rebuild per ~80ms tick.
-const _rDebounce = {};
-function debouncedRender(name, fn, wait){
-  wait = wait || 80;
-  clearTimeout(_rDebounce[name]);
-  _rDebounce[name] = setTimeout(() => { try { fn(); } catch(e) { console.warn(name, e); } }, wait);
-}
 // Run a function the next idle frame (defers non-critical work off the
 // main render path). Falls back to setTimeout when requestIdleCallback
 // is unavailable (Safari).
@@ -45,7 +37,21 @@ function rH(){
   document.getElementById('abar').style.display=hasApiKey()?'none':'flex';
   const _sk=streak();
   const _psk=parseInt(sessionStorage.getItem('_sk')||'0');
-  if(_sk>_psk&&_psk>=0&&_sk>0){sessionStorage.setItem('_sk',_sk);if(_psk>0)SFX.play('streak_up');}
+  if(_sk>_psk&&_psk>=0&&_sk>0){
+    sessionStorage.setItem('_sk',_sk);
+    if(_psk>0){
+      SFX.play('streak_up'); HFX.success();
+      // One-shot celebration: retrigger the animation by removing the class,
+      // forcing a reflow, then adding it back.
+      const _chip=document.querySelector('.streak');
+      if(_chip){
+        _chip.classList.remove('celebrate');
+        void _chip.offsetWidth;
+        _chip.classList.add('celebrate');
+        setTimeout(()=>_chip.classList.remove('celebrate'),700);
+      }
+    }
+  }
   document.getElementById('snum').textContent=_sk;
   // Agreeing noun — a fixed 'дней' rendered "1 дней".
   const _sl=document.querySelector('.streak .sl');
@@ -72,7 +78,8 @@ function rH(){
   const C=2*Math.PI*33;
   ring.style.strokeDasharray=C;
   ring.style.strokeDashoffset=C*(1-pct);
-  ring.style.stroke=tt.k>g*1.05?'var(--err)':'var(--acc)';
+  ring.style.stroke=tt.k>g*1.05?'var(--err)':(tt.k>=g?'var(--ok)':'var(--acc)');
+  ring.classList.toggle('goal-hit', g>0 && tt.k>=g && tt.k<=g*1.05);
   tweenNumber(document.getElementById('hpct'), Math.round(pct*100), { suffix:'%', duration:480 });
   tweenNumber(document.getElementById('hkcal'), tt.k, { duration:520 });
   document.getElementById('hgoal').textContent=g;
@@ -105,12 +112,14 @@ function rH(){
   });
 
   let html = '';
+  let groupIdx = 0;
   mealOrder.forEach(mealKey => {
     const items = groups[mealKey];
     if (!items.length) return;
     const meta = MEAL_META[mealKey];
     const mealKcal = items.reduce((s,i) => s + (i.kcal||0), 0);
-    html += `<div class="meal-group" data-meal="${mealKey}">
+    // Stagger the group entrances so the day reads top-to-bottom.
+    html += `<div class="meal-group" data-meal="${mealKey}" style="animation-delay:${groupIdx++ * 55}ms">
       <div class="meal-group-hdr">
         <span class="meal-group-icon">${meta.icon}</span>
         <span class="meal-group-name">${meta.label}</span>
@@ -178,7 +187,6 @@ function toggleFav(idx){
   saveFavs(favs);rH();
 }
 function renderFavs(){
-  renderSearchDB(document.getElementById('dbSearchInp')?.value||'');
   const favs=getFavs();
   const el=document.getElementById('favsList');
   if(!el)return;
@@ -219,161 +227,6 @@ function removeFav(fi){
   renderFavs();
 }
 
-
-// ── FOOD DATABASE ──
-const FOOD_DB = [
-  // Зерновые и крупы
-  {n:'Гречка варёная',e:'Buckwheat, boiled',p:'200г',k:132,pr:5,ft:1,cb:26},{n:'Рис варёный',e:'White rice, boiled',p:'200г',k:260,pr:5,ft:0,cb:57},
-  {n:'Овсянка на воде',e:'Oatmeal with water',p:'200г',k:88,pr:3,ft:2,cb:15},{n:'Овсянка на молоке',e:'Oatmeal with milk',p:'200г',k:140,pr:6,ft:4,cb:21},
-  {n:'Перловка варёная',e:'Pearl barley, boiled',p:'200г',k:160,pr:4,ft:1,cb:34},{n:'Пшено варёное',e:'Millet, boiled',p:'200г',k:188,pr:5,ft:1,cb:40},
-  {n:'Спагетти варёные',e:'Spaghetti, boiled',p:'200г',k:280,pr:10,ft:1,cb:56},{n:'Макароны варёные',e:'Pasta, boiled',p:'200г',k:264,pr:9,ft:1,cb:53},
-  {n:'Хлеб белый',e:'White bread',p:'1 кусок 30г',k:79,pr:2,ft:1,cb:15},{n:'Хлеб ржаной',e:'Rye bread',p:'1 кусок 30г',k:66,pr:2,ft:1,cb:13},
-  {n:'Батон нарезной',e:'Sliced white loaf',p:'1 кусок 25г',k:63,pr:2,ft:1,cb:12},{n:'Лаваш',e:'Lavash flatbread',p:'1 шт 60г',k:165,pr:5,ft:2,cb:32},
-  // Мясо и птица
-  {n:'Куриная грудка варёная',e:'Chicken breast, boiled',p:'150г',k:165,pr:34,ft:3,cb:0},{n:'Куриная грудка жареная',e:'Chicken breast, fried',p:'150г',k:200,pr:32,ft:7,cb:0},
-  {n:'Куриное бедро варёное',e:'Chicken thigh, boiled',p:'150г',k:222,pr:26,ft:13,cb:0},{n:'Говядина варёная',e:'Beef, boiled',p:'150г',k:255,pr:29,ft:15,cb:0},
-  {n:'Свинина жареная',e:'Pork, fried',p:'150г',k:360,pr:24,ft:28,cb:0},{n:'Фарш говяжий жареный',e:'Ground beef, fried',p:'150г',k:345,pr:26,ft:26,cb:0},
-  {n:'Котлета домашняя',e:'Homemade meat patty',p:'1 шт 100г',k:235,pr:15,ft:17,cb:7},{n:'Сосиски молочные',e:'Milk sausages',p:'2 шт 80г',k:208,pr:9,ft:18,cb:2},
-  {n:'Колбаса докторская',e:'Bologna sausage',p:'100г',k:260,pr:13,ft:22,cb:2},{n:'Бекон жареный',e:'Bacon, fried',p:'50г',k:243,pr:9,ft:22,cb:0},
-  // Рыба и морепродукты
-  {n:'Лосось запечённый',e:'Salmon, baked',p:'150г',k:280,pr:33,ft:16,cb:0},{n:'Тунец в собственном соку',e:'Tuna in water, canned',p:'1 банка 100г',k:96,pr:22,ft:1,cb:0},
-  {n:'Горбуша варёная',e:'Pink salmon, boiled',p:'150г',k:175,pr:31,ft:5,cb:0},{n:'Минтай запечённый',e:'Pollock, baked',p:'150г',k:126,pr:28,ft:1,cb:0},
-  {n:'Скумбрия запечённая',e:'Mackerel, baked',p:'150г',k:317,pr:27,ft:22,cb:0},{n:'Креветки варёные',e:'Shrimp, boiled',p:'150г',k:142,pr:29,ft:2,cb:1},
-  {n:'Красная икра',e:'Red caviar',p:'1 ч.л. 15г',k:36,pr:4,ft:2,cb:0},
-  // Молочные продукты
-  {n:'Творог 5%',e:'Cottage cheese 5%',p:'200г',k:190,pr:27,ft:10,cb:6},{n:'Творог 0%',e:'Cottage cheese 0%',p:'200г',k:142,pr:28,ft:0,cb:8},
-  {n:'Йогурт натуральный',e:'Plain yogurt',p:'200г',k:122,pr:8,ft:3,cb:14},{n:'Кефир 1%',e:'Kefir 1%',p:'250мл',k:73,pr:8,ft:3,cb:10},
-  {n:'Молоко 2.5%',e:'Milk 2.5%',p:'250мл',k:153,pr:8,ft:6,cb:15},{n:'Молоко 3.2%',e:'Milk 3.2%',p:'250мл',k:160,pr:8,ft:8,cb:12},
-  {n:'Сыр твёрдый',e:'Hard cheese',p:'30г',k:114,pr:8,ft:9,cb:0},{n:'Сыр Пармезан',e:'Parmesan cheese',p:'30г',k:132,pr:11,ft:9,cb:1},
-  {n:'Сыр Адыгейский',e:'Adyghe cheese',p:'100г',k:264,pr:19,ft:20,cb:0},{n:'Масло сливочное',e:'Butter',p:'10г',k:74,pr:0,ft:8,cb:0},
-  {n:'Сметана 15%',e:'Sour cream 15%',p:'2 ст.л. 40г',k:62,pr:1,ft:6,cb:2},{n:'Мороженое',e:'Ice cream',p:'1 шарик 80г',k:160,pr:3,ft:8,cb:20},
-  // Яйца
-  {n:'Яйцо варёное',e:'Boiled egg',p:'1 шт 55г',k:78,pr:6,ft:5,cb:1},{n:'Яичница из 2 яиц',e:'Fried eggs (2)',p:'120г',k:190,pr:13,ft:14,cb:1},
-  {n:'Омлет 2 яйца',e:'Omelette (2 eggs)',p:'150г',k:205,pr:14,ft:15,cb:3},
-  // Овощи
-  {n:'Картофель варёный',e:'Potatoes, boiled',p:'200г',k:166,pr:4,ft:0,cb:38},{n:'Картофель жареный',e:'Potatoes, fried',p:'200г',k:380,pr:4,ft:18,cb:50},
-  {n:'Картофельное пюре',e:'Mashed potatoes',p:'200г',k:194,pr:4,ft:7,cb:28},{n:'Морковь сырая',e:'Carrot, raw',p:'1 шт 100г',k:41,pr:1,ft:0,cb:10},
-  {n:'Свёкла варёная',e:'Beetroot, boiled',p:'100г',k:49,pr:2,ft:0,cb:11},{n:'Брокколи варёная',e:'Broccoli, boiled',p:'200г',k:70,pr:6,ft:1,cb:13},
-  {n:'Капуста тушёная',e:'Braised cabbage',p:'200г',k:90,pr:3,ft:4,cb:12},{n:'Огурец',e:'Cucumber',p:'1 шт 120г',k:18,pr:1,ft:0,cb:4},
-  {n:'Помидор',e:'Tomato',p:'1 шт 120г',k:22,pr:1,ft:0,cb:5},{n:'Болгарский перец',e:'Bell pepper',p:'1 шт 130г',k:39,pr:1,ft:0,cb:9},
-  {n:'Лук репчатый',e:'Onion',p:'1 шт 100г',k:41,pr:1,ft:0,cb:10},{n:'Чеснок',e:'Garlic',p:'2 зубчика 10г',k:15,pr:1,ft:0,cb:3},
-  {n:'Баклажан жареный',e:'Eggplant, fried',p:'150г',k:105,pr:2,ft:7,cb:9},{n:'Кабачок тушёный',e:'Zucchini, braised',p:'200г',k:54,pr:2,ft:2,cb:7},
-  // Бобовые
-  {n:'Чечевица варёная',e:'Lentils, boiled',p:'200г',k:230,pr:18,ft:1,cb:40},{n:'Фасоль красная варёная',e:'Red kidney beans, boiled',p:'200г',k:228,pr:15,ft:1,cb:41},
-  {n:'Нут варёный',e:'Chickpeas, boiled',p:'200г',k:364,pr:20,ft:6,cb:60},{n:'Горох варёный',e:'Peas, boiled',p:'200г',k:196,pr:13,ft:1,cb:36},
-  // Фрукты
-  {n:'Яблоко',e:'Apple',p:'1 шт 180г',k:94,pr:0,ft:0,cb:25},{n:'Банан',e:'Banana',p:'1 шт 130г',k:119,pr:1,ft:0,cb:31},
-  {n:'Апельсин',e:'Orange',p:'1 шт 180г',k:86,pr:2,ft:0,cb:22},{n:'Мандарин',e:'Mandarin',p:'2 шт 120г',k:62,pr:1,ft:0,cb:15},
-  {n:'Груша',e:'Pear',p:'1 шт 160г',k:88,pr:1,ft:0,cb:23},{n:'Виноград',e:'Grapes',p:'150г',k:103,pr:1,ft:0,cb:27},
-  {n:'Арбуз',e:'Watermelon',p:'300г',k:90,pr:2,ft:0,cb:21},{n:'Клубника',e:'Strawberries',p:'150г',k:48,pr:1,ft:0,cb:11},
-  {n:'Черника',e:'Blueberries',p:'100г',k:57,pr:1,ft:0,cb:14},{n:'Авокадо',e:'Avocado',p:'½ шт 80г',k:128,pr:2,ft:12,cb:7},
-  // Орехи и семена
-  {n:'Грецкий орех',e:'Walnuts',p:'30г',k:196,pr:5,ft:20,cb:4},{n:'Миндаль',e:'Almonds',p:'30г',k:175,pr:6,ft:15,cb:6},
-  {n:'Арахис',e:'Peanuts',p:'30г',k:176,pr:8,ft:14,cb:6},{n:'Кешью',e:'Cashews',p:'30г',k:174,pr:5,ft:14,cb:9},
-  {n:'Семена чиа',e:'Chia seeds',p:'1 ст.л. 15г',k:72,pr:2,ft:5,cb:6},{n:'Льняное семя',e:'Flaxseed',p:'1 ст.л. 15г',k:83,pr:3,ft:6,cb:4},
-  // Соусы и масла
-  {n:'Оливковое масло',e:'Olive oil',p:'1 ст.л. 15г',k:135,pr:0,ft:15,cb:0},{n:'Подсолнечное масло',e:'Sunflower oil',p:'1 ст.л. 15г',k:135,pr:0,ft:15,cb:0},
-  {n:'Майонез',e:'Mayonnaise',p:'1 ст.л. 25г',k:173,pr:0,ft:19,cb:1},{n:'Кетчуп',e:'Ketchup',p:'2 ст.л. 40г',k:50,pr:1,ft:0,cb:12},
-  {n:'Соевый соус',e:'Soy sauce',p:'1 ст.л. 15г',k:13,pr:2,ft:0,cb:1},{n:'Мёд',e:'Honey',p:'1 ст.л. 20г',k:64,pr:0,ft:0,cb:17},
-  // Готовые блюда
-  {n:'Борщ',e:'Borscht',p:'300г',k:165,pr:8,ft:6,cb:22},{n:'Щи',e:'Shchi cabbage soup',p:'300г',k:126,pr:6,ft:4,cb:17},
-  {n:'Пельмени варёные',e:'Pelmeni dumplings, boiled',p:'200г',k:420,pr:19,ft:17,cb:47},{n:'Вареники с картошкой',e:'Potato varenyky',p:'200г',k:280,pr:9,ft:6,cb:48},
-  {n:'Пицца Маргарита',e:'Pizza Margherita',p:'2 куска 200г',k:500,pr:20,ft:18,cb:64},{n:'Бургер',e:'Burger',p:'1 шт 200г',k:480,pr:24,ft:24,cb:44},
-  {n:'Шаурма',e:'Shawarma',p:'1 шт 350г',k:700,pr:32,ft:35,cb:62},{n:'Роллы Калифорния',e:'California rolls',p:'8 шт 200г',k:340,pr:14,ft:8,cb:52},
-  {n:'Хачапури',e:'Khachapuri',p:'1 порция 200г',k:580,pr:20,ft:28,cb:60},{n:'Хинкали',e:'Khinkali dumplings',p:'3 шт 180г',k:450,pr:22,ft:18,cb:50},
-  {n:'Шашлык из свинины',e:'Pork shashlik skewers',p:'200г',k:500,pr:30,ft:40,cb:0},{n:'Блины',e:'Pancakes (blini)',p:'3 шт 150г',k:363,pr:9,ft:14,cb:52},
-  {n:'Овсяноблин',e:'Oat pancake',p:'1 шт 150г',k:195,pr:13,ft:6,cb:22},{n:'Сырники',e:'Syrniki cheese pancakes',p:'3 шт 180г',k:430,pr:22,ft:18,cb:44},
-  {n:'Ленивые вареники',e:'Lazy varenyky',p:'200г',k:310,pr:14,ft:9,cb:44},{n:'Плов',e:'Pilaf',p:'300г',k:450,pr:16,ft:14,cb:62},
-  // Снеки и сладкое
-  {n:'Шоколад молочный',e:'Milk chocolate',p:'1 плитка 40г',k:216,pr:3,ft:13,cb:24},{n:'Шоколад тёмный 70%',e:'Dark chocolate 70%',p:'2 кусочка 20г',k:110,pr:2,ft:7,cb:10},
-  {n:'Печенье овсяное',e:'Oatmeal cookies',p:'3 шт 60г',k:270,pr:4,ft:11,cb:38},{n:'Чипсы Лайс',e:'Lay\'s potato chips',p:'1/2 пачки 30г',k:165,pr:1,ft:11,cb:16},
-  {n:'Гречневые хлебцы',e:'Buckwheat crispbread',p:'4 шт 30г',k:107,pr:3,ft:1,cb:23},{n:'Протеиновый батончик',e:'Protein bar',p:'1 шт 60г',k:220,pr:20,ft:7,cb:22},
-  // Напитки (caloric)
-  {n:'Кофе латте 200мл',e:'Latte 200 ml',p:'200мл',k:120,pr:6,ft:5,cb:12,isDrink:true,drinkId:'coffee',ml:200},
-  {n:'Кофе американо',e:'Americano',p:'200мл',k:10,pr:0,ft:0,cb:2,isDrink:true,drinkId:'coffee',ml:200},
-  {n:'Капучино 200мл',e:'Cappuccino 200 ml',p:'200мл',k:90,pr:5,ft:4,cb:9,isDrink:true,drinkId:'coffee',ml:200},
-  {n:'Чай с сахаром',e:'Tea with sugar',p:'250мл',k:45,pr:0,ft:0,cb:11,isDrink:true,drinkId:'tea',ml:250},
-  {n:'Апельсиновый сок',e:'Orange juice',p:'250мл',k:113,pr:2,ft:0,cb:26,isDrink:true,drinkId:'juice',ml:250},
-  {n:'Кефир 1%',e:'Kefir 1%',p:'250мл',k:73,pr:8,ft:3,cb:10,isDrink:true,drinkId:'milk',ml:250},
-  {n:'Молочный коктейль',e:'Milkshake',p:'400мл',k:400,pr:9,ft:10,cb:66,isDrink:true,drinkId:'milk',ml:400},
-  {n:'Кока-Кола 330мл',e:'Coca-Cola 330 ml',p:'330мл',k:139,pr:0,ft:0,cb:35,isDrink:true,drinkId:'other',ml:330},
-  {n:'Вода 250мл',e:'Water 250 ml',p:'250мл',k:0,pr:0,ft:0,cb:0,isDrink:true,drinkId:'water',ml:250},
-  {n:'Смузи фруктовый',e:'Fruit smoothie',p:'300мл',k:180,pr:2,ft:1,cb:42,isDrink:true,drinkId:'juice',ml:300},
-  {n:'Протеиновый коктейль',e:'Protein shake',p:'400мл',k:280,pr:30,ft:5,cb:28,isDrink:true,drinkId:'milk',ml:400},
-];
-
-// ── Offline food database UI ──────────────────────────────────────
-// This list is the only way to log food without a Gemini API key (and the
-// only one that works offline), so it is surfaced inside the Favourites tab.
-// Names are bilingual; portions are converted from the Russian source strings.
-function dbName(f){ return (LANG === 'en' && f.e) ? f.e : f.n; }
-// NB: `\b` cannot terminate a Cyrillic unit — JS word boundaries only know
-// [A-Za-z0-9_], so `/г\b/` never matched "180г" at the end of a string.
-// A negative lookahead for another Cyrillic letter is the correct guard.
-const _NUM = '([\\d½¼¾]+(?:[.,]\\d+)?)';
-const _PORTION_EN = [
-  [new RegExp(_NUM + '\\s*мл(?![а-яё])', 'g'), '$1 ml'],
-  [new RegExp(_NUM + '\\s*кг(?![а-яё])', 'g'), '$1 kg'],
-  [new RegExp(_NUM + '\\s*г(?![а-яё])', 'g'),  '$1 g'],
-  [new RegExp(_NUM + '\\s*шт(?![а-яё])', 'g'), '$1 pcs'],
-  [new RegExp(_NUM + '\\s*куска', 'g'),    '$1 slices'],
-  [new RegExp(_NUM + '\\s*кусочка', 'g'),  '$1 pieces'],
-  [new RegExp(_NUM + '\\s*кусок', 'g'),    '$1 slice'],
-  [new RegExp(_NUM + '\\s*зубчика', 'g'),  '$1 cloves'],
-  [new RegExp(_NUM + '\\s*банка', 'g'),    '$1 can'],
-  [new RegExp(_NUM + '\\s*плитка', 'g'),   '$1 bar'],
-  [new RegExp(_NUM + '\\s*шарик', 'g'),    '$1 scoop'],
-  [new RegExp(_NUM + '\\s*порция', 'g'),   '$1 serving'],
-  [/(\d+\/\d+|½)\s*пачки/g, '$1 pack'],
-  [/ст\.л\./g, 'tbsp'],
-  [/ч\.л\./g, 'tsp'],
-];
-function dbPortion(f){
-  if (LANG !== 'en') return f.p;
-  let out = f.p;
-  for (const [re, to] of _PORTION_EN) out = out.replace(re, to);
-  return out;
-}
-function searchDB(q){renderSearchDB(q);}
-function renderSearchDB(q){
-  const el=document.getElementById('searchResults');
-  if(!el)return;
-  const query=(q||'').trim().toLowerCase();
-  const results=query
-    ? FOOD_DB.filter(f=>f.n.toLowerCase().includes(query) || (f.e||'').toLowerCase().includes(query))
-    : FOOD_DB.slice(0,24);
-  if(!results.length){
-    el.innerHTML=`<div style="text-align:center;padding:24px;color:var(--t2);font-size:14px">${t('search_no_results')}</div>`;
-    return;
-  }
-  el.innerHTML=results.map(f=>{
-    const fIdx=FOOD_DB.indexOf(f);
-    return `<div class="db-item" onclick="addDBItem(${fIdx})">
-      <div class="db-ico">${emo(f.n)}</div>
-      <div class="db-info">
-        <div class="db-name">${esc(dbName(f))}</div>
-        <div class="db-kcal">${f.k} ${t('unit_kcal')} · ${esc(dbPortion(f))}</div>
-      </div>
-      <div class="db-macs">${t('macro_p_short')}${f.pr} ${t('macro_c_short')}${f.cb} ${t('macro_f_short')}${f.ft}</div>
-    </div>`;
-  }).join('');
-}
-function addDBItem(idx){
-  const f=FOOD_DB[idx]; if(!f) return;
-  const entry={food:dbName(f),portion:dbPortion(f),kcal:f.k,prot:f.pr,fat:f.ft,carb:f.cb,time:tnow(),date:ds()};
-  log.unshift(entry);
-  if(!saveLog()){ log.shift(); HFX.error(); return; }
-  // If drink — add to water too (background bookkeeping only; UI stays hidden while tracking is off)
-  if(f.isDrink && f.ml){
-    const arr=getWaterToday();
-    arr.push({id:f.drinkId||'other',ml:f.ml,t:tnow(),fromFood:true});
-    S('water_'+ds(),JSON.stringify(arr));
-    if(isWaterOn()) rWater();
-  }
-  HFX.success(); SFX.play('add_food');
-  showToast(tf('toast_added_with_name',{name:dbName(f)}));
-  rH(); closeAdd();
-}
 
 // Food name → emoji. Matches both Russian and English stems: the AI returns
 // dish names in whatever language the UI is set to, so a RU-only table meant
@@ -636,7 +489,7 @@ function rP(){
     const d=new Date(n);d.setDate(d.getDate()-(6-i));
     const today=d.toDateString()===n.toDateString();
     const has=dlog(ds(d)).length>0;
-    return `<div class="wd ${has?'done':today?'today':''}">${dns[(d.getDay()+6)%7]}</div>`;
+    return `<div class="wd ${has?'done':today?'today':''}" style="animation-delay:${i*45}ms">${dns[(d.getDay()+6)%7]}</div>`;
   }).join('');
   // Stats
   const l7=Array.from({length:7},(_,i)=>{const d=new Date(n);d.setDate(d.getDate()-i);return dlog(ds(d));});
@@ -666,7 +519,8 @@ function rP(){
       else if(r>0.3) c='c2';
       else c='c1';
     }
-    return `<div class="hcell ${c}" title="${d.toLocaleDateString(_localeTag())}: ${tk} ${t('unit_kcal')}"></div>`;
+    // Diagonal-ish stagger: the grid fills in as a wave instead of all at once.
+    return `<div class="hcell ${c}" style="animation-delay:${i*11}ms" title="${d.toLocaleDateString(_localeTag())}: ${tk} ${t('unit_kcal')}"></div>`;
   }).join('');
   // Weight chart
   rWChart();

@@ -161,7 +161,7 @@ function ed(type){
     });
   }, 50);
 }
-function closeEd(){document.getElementById('edOv').classList.remove('on');lockScroll(false);}
+function closeEd(){HFX.light();SFX.play('sheet_close');document.getElementById('edOv').classList.remove('on');lockScroll(false);}
 function saveEd(){
   if(edType==='name'){const v=document.getElementById('ed_v')?.value.trim();if(v)U.name=v;}
   else if(edType==='params'){

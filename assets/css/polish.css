@@ -146,3 +146,121 @@ html.is-fullscreen .week-ai-section-text,
 html.is-fullscreen .daily-ai-body {
   user-select: text; -webkit-user-select: text;
 }
+
+/* ══════════════════════════════════════════════════════════
+   MOTION POLISH — entrances for content that is rebuilt from
+   innerHTML (heat map, meal groups, queue and key rows). These
+   lists used to appear instantly while everything around them
+   animated, which read as a glitch rather than a transition.
+   ══════════════════════════════════════════════════════════ */
+
+/* Screen change: add a short fade so the 6px slide doesn't pop. */
+@keyframes scFade { from { opacity:0; transform:translateY(8px) translateZ(0); } to { opacity:1; transform:none; } }
+.screen.active { animation: scFade var(--dur-med) var(--ease-decel) both !important; }
+
+/* Heat map — cells scale in; the per-cell delay is set inline by rP(). */
+@keyframes hcellIn { from { opacity:0; transform:scale(.4); } to { opacity:1; transform:none; } }
+.hcell { animation: hcellIn .34s cubic-bezier(.22,1.5,.36,1) both; }
+.h-legend .hcell { animation: none; }
+
+/* Meal groups — soft stagger, delay set inline by rH(). */
+@keyframes groupIn { from { opacity:0; transform:translateY(10px); } to { opacity:1; transform:none; } }
+.meal-group { animation: groupIn .34s cubic-bezier(.22,1,.36,1) both; }
+.meal-group-hdr { animation: groupIn .3s .04s cubic-bezier(.22,1,.36,1) both; }
+
+/* Week dots on the streak card — the completed ones pop in. */
+@keyframes wdPop { 0% { opacity:0; transform:scale(.3); } 60% { transform:scale(1.14); } 100% { opacity:1; transform:none; } }
+.wd { animation: wdPop .38s cubic-bezier(.22,1,.36,1) both; }
+.wd:active { transform: scale(.9); }
+
+/* Offline queue + API key rows */
+@keyframes rowIn { from { opacity:0; transform:translateY(8px) scale(.985); } to { opacity:1; transform:none; } }
+.pq-row, .key-row { animation: rowIn .3s cubic-bezier(.22,1,.36,1) both; }
+.pq-row:nth-child(2), .key-row:nth-child(2) { animation-delay:.04s; }
+.pq-row:nth-child(3), .key-row:nth-child(3) { animation-delay:.08s; }
+.pq-row:nth-child(4), .key-row:nth-child(4) { animation-delay:.12s; }
+.pq-row:nth-child(n+5), .key-row:nth-child(n+5) { animation-delay:.16s; }
+.pq-card { animation: rowIn .34s cubic-bezier(.22,1,.36,1) both; }
+
+/* Empty states shouldn't just appear. */
+@keyframes emptyIn { from { opacity:0; transform:translateY(10px) scale(.98); } to { opacity:1; transform:none; } }
+.empty, .fav-empty, .key-empty { animation: emptyIn .42s .05s cubic-bezier(.22,1,.36,1) both; }
+.empty .ei { animation: floatY 3.4s ease-in-out 0.5s infinite; }
+@keyframes floatY { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-6px); } }
+
+/* Bottom-nav icon: a small lift when the tab becomes active. */
+.nb svg { transition: transform .3s var(--ease-spring), stroke-width .3s var(--ease-out); }
+.nb.on svg { transform: translateY(-1px) scale(1.06); }
+
+/* Streak chip celebration — the class is added for one animation cycle by rH()
+   when the streak actually grows. */
+@keyframes streakPop {
+  0%   { transform: scale(1); }
+  35%  { transform: scale(1.14) rotate(-2deg); }
+  65%  { transform: scale(.98) rotate(1deg); }
+  100% { transform: scale(1); }
+}
+.streak.celebrate { animation: streakPop .62s cubic-bezier(.22,1,.36,1); }
+.streak.celebrate .sf { animation: streakFire .62s cubic-bezier(.22,1,.36,1); }
+@keyframes streakFire { 0%,100% { transform:none; } 40% { transform: scale(1.4) translateY(-2px); } }
+
+/* Calorie ring: a soft glow once the goal is met. */
+#hring.goal-hit { filter: drop-shadow(0 0 6px color-mix(in srgb, var(--ok) 55%, transparent)); }
+.cc-ring { transition: filter .45s var(--ease-out); }
+
+/* Macro bars grow from the left rather than fading in place. */
+.mac-fill { transform-origin: left center; }
+
+/* Sticky headers get a hairline only once content scrolls under them, so the
+   first screenful looks cleaner. */
+.pg-hdr, .st-hdr { transition: box-shadow .25s var(--ease-out), border-color .25s var(--ease-out); }
+
+/* Toast progress bar should not animate when motion is reduced. */
+@media (prefers-reduced-motion: reduce) {
+  .hcell, .meal-group, .meal-group-hdr, .wd, .pq-row, .key-row, .pq-card,
+  .empty, .fav-empty, .key-empty, .empty .ei, .streak.celebrate { animation: none !important; }
+}
+
+/* Calendar strip: fade the edges so the row reads as scrollable instead of
+   being sliced off, and snap days to a comfortable position. */
+.cal-wrap {
+  -webkit-mask-image: linear-gradient(90deg, transparent 0, #000 16px, #000 calc(100% - 16px), transparent 100%);
+  mask-image: linear-gradient(90deg, transparent 0, #000 16px, #000 calc(100% - 16px), transparent 100%);
+  scroll-snap-type: x proximity;
+  scroll-behavior: smooth;
+  overscroll-behavior-x: contain;
+}
+.cal-wrap .cd { scroll-snap-align: center; }
+
+/* Log rows: give the star / delete affordances a real tap target without
+   changing how they look. */
+.li-star, .li-del { min-width: 34px; min-height: 34px; display: inline-flex; align-items: center; justify-content: center; }
+.li-star:active, .li-del:active { transform: scale(.86); }
+.li-star, .li-del { transition: transform .16s var(--ease-spring), opacity .16s; }
+
+/* Modal sheets: fade the scrim in rather than snapping it on. */
+.ov, .ed-ov, #fdOv, .cfrm-ov, .drum-ov, .wlog-ov, .about-ov, .edit-food-ov {
+  transition: opacity .2s var(--ease-out);
+}
+
+/* Water drink buttons — small press feedback, and the counter badge pops. */
+.water-btn { transition: transform .18s var(--ease-spring), background .2s var(--ease-out), border-color .2s; }
+.water-btn:active { transform: scale(.93); }
+
+/* Settings rows: the chevron nudges on press so the row feels connected. */
+.sr-arr { transition: transform .18s var(--ease-spring), opacity .18s; }
+.st-row:active .sr-arr { transform: translateX(3px); }
+
+/* Progress stat cards react to touch like the rest of the UI. */
+.sc { transition: transform .18s var(--ease-spring), box-shadow .2s var(--ease-out); }
+.sc:active { transform: scale(.97); }
+
+/* The AI suggestion strip should hint that it scrolls. */
+.ai-sugs {
+  -webkit-mask-image: linear-gradient(90deg, transparent 0, #000 12px, #000 calc(100% - 12px), transparent 100%);
+  mask-image: linear-gradient(90deg, transparent 0, #000 12px, #000 calc(100% - 12px), transparent 100%);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cal-wrap { scroll-behavior: auto; }
+}
