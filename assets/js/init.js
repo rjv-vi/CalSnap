@@ -214,6 +214,9 @@ function initDragSelect(container, cardSel, onPick) {
 }
 
 // ── DEV PANEL ──
+// Single source of truth for the version string (also shown in the About sheet
+// via the `about_ver` translation).
+const APP_VERSION = '1.5';
 let _devTaps=0,_devTapTimer=null;
 function devTap(){
   _devTaps++;clearTimeout(_devTapTimer);
@@ -224,46 +227,55 @@ async function openDevPanel(){
   HFX.heavy();SFX.play('sheet_open');
   const ov=document.getElementById('devOv');
   ov.style.display='flex';
+  lockScroll(true);
   const c=document.getElementById('devContent');
-  let swStatus='Не поддерживается',swCache='—';
+  let swStatus=t('dev_sw_unsupported'),swCache='—';
   if('serviceWorker' in navigator){
     try{
       const regs=await navigator.serviceWorker.getRegistrations();
-      swStatus=regs.length>0?'✅ Активен ('+regs.length+' SW)':'⚠️ Не зарегистрирован';
+      swStatus=regs.length>0?tf('dev_sw_active',{n:regs.length}):t('dev_sw_none');
       const keys=await caches.keys();
-      swCache=keys.length>0?keys.join(', '):'Пусто';
-    }catch(e){swStatus='Ошибка: '+e.message;}
+      swCache=keys.length>0?keys.join(', '):t('dev_cache_empty');
+    }catch(e){swStatus='⚠️ '+e.message;}
   }
   let lsSize=0;
-  for(let k in localStorage){if(localStorage.hasOwnProperty(k))lsSize+=localStorage[k].length+k.length;}
+  try{ for(let i=0;i<localStorage.length;i++){const k=localStorage.key(i);lsSize+=(localStorage.getItem(k)||'').length+k.length;} }catch(e){}
+  let imgCount='—';
+  try{ imgCount=String((await IMG.keys()).length); }catch(e){}
   const errs=window._devErrors||[];
-  c.innerHTML=`
-    <div style="background:var(--f1);border-radius:12px;padding:12px;display:flex;flex-direction:column;gap:6px">
-      <div style="font-weight:700;color:var(--t2);font-size:10px;text-transform:uppercase;letter-spacing:.5px;margin-bottom:2px">Приложение</div>
-      <div>Версия: <b>1.4</b></div>
-      <div>ETag: <b style="font-size:11px;word-break:break-all">${localStorage.getItem('_etag')||'—'}</b></div>
-      <div>Онлайн: <b>${navigator.onLine?'✅ Да':'❌ Нет'}</b></div>
-    </div>
-    <div style="background:var(--f1);border-radius:12px;padding:12px;display:flex;flex-direction:column;gap:6px">
-      <div style="font-weight:700;color:var(--t2);font-size:10px;text-transform:uppercase;letter-spacing:.5px;margin-bottom:2px">Service Worker</div>
-      <div>Статус: <b>${swStatus}</b></div>
-      <div>Кэш: <b>${swCache}</b></div>
-    </div>
-    <div style="background:var(--f1);border-radius:12px;padding:12px;display:flex;flex-direction:column;gap:6px">
-      <div style="font-weight:700;color:var(--t2);font-size:10px;text-transform:uppercase;letter-spacing:.5px;margin-bottom:2px">Данные</div>
-      <div>localStorage: <b>${(lsSize/1024).toFixed(1)} КБ</b></div>
-      <div>Уведомления: <b>${typeof Notification!=='undefined'?Notification.permission:'—'}</b></div>
-      <div style="font-size:10px;color:var(--t2);word-break:break-all">UA: ${navigator.userAgent.substring(0,100)}</div>
-    </div>
-    <div style="background:var(--f1);border-radius:12px;padding:12px;display:flex;flex-direction:column;gap:6px">
-      <div style="font-weight:700;color:var(--t2);font-size:10px;text-transform:uppercase;letter-spacing:.5px;margin-bottom:2px">Ошибки (последние 5)</div>
-      ${errs.length>0?errs.slice(-5).map(e=>`<div style="color:var(--err);font-size:11px">${e}</div>`).join(''):'<div style="color:var(--ok)">Ошибок нет ✅</div>'}
+  const sect=(title,rows)=>`<div style="background:var(--f1);border-radius:12px;padding:12px;display:flex;flex-direction:column;gap:6px">
+      <div style="font-weight:700;color:var(--t2);font-size:10px;text-transform:uppercase;letter-spacing:.5px;margin-bottom:2px">${esc(title)}</div>
+      ${rows.join('')}
     </div>`;
+  const row=(k,v)=>`<div>${esc(k)}: <b>${esc(v)}</b></div>`;
+  c.innerHTML=
+    sect(t('dev_app'), [
+      row(t('dev_version'), APP_VERSION),
+      `<div>ETag: <b style="font-size:11px;word-break:break-all">${esc(localStorage.getItem('_etag')||'—')}</b></div>`,
+      row(t('dev_online'), navigator.onLine?t('dev_yes'):t('dev_no')),
+      row(t('set_lang'), LANG.toUpperCase()),
+    ]) +
+    sect(t('dev_sw'), [
+      row(t('dev_status'), swStatus),
+      row(t('dev_cache'), swCache),
+    ]) +
+    sect(t('dev_data'), [
+      row(t('dev_storage_used'), (lsSize/1024).toFixed(1)+' KB'),
+      row(t('dev_photos'), imgCount),
+      row(t('dev_notifs'), window.Notification?.permission||'—'),
+      `<div style="font-size:10px;color:var(--t2);word-break:break-all">UA: ${esc(navigator.userAgent.substring(0,100))}</div>`,
+    ]) +
+    sect(t('dev_errors'), [
+      errs.length>0
+        ? errs.slice(-5).map(e=>`<div style="color:var(--err);font-size:11px">${esc(e)}</div>`).join('')
+        : `<div style="color:var(--ok)">${esc(t('dev_no_errors'))}</div>`,
+    ]);
 }
 function closeDevPanel(){
   SFX.play('sheet_close');
   const ov=document.getElementById('devOv');
   ov.style.display='none';
+  lockScroll(false);
 }
 async function devForceUpdate(){
   showConfirm('🔄',t('confirm_force_title'),t('confirm_force_body'),t('confirm_force_btn'),async()=>{
@@ -276,16 +288,16 @@ async function devForceUpdate(){
 function devCopyLogs(){
   SFX.play('copy'); HFX.light();
   const errs=window._devErrors||[];
-  const info={version:'1.4',etag:localStorage.getItem('_etag'),online:navigator.onLine,ua:navigator.userAgent,errors:errs};
+  const info={version:APP_VERSION,lang:LANG,etag:localStorage.getItem('_etag'),online:navigator.onLine,ua:navigator.userAgent,errors:errs};
   const text=JSON.stringify(info,null,2);
   try{
-    navigator.clipboard.writeText(text).then(()=>showToast('📋 Логи скопированы')).catch(()=>{
+    navigator.clipboard.writeText(text).then(()=>showToast(t('toast_logs_copied'))).catch(()=>{
       // Fallback for browsers that block clipboard without user gesture
       const ta=document.createElement('textarea');
       ta.value=text;ta.style.position='fixed';ta.style.opacity='0';
       document.body.appendChild(ta);ta.focus();ta.select();
       document.execCommand('copy');document.body.removeChild(ta);
-      showToast('📋 Логи скопированы');
+      showToast(t('toast_logs_copied'));
     });
   }catch(e){showToast(tf('toast_error_msg',{msg:e.message}));}
 }

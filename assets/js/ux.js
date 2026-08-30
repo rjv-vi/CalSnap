@@ -55,3 +55,20 @@ function setSkeleton(el, show) {
   if (!el) return;
   el.classList.toggle('skel-on', !!show);
 }
+
+// ── SCROLL LOCK (reference counted) ───────────────────────────────
+// Modals stack: opening the food-detail sheet, then Edit, then closing Edit
+// used to release the lock while the sheet underneath was still open, letting
+// the page scroll behind it. Counting opens/closes keeps the lock until the
+// last overlay is gone.
+let _scrollLocks = 0;
+function lockScroll(on){
+  if (on) _scrollLocks++;
+  else _scrollLocks = Math.max(0, _scrollLocks - 1);
+  document.body.style.overflow = _scrollLocks > 0 ? 'hidden' : '';
+}
+// Escape hatch for reset/import flows that tear down the whole UI.
+function resetScrollLock(){
+  _scrollLocks = 0;
+  document.body.style.overflow = '';
+}

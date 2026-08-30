@@ -221,6 +221,7 @@ const I18N = {
     hcc_label: 'Калорий съедено',
     // Progress
     streak_label: 'дней стрик',
+    streak_label_tpl: '{days} стрик',
     this_week: 'Эта неделя',
     bmi_label: 'Индекс массы тела',
     bmi_no_data: 'Нет данных',
@@ -341,7 +342,7 @@ const I18N = {
     about_footer2: 'Сделано с заботой о здоровье 🫀<br><span>CalSnap использует Gemini AI для анализа питания</span>',
     btn_reset: 'Сбросить',
     about_sub: 'AI-трекер калорий нового поколения',
-    about_ver: 'ВЕРСИЯ 1.4',
+    about_ver: 'ВЕРСИЯ 1.5',
     about_team: 'КОМАНДА',
     about_role_dev: 'Разработка · Дизайн · Идея',
     about_role_ideas: 'Идеи и обратная связь',
@@ -363,7 +364,7 @@ const I18N = {
     ai_chips_label: 'ПОПРОБУЙ СПРОСИТЬ',
     // Misc
     not_set: 'Не указаны',
-    age_label: 'Возраст: {age} лет',
+    age_label: 'Возраст: {years}',
     check_date: 'Проверь дату',
     allergies: 'Аллергии',
     allerg_ph: 'Арахис, морепродукты...',
@@ -404,6 +405,197 @@ const I18N = {
     update_title: 'Доступно обновление!',
     update_sub: 'Новая версия CalSnap готова',
     update_btn: 'Обновить',
+    doc_title: 'CalSnap — AI-счётчик калорий',
+    // ── API key pool ──
+    api_title: '🔑 API ключи Gemini',
+    key_add: 'Добавить ключ',
+    key_empty: 'Ключей пока нет. Вставь первый ниже 👇',
+    key_added: '🔑 Ключ добавлен ({n} всего)',
+    key_dup: 'Такой ключ уже добавлен',
+    key_malformed: 'Не похоже на ключ Gemini',
+    key_pool_full: 'Больше ключей добавить нельзя',
+    key_remove_title: 'Удалить ключ?',
+    key_state_ready: 'Готов',
+    key_state_invalid: 'Недействителен',
+    key_state_cooldown: 'Лимит · пауза {time}',
+    key_rotation_hint: 'Можно добавить несколько ключей — при исчерпании лимита приложение само переключится на следующий.',
+    keys_all_cooldown: 'Лимиты исчерпаны у всех ключей. Следующий освободится через {time} — или добавь ещё один ключ.',
+    keys_all_cooldown_short: 'Все ключи на паузе из-за лимитов',
+    keys_all_invalid: 'Все ключи недействительны — проверь их в Настройках → API',
+    set_api_paused: 'Лимит · на паузе',
+    set_api_pool: 'Готовы: {ready} из {total}',
+    dur_sec: '{n} с',
+    dur_min: '{n} мин',
+    dur_hour: '{n} ч',
+    // ── Offline analysis queue ──
+    photo_queue: '🕓 Проанализировать позже',
+    photo_offline_note: 'Нет интернета — фото сохранится и проанализируется автоматически, когда связь появится.',
+    queue_title: 'Ждут анализа: {n}',
+    queue_sub_ready: 'Готово — нажми «Анализ»',
+    queue_added: '🕓 Фото сохранено — проанализирую, когда появится связь',
+    queue_analyze_now: 'Анализ',
+    queue_working: 'Анализ…',
+    queue_analyzed: '✅ Проанализировано фото: {n}',
+    queue_offline: 'Нет интернета — жду связь',
+    queue_state_waiting: 'В очереди',
+    queue_state_working: 'Анализирую…',
+    queue_state_failed: 'Не удалось — нажми ↻',
+    queue_failed_hint: 'Не удалось проанализировать — попробуй позже',
+    queue_full: 'Очередь заполнена — сначала проанализируй сохранённые фото',
+    ai_mic_label: 'Голосовой ввод',
+    nav_aria: 'Основная навигация',
+    dev_title: '🛠 Dev Panel',
+    dev_app: 'Приложение',
+    dev_version: 'Версия',
+    dev_online: 'Онлайн',
+    dev_yes: '✅ Да',
+    dev_no: '❌ Нет',
+    dev_sw: 'Service Worker',
+    dev_status: 'Статус',
+    dev_cache: 'Кэш',
+    dev_cache_empty: 'Пусто',
+    dev_sw_active: '✅ Активен ({n} SW)',
+    dev_sw_none: '⚠️ Не зарегистрирован',
+    dev_sw_unsupported: 'Не поддерживается',
+    dev_data: 'Данные',
+    dev_notifs: 'Уведомления',
+    dev_errors: 'Ошибки (последние 5)',
+    dev_no_errors: 'Ошибок нет ✅',
+    dev_force_update: '🔄 Принудительное обновление',
+    dev_copy_logs: '📋 Скопировать логи',
+    dev_close: 'Закрыть ✕',
+    dev_storage_used: 'Занято в localStorage',
+    dev_photos: 'Фото в IndexedDB',
+    mdl_images: 'Изображения',
+    mdl_audio: 'Аудио',
+    mdl_tts: 'Синтез речи',
+    mdl_thinking: 'Рассуждение',
+    mdl_computer_use: 'Управление ПК',
+    mdl_compact: 'Компактная',
+    mdl_experimental: 'Экспериментальная',
+    mdl_preview: 'Превью',
+    mdl_latest: 'Последняя версия',
+    mdl_stable: 'Стабильная',
+    db_title: '🗂 База продуктов',
+    db_search_ph: 'Найти продукт…',
+    word_of: 'из',
+    word_goal: 'Цель',
+    word_left: 'Осталось',
+    word_today: 'Сегодня',
+    ai_sys_role: 'персональный AI-нутрициолог CalSnap',
+    doc_desc: 'CalSnap — AI-счётчик калорий с распознаванием еды по фото, тексту и штрихкоду. Работает офлайн.',
+    // ── Food detail sheet ──
+    fd_added_at: 'Добавлено: {date} в {time}',
+    fd_edit: '✏️ Изменить',
+    fd_delete: '🗑 Удалить',
+    toast_record_updated: '✏️ Запись обновлена',
+    // ── Add: photo ──
+    photo_new: 'Новое фото',
+    err_file_open: 'Не удалось открыть файл',
+    err_gem_limit: 'Превышен лимит Gemini API. Подожди 1–2 мин и попробуй снова.',
+    // ── Add: text ──
+    text_placeholder: 'Напиши что съел…\nНапример: 2 яблока и стакан кефира',
+    text_calculating: 'Считаю калории…',
+    text_calc_btn: '🔍 Рассчитать',
+    text_clear: 'Очистить',
+    text_ex1: '1 яблоко',
+    text_ex2: 'тарелка гречки',
+    text_ex3: '2 яйца варёных',
+    text_ex4: '200г творога',
+    text_ex5: 'кофе с молоком',
+    text_ex6: 'бутерброд с сыром',
+    // ── Add: barcode ──
+    bc_reading: 'Читаю штрихкод…',
+    bc_not_found: 'Продукт не найден в OpenFoodFacts. Попробуй фото.',
+    bc_ean_hint: 'EAN: 8–14 цифр',
+    product_default: 'Продукт',
+    // ── Weight ──
+    wt_title: 'Динамика веса',
+    wt_log_btn: '+ Записать',
+    wt_empty: 'Нет данных — записывай вес каждый день',
+    wlog_title: 'Записать вес',
+    wlog_sub: 'Введи текущий вес для отслеживания динамики',
+    // ── Drum date picker ──
+    drum_title: 'Дата рождения',
+    drum_done: 'Готово',
+    drum_day: 'День',
+    drum_month: 'Месяц',
+    drum_year: 'Год',
+    dob_age_ok: '✓ Тебе {years}',
+    // ── Heatmap legend ──
+    heat_none: 'Нет',
+    heat_low: 'Мало',
+    heat_norm: 'Норма',
+    heat_goal: 'Цель',
+    heat_over: 'Перебор',
+    // ── Model picker / API ──
+    mdl_title: '🧠 Модель Gemini',
+    mdl_loading: 'Загрузка…',
+    mdl_count: '{n} моделей · свайп для прокрутки',
+    api_desc: 'Получи бесплатный ключ на',
+    ed_title: 'Редактировать',
+    // ── Weekly AI ──
+    week_good: '✓ Хорошо',
+    week_warn: '⚠ Стоит улучшить',
+    week_tip: '💡 Совет на неделю',
+    week_updated: 'Обновлено {time}',
+    week_fb_good: 'Питание стабильное.',
+    week_fb_warn: 'Старайся записывать все приёмы пищи.',
+    week_fb_tip: 'Добавь больше белка в рацион.',
+    // ── Weight pace card ──
+    unit_per_week: 'кг/нед',
+    pace_stable_t: 'Вес стабилен',
+    pace_stable_s: 'Изменение за неделю: ±{n} кг — отлично!',
+    pace_gain_t: 'Небольшой набор',
+    pace_gain_s: '+{n} кг/нед — следи за калориями',
+    pace_drop_t: 'Небольшое снижение',
+    pace_drop_s: '{n} кг/нед — возможно дефицит',
+    pace_noprog_t: 'Нет прогресса',
+    pace_weeks_t: '~{n} нед до цели',
+    pace_goal_reached: 'Цель достигнута!',
+    pace_rate_s: 'Темп: {n} кг/нед · Текущий вес: {w} кг',
+    pace_nogain_t: 'Нет набора',
+    pace_gaining_t: 'Набор идёт!',
+    pace_gain_ok: '👍 Качественный набор',
+    pace_gain_fast: '⚡ Быстрый набор',
+    pace_gain_s2: '+{n} кг/нед · {q}',
+    // ── Notifications ──
+    notif_status_on: 'Включены',
+    notif_test_body: 'Напоминания включены!',
+    notif_bf_title: '🌅 Доброе утро!',
+    notif_bf_body: 'Время завтрака — не забудь записать!',
+    notif_ln_title: '☀️ Обед',
+    notif_ln_body: 'Запиши что ел на обед — 10 секунд!',
+    notif_dn_title: '🌙 Вечер',
+    notif_dn_body: 'Как прошёл день? Запиши ужин в CalSnap.',
+    notif_wt_title: '💧 Выпей воды',
+    notif_wt_body: 'Стакан воды помогает достичь цели!',
+    // ── Offline ──
+    offl_checking: 'Проверяю…',
+    // ── Data / errors ──
+    toast_export_ok: '✅ Данные экспортированы',
+    toast_import_bad_format: 'Неверный формат файла',
+    toast_logs_copied: '📋 Логи скопированы',
+    err_unknown: 'Неизвестная ошибка',
+    err_analyze: 'Ошибка анализа',
+    err_no_gemini: 'Нет соединения с Gemini API',
+    err_open_pages: 'Открой через GitHub Pages, не как локальный файл',
+    ai_err_generic: '⚠️ Ошибка. Проверь API ключ.',
+    ai_err_quota: '⏳ Лимит запросов. Подожди минуту.',
+    ai_err_key: '🔑 Неверный API ключ → Настройки.',
+    ai_err_local: '🌐 Открой через GitHub Pages\n(не как локальный файл)',
+    ai_err_server: '📡 Нет связи с сервером.',
+    ai_err_net: '📡 Нет связи. Проверь интернет.',
+    search_no_results: 'Ничего не найдено',
+    // ── Storage safety ──
+    toast_storage_full: '⚠️ Память браузера заполнена — старые фото сжаты, чтобы сохранить записи',
+    toast_storage_fail: '❌ Не удалось сохранить: память браузера заполнена. Выгрузи данные (Экспорт) и сбросьте лишнее.',
+    // ── Fullscreen ──
+    set_fullscreen: 'Полноэкранный режим',
+    set_fullscreen_sub: 'Скрывать строку браузера и статус-бар',
+    toast_fullscreen_on: '⛶ Полноэкранный режим включён',
+    toast_fullscreen_off: 'Полноэкранный режим выключен',
+    toast_fullscreen_unsupported: 'Полноэкранный режим недоступен в этом браузере',
   },
   en: {
     ob_name_required: 'Please enter your name',
@@ -609,6 +801,7 @@ const I18N = {
     hcc_label: 'Calories eaten',
     // Progress
     streak_label: 'day streak',
+    streak_label_tpl: '{days} streak',
     this_week: 'This week',
     bmi_label: 'Body Mass Index',
     bmi_no_data: 'No data',
@@ -728,7 +921,7 @@ const I18N = {
     about_footer2: 'Made with care for your health 🫀<br><span>CalSnap uses Gemini AI for nutrition analysis</span>',
     btn_reset: 'Reset',
     about_sub: 'A next-gen AI calorie tracker',
-    about_ver: 'VERSION 1.4',
+    about_ver: 'VERSION 1.5',
     about_team: 'TEAM',
     about_role_dev: 'Engineering · Design · Idea',
     about_role_ideas: 'Ideas & feedback',
@@ -750,7 +943,7 @@ const I18N = {
     ai_chips_label: 'TRY ASKING',
     // Misc
     not_set: 'Not set',
-    age_label: 'Age: {age} years',
+    age_label: 'Age: {years}',
     check_date: 'Check the date',
     allergies: 'Allergies',
     allerg_ph: 'Peanuts, seafood...',
@@ -791,15 +984,211 @@ const I18N = {
     update_title: 'Update available!',
     update_sub: 'A new version of CalSnap is ready',
     update_btn: 'Update',
+    doc_title: 'CalSnap — AI calorie tracker',
+    // ── API key pool ──
+    api_title: '🔑 Gemini API keys',
+    key_add: 'Add key',
+    key_empty: 'No keys yet. Paste your first one below 👇',
+    key_added: '🔑 Key added ({n} total)',
+    key_dup: 'That key is already in the list',
+    key_malformed: "That doesn't look like a Gemini key",
+    key_pool_full: 'No room for more keys',
+    key_remove_title: 'Remove this key?',
+    key_state_ready: 'Ready',
+    key_state_invalid: 'Invalid',
+    key_state_cooldown: 'Rate limited · {time}',
+    key_rotation_hint: 'Add several keys — when one hits its rate limit the app switches to the next one automatically.',
+    keys_all_cooldown: 'Every key is rate limited. The next one frees up in {time} — or add another key.',
+    keys_all_cooldown_short: 'All keys are rate limited',
+    keys_all_invalid: 'Every key is invalid — check them in Settings → API',
+    set_api_paused: 'Rate limited',
+    set_api_pool: 'Ready: {ready} of {total}',
+    dur_sec: '{n}s',
+    dur_min: '{n} min',
+    dur_hour: '{n} h',
+    // ── Offline analysis queue ──
+    photo_queue: '🕓 Analyze later',
+    photo_offline_note: 'No connection — the photo is saved and will be analyzed automatically once you are back online.',
+    queue_title: 'Waiting for analysis: {n}',
+    queue_sub_ready: 'Ready — tap Analyze',
+    queue_added: '🕓 Photo saved — it will be analyzed once you are online',
+    queue_analyze_now: 'Analyze',
+    queue_working: 'Analyzing…',
+    queue_analyzed: '✅ Photos analyzed: {n}',
+    queue_offline: 'No connection — waiting',
+    queue_state_waiting: 'Queued',
+    queue_state_working: 'Analyzing…',
+    queue_state_failed: 'Failed — tap ↻',
+    queue_failed_hint: 'Analysis failed — try again later',
+    queue_full: 'Queue is full — analyze the saved photos first',
+    ai_mic_label: 'Voice input',
+    nav_aria: 'Main navigation',
+    dev_title: '🛠 Dev Panel',
+    dev_app: 'Application',
+    dev_version: 'Version',
+    dev_online: 'Online',
+    dev_yes: '✅ Yes',
+    dev_no: '❌ No',
+    dev_sw: 'Service Worker',
+    dev_status: 'Status',
+    dev_cache: 'Cache',
+    dev_cache_empty: 'Empty',
+    dev_sw_active: '✅ Active ({n} SW)',
+    dev_sw_none: '⚠️ Not registered',
+    dev_sw_unsupported: 'Not supported',
+    dev_data: 'Data',
+    dev_notifs: 'Notifications',
+    dev_errors: 'Errors (last 5)',
+    dev_no_errors: 'No errors ✅',
+    dev_force_update: '🔄 Force update',
+    dev_copy_logs: '📋 Copy logs',
+    dev_close: 'Close ✕',
+    dev_storage_used: 'localStorage used',
+    dev_photos: 'Photos in IndexedDB',
+    mdl_images: 'Images',
+    mdl_audio: 'Audio',
+    mdl_tts: 'Speech synthesis',
+    mdl_thinking: 'Reasoning',
+    mdl_computer_use: 'Computer use',
+    mdl_compact: 'Compact',
+    mdl_experimental: 'Experimental',
+    mdl_preview: 'Preview',
+    mdl_latest: 'Latest',
+    mdl_stable: 'Stable',
+    db_title: '🗂 Food database',
+    db_search_ph: 'Search for a food…',
+    word_of: 'of',
+    word_goal: 'Goal',
+    word_left: 'Left',
+    word_today: 'Today',
+    ai_sys_role: 'CalSnap personal AI nutritionist',
+    doc_desc: 'CalSnap — an AI calorie tracker that recognises food from a photo, text or barcode. Works offline.',
+    // ── Food detail sheet ──
+    fd_added_at: 'Added: {date} at {time}',
+    fd_edit: '✏️ Edit',
+    fd_delete: '🗑 Delete',
+    toast_record_updated: '✏️ Entry updated',
+    // ── Add: photo ──
+    photo_new: 'New photo',
+    err_file_open: 'Could not open the file',
+    err_gem_limit: 'Gemini API rate limit reached. Wait 1–2 min and try again.',
+    // ── Add: text ──
+    text_placeholder: 'Write down what you ate…\nE.g.: 2 apples and a glass of kefir',
+    text_calculating: 'Counting calories…',
+    text_calc_btn: '🔍 Calculate',
+    text_clear: 'Clear',
+    text_ex1: '1 apple',
+    text_ex2: 'a bowl of buckwheat',
+    text_ex3: '2 boiled eggs',
+    text_ex4: '200 g cottage cheese',
+    text_ex5: 'coffee with milk',
+    text_ex6: 'cheese sandwich',
+    // ── Add: barcode ──
+    bc_reading: 'Reading barcode…',
+    bc_not_found: 'Product not found in OpenFoodFacts. Try a photo instead.',
+    bc_ean_hint: 'EAN: 8–14 digits',
+    product_default: 'Product',
+    // ── Weight ──
+    wt_title: 'Weight trend',
+    wt_log_btn: '+ Log',
+    wt_empty: 'No data yet — log your weight every day',
+    wlog_title: 'Log weight',
+    wlog_sub: 'Enter your current weight to track the trend',
+    // ── Drum date picker ──
+    drum_title: 'Date of birth',
+    drum_done: 'Done',
+    drum_day: 'Day',
+    drum_month: 'Month',
+    drum_year: 'Year',
+    dob_age_ok: "✓ You're {age}",
+    // ── Heatmap legend ──
+    heat_none: 'None',
+    heat_low: 'Low',
+    heat_norm: 'Normal',
+    heat_goal: 'On target',
+    heat_over: 'Over',
+    // ── Model picker / API ──
+    mdl_title: '🧠 Gemini model',
+    mdl_loading: 'Loading…',
+    mdl_count: '{n} models · swipe to scroll',
+    api_desc: 'Get a free key at',
+    ed_title: 'Edit',
+    // ── Weekly AI ──
+    week_good: '✓ Going well',
+    week_warn: '⚠ Worth improving',
+    week_tip: '💡 Tip for the week',
+    week_updated: 'Updated {time}',
+    week_fb_good: 'Your intake has been steady.',
+    week_fb_warn: 'Try to log every meal.',
+    week_fb_tip: 'Add more protein to your meals.',
+    // ── Weight pace card ──
+    unit_per_week: 'kg/wk',
+    pace_stable_t: 'Weight is stable',
+    pace_stable_s: 'Weekly change: ±{n} kg — great!',
+    pace_gain_t: 'Slight gain',
+    pace_gain_s: '+{n} kg/wk — keep an eye on calories',
+    pace_drop_t: 'Slight drop',
+    pace_drop_s: '{n} kg/wk — possibly a deficit',
+    pace_noprog_t: 'No progress',
+    pace_weeks_t: '~{n} wk to goal',
+    pace_goal_reached: 'Goal reached!',
+    pace_rate_s: 'Pace: {n} kg/wk · Current weight: {w} kg',
+    pace_nogain_t: 'No gain',
+    pace_gaining_t: 'Gaining!',
+    pace_gain_ok: '👍 Lean gain',
+    pace_gain_fast: '⚡ Fast gain',
+    pace_gain_s2: '+{n} kg/wk · {q}',
+    // ── Notifications ──
+    notif_status_on: 'Enabled',
+    notif_test_body: 'Reminders are on!',
+    notif_bf_title: '🌅 Good morning!',
+    notif_bf_body: "Breakfast time — don't forget to log it!",
+    notif_ln_title: '☀️ Lunch time',
+    notif_ln_body: 'Log what you had — takes 10 seconds!',
+    notif_dn_title: '🌙 Evening',
+    notif_dn_body: 'How was your day? Log dinner in CalSnap.',
+    notif_wt_title: '💧 Drink some water',
+    notif_wt_body: 'A glass of water helps you reach your goal!',
+    // ── Offline ──
+    offl_checking: 'Checking…',
+    // ── Data / errors ──
+    toast_export_ok: '✅ Data exported',
+    toast_import_bad_format: 'Invalid file format',
+    toast_logs_copied: '📋 Logs copied',
+    err_unknown: 'Unknown error',
+    err_analyze: 'Analysis error',
+    err_no_gemini: 'No connection to the Gemini API',
+    err_open_pages: 'Open via GitHub Pages, not as a local file',
+    ai_err_generic: '⚠️ Error. Check your API key.',
+    ai_err_quota: '⏳ Rate limit reached. Wait a minute.',
+    ai_err_key: '🔑 Invalid API key → Settings.',
+    ai_err_local: '🌐 Open via GitHub Pages\n(not as a local file)',
+    ai_err_server: '📡 No connection to the server.',
+    ai_err_net: '📡 No connection. Check your internet.',
+    search_no_results: 'Nothing found',
+    // ── Storage safety ──
+    toast_storage_full: '⚠️ Browser storage was full — old photos were compressed to keep your entries',
+    toast_storage_fail: '❌ Could not save: browser storage is full. Export your data and clear some entries.',
+    // ── Fullscreen ──
+    set_fullscreen: 'Fullscreen mode',
+    set_fullscreen_sub: 'Hide the browser bar and status bar',
+    toast_fullscreen_on: '⛶ Fullscreen enabled',
+    toast_fullscreen_off: 'Fullscreen disabled',
+    toast_fullscreen_unsupported: 'Fullscreen is not available in this browser',
   },
 };
 function _getLang(){ try { return localStorage.getItem('lang') || (document.documentElement.lang === 'en' ? 'en' : 'ru'); } catch(e) { return 'ru'; } }
 let LANG = _getLang();
 function t(key, fallback){
   const dict = I18N[LANG] || I18N.ru;
-  return dict[key] != null ? dict[key] : (fallback != null ? fallback : key);
+  if (dict[key] != null) return dict[key];
+  // Fall back to the other locale before falling back to the raw key so a
+  // missing translation never surfaces a bare identifier in the UI.
+  const alt = I18N[LANG === 'en' ? 'ru' : 'en'];
+  if (alt && alt[key] != null) return alt[key];
+  return fallback != null ? fallback : key;
 }
-// String interpolation helper: tf('Hi {name}', {name:'World'})
+// String interpolation helper: tf('hi', {name:'World'})
 function tf(key, params){
   let s = t(key);
   if (params){
@@ -808,6 +1197,56 @@ function tf(key, params){
   return s;
 }
 function _localeTag(){ return LANG === 'en' ? 'en-US' : 'ru-RU'; }
+
+// Russian plural picker: 1 → one, 2–4 → few, else many (with the 11–14 exception).
+function _ruPlural(n, one, few, many){
+  const mod100 = n % 100, mod10 = n % 10;
+  if (mod100 >= 11 && mod100 <= 14) return many;
+  if (mod10 === 1) return one;
+  if (mod10 >= 2 && mod10 <= 4) return few;
+  return many;
+}
+// Just the noun, already agreeing with `n` — the streak chip used a fixed
+// "дней", so a one-day streak read "1 дней".
+function fmtDaysWord(n){
+  n = Math.abs(Math.trunc(Number(n) || 0));
+  if (LANG === 'en') return n === 1 ? 'day' : 'days';
+  return _ruPlural(n, 'день', 'дня', 'дней');
+}
+
+// Russian needs three plural forms for "year"; English needs two. Without this
+// the age hint read "Тебе 31 лет" instead of "31 год".
+function fmtYears(n){
+  n = Math.abs(Math.trunc(Number(n) || 0));
+  if (LANG === 'en') return n + (n === 1 ? ' year' : ' years');
+  return n + ' ' + _ruPlural(n, 'год', 'года', 'лет');
+}
+
+// ── HTML escaping ─────────────────────────────────────────────────────
+// Every string that reaches the DOM through innerHTML (food names coming
+// from the AI, user-typed text, AI chat replies) goes through this first.
+// Without it a dish literally named `<b>x` — or a model that echoes markup
+// — silently breaks the surrounding layout.
+function esc(v){
+  return String(v == null ? '' : v)
+    .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+    .replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+}
+
+// Locale-aware rendering of the internal date key (`Date.toDateString()`).
+function fmtDate(dateStr, opts){
+  try {
+    const d = new Date(dateStr);
+    if (isNaN(d)) return dateStr;
+    return d.toLocaleDateString(_localeTag(), opts || { day:'numeric', month:'long', year:'numeric' });
+  } catch(e) { return dateStr; }
+}
+// Short weekday name for the internal date key, following the current language.
+function fmtWeekday(d){
+  try { return new Date(d).toLocaleDateString(_localeTag(), { weekday:'short' }); }
+  catch(e) { return ''; }
+}
+
 function setLang(lang){
   if (lang !== 'ru' && lang !== 'en') return;
   LANG = lang;
@@ -821,6 +1260,21 @@ function setLang(lang){
   try { typeof rWater==='function' && U && rWater(); } catch(e) {}
   try { typeof rP==='function' && U && rP(); } catch(e) {}
   try { typeof renderFavs==='function' && renderFavs(); } catch(e) {}
+  try { typeof refreshDrumLabels==='function' && refreshDrumLabels(); } catch(e) {}
+  try { typeof renderKeyList==='function' && renderKeyList(); } catch(e) {}
+  try { typeof renderQueue==='function' && renderQueue(); } catch(e) {}
+  // AI screen: welcome card + suggestion chips are built in JS.
+  try { if (typeof initAi==='function' && document.getElementById('ai')?.style.display==='flex') initAi(); } catch(e) {}
+  // Reminder status row and the schedule the Service Worker uses for
+  // background notifications both carry language-specific copy.
+  try { typeof _updateNotifStatus==='function' && _updateNotifStatus(G('notif_enabled')==='1'); } catch(e) {}
+  try { typeof _syncScheduleToSW==='function' && _syncScheduleToSW(_getNotifCfg()); } catch(e) {}
+  // Document title / description follow the language too.
+  try {
+    document.title = t('doc_title');
+    const dm = document.querySelector('meta[name="description"]');
+    if (dm) dm.setAttribute('content', t('doc_desc'));
+  } catch(e) {}
   // Update the language indicator in Settings.
   try {
     const sl = document.getElementById('slang');
@@ -832,7 +1286,10 @@ function applyI18n(){
   document.querySelectorAll('[data-i18n]').forEach(el => {
     const key = el.getAttribute('data-i18n');
     const txt = t(key, el.textContent);
+    // Elements that wrap markup are translated as HTML so the translation
+    // isn't silently skipped (the old guard bailed out on any child node).
     if (el.children.length === 0) el.textContent = txt;
+    else el.innerHTML = esc(txt);
   });
   document.querySelectorAll('[data-i18n-html]').forEach(el => {
     const key = el.getAttribute('data-i18n-html');
@@ -851,6 +1308,9 @@ function applyI18n(){
     const key = el.getAttribute('data-i18n-title');
     el.title = t(key, el.title);
   });
+  try {
+    document.title = t('doc_title', document.title);
+    const dm = document.querySelector('meta[name="description"]');
+    if (dm) dm.setAttribute('content', t('doc_desc', dm.getAttribute('content')||''));
+  } catch(e) {}
 }
-
-// Storage

@@ -93,3 +93,56 @@ input:focus-visible, textarea:focus-visible, select:focus-visible {
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation-duration:.001ms !important; animation-iteration-count:1 !important; transition-duration:.001ms !important; scroll-behavior:auto !important; }
 }
+
+/* ══════════════════════════════════════════════════════════
+   FULLSCREEN / IMMERSIVE
+   ══════════════════════════════════════════════════════════
+   `html.is-fullscreen` is set by assets/js/fullscreen.js whenever the app
+   actually fills the screen — either through the Fullscreen API in a browser
+   tab, or because it was launched as an installed app (manifest display:
+   "fullscreen"). In that state the status bar is gone, so env(safe-area-inset-top)
+   collapses to 0 and the sticky headers would hug the very top edge. Give them
+   a floor while still respecting a physical notch when one is reported. */
+html.is-fullscreen .h-top,
+html.is-fullscreen .pg-hdr,
+html.is-fullscreen .st-hdr,
+html.is-fullscreen .ai-hdr {
+  padding-top: max(env(safe-area-inset-top, 0px) + 12px, 20px);
+}
+html.is-fullscreen .ob-inner {
+  padding-top: max(env(safe-area-inset-top, 0px) + 20px, 28px);
+}
+html.is-fullscreen #nav {
+  padding-bottom: max(env(safe-area-inset-bottom, 0px), 8px);
+}
+html.is-fullscreen .offl-bar {
+  padding-top: max(env(safe-area-inset-top, 0px) + 6px, 10px);
+}
+
+/* Use the dynamic viewport where supported so the fixed screens track the
+   visible area instead of the largest possible one. Combined with
+   `interactive-widget=resizes-content` in the viewport meta this keeps the AI
+   input bar and form fields above the on-screen keyboard. */
+@supports (height: 100dvh) {
+  html, body { height: 100dvh; }
+  .screen, #ai { height: 100dvh; }
+}
+
+/* Sheets are capped in viewport units; switch them to dvh too so a tall sheet
+   cannot extend under the keyboard or the browser chrome. */
+@supports (max-height: 100dvh) {
+  .sheet      { max-height: 93dvh; }
+  .fd-sheet   { max-height: 90dvh; }
+  #mdlOv > div{ max-height: 75dvh; }
+}
+
+/* Nothing in the app should be selectable-and-draggable enough to expose the
+   browser's own text-selection UI in immersive mode. Inputs stay selectable. */
+html.is-fullscreen { user-select: none; -webkit-user-select: none; }
+html.is-fullscreen input,
+html.is-fullscreen textarea,
+html.is-fullscreen .bbl,
+html.is-fullscreen .week-ai-section-text,
+html.is-fullscreen .daily-ai-body {
+  user-select: text; -webkit-user-select: text;
+}

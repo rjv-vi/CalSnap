@@ -4,6 +4,10 @@
 const MONTHS_RU=['Январь','Февраль','Март','Апрель','Май','Июнь','Июль','Август','Сентябрь','Октябрь','Ноябрь','Декабрь'];
 const MONTHS_EN=['January','February','March','April','May','June','July','August','September','October','November','December'];
 function MONTHS(){ return (typeof LANG!=='undefined' && LANG==='en') ? MONTHS_EN : MONTHS_RU; }
+// Rebuild the drum columns when the language changes while the app is open.
+function refreshDrumLabels(){
+  try { if(document.getElementById('drumOv')?.classList.contains('on')) buildDrumCols(); } catch(e) {}
+}
 let _drumCtx='ob'; // 'ob' = onboarding, 'ed' = settings
 let _drumDay=1,_drumMonth=1,_drumYear=new Date().getFullYear()-20;
 let _drumScrolling=false;
@@ -23,7 +27,7 @@ function openDrum(ctx){
   buildDrumCols();
   SFX.play('sheet_open');
   document.getElementById('drumOv').classList.add('on');
-  document.body.style.overflow='hidden';
+  lockScroll(true);
   // After layout is done, snap scroll to selected — requestAnimationFrame x2 ensures paint
   const minY=n.getFullYear()-120,maxY=n.getFullYear()-5;
   requestAnimationFrame(()=>requestAnimationFrame(()=>{
@@ -37,7 +41,7 @@ function openDrum(ctx){
 }
 function closeDrum(){
   document.getElementById('drumOv').classList.remove('on');
-  document.body.style.overflow='';
+  lockScroll(false);
 }
 function buildDrumCols(){
   const n=new Date();
@@ -126,13 +130,13 @@ function confirmDrum(){
     const btn=document.getElementById('ob_dob_btn');
     if(btn){btn.dataset.dob=dob;btn.innerHTML=`<span class="dob-value">${dispStr}</span><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>`;btn.classList.add('filled');}
     const hint=document.getElementById('dob_hint');
-    if(hint)hint.textContent='✓ Тебе '+age+' лет';
+    if(hint)hint.textContent=tf('dob_age_ok',{age:age,years:fmtYears(age)});
   } else {
     // settings
     const btn=document.getElementById('ed_dob_btn');
     if(btn){btn.dataset.dob=dob;btn.innerHTML=`<span class="dob-value">${dispStr}</span><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>`;btn.classList.add('filled');}
     const hint=document.getElementById('ed_dob_hint');
-    if(hint)hint.style.opacity='1',hint.textContent='Возраст: '+age+' лет';
+    if(hint){hint.style.opacity='1';hint.textContent=tf('age_label',{age:age,years:fmtYears(age)});}
   }
   closeDrum();
   HFX.success();SFX.play('drum_confirm');

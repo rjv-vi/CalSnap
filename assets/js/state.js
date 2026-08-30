@@ -14,10 +14,140 @@ const G=(k,d='')=>{
     return v == null ? d : v;
   } catch(e) { return d; }
 };
+
+// True when the browser rejected a write because the origin is out of quota.
+function _isQuotaError(e){
+  if (!e) return false;
+  return e.name === 'QuotaExceededError'
+      || e.name === 'NS_ERROR_DOM_QUOTA_REACHED'
+      || e.code === 22 || e.code === 1014
+      || /quota/i.test(e.message || '');
+}
+
+// Reclaim localStorage space, cheapest-to-lose first. Returns true when
+// anything was actually freed. Legacy inline photos are the only large
+// payload, so they are moved into IndexedDB (or dropped) oldest-first.
+function _reclaimStorage(){
+  let freed = false;
+  // (a) Disposable AI/tip caches.
+  try {
+    const doomed = [];
+    for (let i = 0; i < localStorage.length; i++) {
+      const k = localStorage.key(i);
+      if (!k) continue;
+      if (k.startsWith('week_') || k.startsWith('tip_') ||
+          (k.startsWith('daily_ai_') && k !== 'daily_ai_' + ds())) doomed.push(k);
+    }
+    doomed.forEach(k => { try { localStorage.removeItem(k); } catch(e) {} delete _lsCache[k]; });
+    if (doomed.length) freed = true;
+  } catch(e) {}
+  // (b) Water history older than 120 days.
+  try {
+    const cutoff = Date.now() - 120 * 86400000;
+    const doomed = [];
+    for (let i = 0; i < localStorage.length; i++) {
+      const k = localStorage.key(i);
+      if (!k || !k.startsWith('water_') || k === 'water_enabled') continue;
+      const d = new Date(k.slice(6));
+      if (!isNaN(d) && d.getTime() < cutoff) doomed.push(k);
+    }
+    doomed.forEach(k => { try { localStorage.removeItem(k); } catch(e) {} delete _lsCache[k]; });
+    if (doomed.length) freed = true;
+  } catch(e) {}
+  // (c) Legacy inline photos in the food log — the actual space hog.
+  try {
+    if (Array.isArray(log)) {
+      // Oldest entries first: the log is newest-first, so walk it backwards.
+      let moved = 0;
+      for (let i = log.length - 1; i >= 0 && moved < 40; i--) {
+        const e = log[i];
+        if (!e || !e.img) continue;
+        const legacy = e.img;
+        delete e.img;
+        moved++;
+        // Best-effort move into IndexedDB; the entry itself survives either way.
+        try {
+          if (typeof storeFoodImage === 'function') {
+            storeFoodImage(legacy).then(ref => {
+              if (ref && ref.imgId) { e.imgId = ref.imgId; _persistLogRaw(); }
+            }).catch(() => {});
+          }
+        } catch(err) {}
+      }
+      if (moved) {
+        freed = true;
+        _persistLogRaw();
+      }
+    }
+  } catch(e) {}
+  return freed;
+}
+
+// Raw log write used by the reclaim path — never recurses into _reclaimStorage.
+function _persistLogRaw(){
+  try {
+    const v = JSON.stringify(log);
+    localStorage.setItem('log', v);
+    _lsCache['log'] = v;
+    return true;
+  } catch(e) { return false; }
+}
+
+// Write-through setter. Returns true on success. On quota exhaustion it
+// reclaims space and retries once; if it still fails the in-memory cache is
+// invalidated (rather than poisoned with a value that was never persisted)
+// so the UI cannot keep pretending the data is safe.
 const S=(k,v)=>{
-  _lsCache[k] = v == null ? null : String(v);
-  try { localStorage.setItem(k, v); } catch(e) {}
+  const str = v == null ? '' : String(v);
+  try {
+    localStorage.setItem(k, str);
+    _lsCache[k] = str;
+    return true;
+  } catch(e) {
+    if (!_isQuotaError(e)) { delete _lsCache[k]; return false; }
+    const freed = _reclaimStorage();
+    if (freed) {
+      try {
+        localStorage.setItem(k, str);
+        _lsCache[k] = str;
+        try { if (typeof showToast === 'function') showToast(t('toast_storage_full'), 4200); } catch(err) {}
+        return true;
+      } catch(e2) { /* fall through */ }
+    }
+    delete _lsCache[k];
+    try { if (typeof showToast === 'function') showToast(t('toast_storage_fail'), 6000); } catch(err) {}
+    try { if (window._devErrors) window._devErrors.push('Storage quota exceeded on key: ' + k); } catch(err) {}
+    return false;
+  }
 };
+
+// Persist the food log. Every mutation of `log` must go through this so a
+// failed write is surfaced instead of silently losing the day's entries.
+//
+// The retry deliberately re-serialises: _reclaimStorage() strips legacy inline
+// photos out of `log` itself, so replaying the *original* JSON string would
+// still be too big and the write would fail again.
+function saveLog(){
+  for (let attempt = 0; attempt < 3; attempt++) {
+    try {
+      const v = JSON.stringify(log);
+      localStorage.setItem('log', v);
+      _lsCache['log'] = v;
+      return true;
+    } catch(e) {
+      delete _lsCache['log'];
+      if (!_isQuotaError(e)) return false;
+      if (!_reclaimStorage()) break;
+      if (attempt === 0) {
+        try { if (typeof showToast === 'function') showToast(t('toast_storage_full'), 4200); } catch(err) {}
+      }
+    }
+  }
+  try { if (typeof showToast === 'function') showToast(t('toast_storage_fail'), 6000); } catch(err) {}
+  try { if (window._devErrors) window._devErrors.push('Storage quota exceeded saving food log'); } catch(err) {}
+  return false;
+}
+
 // Drop the cache for a key (or everything) — used by reset / import flows.
 const Ginvalidate=(k)=>{ if(k==null){ for(const x in _lsCache) delete _lsCache[x]; } else { delete _lsCache[k]; } };
 try { window.addEventListener('storage', e => { if (e.key) delete _lsCache[e.key]; else Ginvalidate(); }); } catch(e) {}
@@ -50,6 +180,8 @@ const GL = new Proxy({}, { get(_,k){ return getGL()[k]; }, ownKeys(){ return ['l
 function init(){
   // Re-read U from localStorage in case of stale module-level parse (e.g. after notification permission reload)
   try { const _fresh = JSON.parse(localStorage.getItem('u') || 'null'); if(_fresh && !U) U = _fresh; } catch(e) {}
+  // Older builds kept a single API key in `key`; fold it into the pool.
+  try { migrateLegacyApiKey(); syncActiveKey(); } catch(e) {}
   // Unlock vibration on first user gesture (required by browser policy)
   const _unlockVibration = () => {
     try { navigator.vibrate && navigator.vibrate(1); } catch(e) {}
@@ -81,15 +213,18 @@ function init(){
   }
   document.getElementById('nav').style.display='flex';
   // Check notification status
-  if(typeof Notification!=='undefined'&&Notification.permission==='granted') _updateNotifStatus(true);
+  if(window.Notification?.permission==='granted') _updateNotifStatus(true);
   // Re-schedule notifications if enabled
-  if(G('notif_enabled')==='1' && Notification?.permission==='granted') {
+  if(G('notif_enabled')==='1' && window.Notification?.permission==='granted') {
     try { _scheduleNotifs(); } catch(e) { console.warn('scheduleNotifs failed:', e); }
   } else if(G('notif_enabled')==='1') {
     // Permission not granted but was enabled — sync disabled state
     try { _syncScheduleToSW(_getNotifCfg()); } catch(e) {}
   }
-  ss('home');rH();rSet();if(key)setTimeout(fetchGeminiModels,800);
+  ss('home');rH();rSet();if(hasApiKey())setTimeout(fetchGeminiModels,800);
+  // Photos parked while offline: analyse them now if we can.
+  try { renderQueue(); } catch(e) {}
+  setTimeout(()=>{ try { processQueue({}); } catch(e) {} }, 2500);
   // Init sliding pills
   setTimeout(()=>{
     const firstNb=document.querySelector('.nb.on');
@@ -105,6 +240,42 @@ function init(){
   try { _handleHashShortcut(); } catch(e) {}
   // Daily AI summary (если уже сегодня показывали — пропускаем)
   setTimeout(()=>{ try { _maybeShowDailySummary(); } catch(e){} }, 1500);
+  // Move any legacy inline photos out of localStorage and drop unreferenced
+  // IndexedDB blobs. Runs off the critical path.
+  onIdle(()=>{ _migrateLegacyImages(); }, 2000);
+}
+
+// One-time migration: photos saved by older builds live inline in `log` as
+// base64 data URLs. Move them to IndexedDB so localStorage stops filling up.
+async function _migrateLegacyImages(){
+  try {
+    if (!Array.isArray(log)) return;
+    if (typeof storeFoodImage !== 'function') return;
+    if (!(await IMG.available())) return;
+    let changed = false;
+    for (const e of log) {
+      if (!e || !e.img) continue;
+      try {
+        const ref = await storeFoodImage(e.img);
+        if (ref && ref.imgId) { e.imgId = ref.imgId; delete e.img; changed = true; }
+        else if (ref && ref.img) { e.img = ref.img; changed = true; } // at least shrink it
+      } catch(err) {}
+    }
+    if (changed) { saveLog(); try { rH(); } catch(err) {} }
+    // Favourites copied the same oversized data URLs out of the log.
+    try {
+      const favs = JSON.parse(G('favs','[]')) || [];
+      let favChanged = false;
+      for (const f of favs) {
+        if (!f || !f.img) continue;
+        const ref = await storeFoodImage(f.img);
+        if (ref && ref.imgId) { f.imgId = ref.imgId; delete f.img; favChanged = true; }
+        else if (ref && ref.img) { f.img = ref.img; favChanged = true; }
+      }
+      if (favChanged) { S('favs', JSON.stringify(favs)); try { renderFavs(); } catch(err) {} }
+    } catch(err) {}
+    await pruneOrphanImages();
+  } catch(e) {}
 }
 
 // Onboarding
@@ -183,6 +354,17 @@ function onFin(){
   HFX.success();SFX.play('ob_finish');
   document.getElementById('nav').style.display='flex';
   ss('home');rH();rSet();
+  // init() returns early for first-run users (onboarding), so the sliding
+  // pills and drag handlers were never wired up in that first session.
+  setTimeout(()=>{
+    try {
+      const firstNb=document.querySelector('.nb.on');
+      if(firstNb)_moveNavPill(firstNb);
+      _initPill('addTabPill','addTabs');
+      initDragTabs('addTabs','addTabPill',[0,1,2,3]);
+      initNavDrag();
+    } catch(e) {}
+  },80);
 }
 
 // Screens
@@ -193,14 +375,20 @@ function goS(id,btn){
   HFX.light(); SFX.play('tab_switch');
   const prev = document.querySelector('.screen.active');
   if(prev) prev.classList.remove('active');
-  // Hide AI overlay
+  // Nav highlight + pill are updated for *every* destination, including the
+  // AI overlay. Previously the AI branch returned early, which left the
+  // previous tab highlighted and the sliding pill parked on the wrong button.
+  document.querySelectorAll('.nb').forEach(b=>b.classList.remove('on'));
+  if(btn) btn.classList.add('on');
+  if(btn) _moveNavPill(btn);
+  // AI is an overlay, not a .screen
   const aiEl = document.getElementById('ai');
   if(id==='ai'){
     if(aiEl) aiEl.style.display='flex';
-    return; // AI is not a .screen
-  } else {
-    if(aiEl) aiEl.style.display='none';
+    initAi();
+    return;
   }
+  if(aiEl) aiEl.style.display='none';
   // Show new screen with fresh animation
   const next = document.getElementById(id);
   if(next){
@@ -210,9 +398,6 @@ function goS(id,btn){
     next.style.animation='';
     next.classList.add('active');
   }
-  document.querySelectorAll('.nb').forEach(b=>b.classList.remove('on'));
-  if(btn) btn.classList.add('on');
-  _moveNavPill(btn);
   // Refresh data for screen
   if(id==='home')  rH();
   if(id==='prog')  rP();
@@ -224,7 +409,14 @@ const ds=d=>(d||new Date()).toDateString();
 const tlog=()=>log.filter(e=>e.date===ds());
 const dlog=d=>log.filter(e=>e.date===d);
 const tot=es=>es.reduce((s,e)=>({k:s.k+(e.kcal||0),p:s.p+(e.prot||0),f:s.f+(e.fat||0),c:s.c+(e.carb||0)}),{k:0,p:0,f:0,c:0});
-const tnow=()=>new Date().toLocaleTimeString('ru',{hour:'2-digit',minute:'2-digit'});
+// Always a zero-padded 24-hour HH:MM string. This value is *parsed* back
+// (getMealType splits on ':') and compared as text, so it must never follow
+// the display locale — an en-US formatter would yield "02:05 PM" and break
+// meal grouping the moment the user switches language.
+const tnow=(d)=>{
+  const n = d || new Date();
+  return String(n.getHours()).padStart(2,'0') + ':' + String(n.getMinutes()).padStart(2,'0');
+};
 
 // Streak — с поддержкой стрик-фриза (1 пропуск/неделю)
 function streak(){

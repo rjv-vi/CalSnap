@@ -7,7 +7,7 @@ function dismissDailyAi(){
   try { localStorage.setItem('daily_ai_dismissed_'+ds(), '1'); } catch(e){}
 }
 async function _maybeShowDailySummary(){
-  if (!U || !key) return;
+  if (!U || !hasApiKey()) return;
   const today = ds();
   // Show only after 18:00 local time
   const hr = new Date().getHours();

@@ -4,12 +4,12 @@
 function openAbout() {
   HFX.light(); SFX.play('sheet_open');
   document.getElementById('aboutOv').classList.add('on');
-  document.body.style.overflow='hidden';
+  lockScroll(true);
 }
 function closeAbout() {
   SFX.play('sheet_close');
   document.getElementById('aboutOv').classList.remove('on');
-  document.body.style.overflow='';
+  lockScroll(false);
 }
 
 
@@ -41,11 +41,15 @@ function checkConnection() {
   });
 }
 
+// Single source of truth for the retry button's markup so every state
+// (idle / checking / restored) renders localised copy.
+function _offlRetryHtml(labelKey){
+  return `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-3.5"/></svg> <span>${esc(t(labelKey))}</span>`;
+}
 function showOfflineModal() {
-  // Убеждаемся что кнопка "Проверить" видна
   const btn = document.getElementById('offlRetryBtn');
-  if(btn){ btn.style.display=''; btn.disabled=false;
-    btn.innerHTML='<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-3.5"/></svg> Проверить соединение';
+  if(btn){ btn.style.display=''; btn.disabled=false; btn.style.opacity='1';
+    btn.innerHTML=_offlRetryHtml('offl_retry');
   }
   const _ov=document.getElementById('offlOv'); 
   _ov.style.display='flex'; 
@@ -58,31 +62,24 @@ function hideOfflineModal() {
 }
 
 function enterOffline() {
-  _isOfflineMode = true;
   hideOfflineModal();
-  document.getElementById('offlBar').classList.add('on');
-  // Блокируем AI кнопку
-  document.querySelectorAll('.nb').forEach(b => {
-    if(b.getAttribute('onclick')?.includes("'ai'")) {
-      b.style.opacity='.35'; b.style.pointerEvents='none';
-    }
-  });
-  // Блокируем кнопку добавить еду
-  const addBtn = document.querySelector('.nb-add');
-  if(addBtn){ addBtn.style.opacity='.35'; addBtn.style.pointerEvents='none'; }
+  _applyOfflineUI(true);
 }
 
 function retryConnection() {
   const btn = document.getElementById('offlRetryBtn');
-  const origHTML = btn ? btn.innerHTML : '';
-  if(btn){ btn.disabled=true; btn.style.opacity='.6'; btn.innerHTML='<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" style="animation:spin .7s linear infinite"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-3.5"/></svg> Проверяю...'; }
+  if(btn){
+    btn.disabled=true; btn.style.opacity='.6';
+    btn.innerHTML=_offlRetryHtml('offl_checking').replace('<svg ', '<svg style="animation:spin .7s linear infinite" ');
+  }
   checkConnection().then(online => {
     if(online) {
+      _applyOfflineUI(false);
       hideOfflineModal();
     } else {
-      if(btn){ btn.disabled=false; btn.style.opacity='1'; btn.innerHTML=origHTML||'<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-3.5"/></svg> Проверить соединение'; }
+      if(btn){ btn.disabled=false; btn.style.opacity='1'; btn.innerHTML=_offlRetryHtml('offl_retry'); }
       const card = document.getElementById('offlCard');
-      if(card){ 
+      if(card){
         card.style.animation='none'; void card.offsetWidth;
         card.style.animation='offlShake .4s ease';
       }
@@ -90,7 +87,11 @@ function retryConnection() {
   });
 }
 
-// Восстановление / потеря соединения — единый обработчик
+// Восстановление / потеря соединения — единый обработчик.
+// Only the AI tab is disabled offline. The "+" button stays live because the
+// diary genuinely works offline (favourites, manual entry, editing) — exactly
+// what the offline sheet itself promises. Disabling it made the app look
+// broken the moment connectivity dropped.
 function _applyOfflineUI(offline) {
   _isOfflineMode = offline;
   document.getElementById('offlBar')?.classList.toggle('on', offline);
@@ -101,10 +102,7 @@ function _applyOfflineUI(offline) {
     }
   });
   const addBtn = document.querySelector('.nb-add');
-  if (addBtn) {
-    addBtn.style.opacity = offline ? '.35' : '';
-    addBtn.style.pointerEvents = offline ? 'none' : '';
-  }
+  if (addBtn) { addBtn.style.opacity = ''; addBtn.style.pointerEvents = ''; }
 }
 window.addEventListener('online', () => {
   setTimeout(() => {

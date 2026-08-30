@@ -44,7 +44,7 @@ function _updateMiniWater(dateStr) {
   const isToday = targetDate === ds();
   const arr = getWaterToday(targetDate);
   const total = arr.reduce((s,e) => s + e.ml, 0);
-  const goal = getWaterGoal().adjusted;
+  const goal = getWaterGoal(targetDate).adjusted;
   const pct = Math.min(total / goal * 100, 100);
   const fillEl = document.getElementById('miniWaterFill');
   const labelEl = document.getElementById('miniWaterLabel');
@@ -55,11 +55,15 @@ function _updateMiniWater(dateStr) {
   if (row) row.style.opacity = isToday ? '1' : '.6';
 }
 
-function getWaterGoal() {
+function getWaterGoal(dateStr) {
   const base = Math.round((U?.w||70) * 30 / 50) * 50;
   const goal = Math.max(1500, Math.min(3500, base));
-  const saltWords = ['чипсы','соленый','соль','рыба','сыр','колбаса','пицца','бургер','хот-дог','соевый','рамен'];
-  const hasSalt = dlog(ds()).some(i => saltWords.some(s => (i.food||'').toLowerCase().includes(s)));
+  // Both languages: the AI writes dish names in whatever language the UI is
+  // set to, so a Russian-only list silently disabled the +20% adjustment for
+  // English users.
+  const saltWords = ['чипсы','солен','соль','рыба','сыр','колбаса','пицца','бургер','хот-дог','соевый','рамен','сосиск','бекон','шаурма',
+    'chips','crisps','salt','salty','fish','cheese','sausage','pizza','burger','hot dog','hotdog','soy sauce','ramen','bacon','pretzel','olives','jerky'];
+  const hasSalt = dlog(dateStr || ds()).some(i => saltWords.some(s => (i.food||'').toLowerCase().includes(s)));
   return { goal, hasSalt, adjusted: hasSalt ? Math.round(goal * 1.2 / 50) * 50 : goal };
 }
 
@@ -84,7 +88,7 @@ function addWater(drinkId) {
       isDrink: true, drinkId: drinkId
     };
     log.unshift(entry);
-    S('log', JSON.stringify(log));
+    if(!saveLog()) log.shift();
     rH();
   }
   const _prevW = getWaterToday().reduce((s,x)=>s+(x.ml||0),0) - drink.ml;
@@ -97,7 +101,12 @@ function addWater(drinkId) {
 function undoLastWater() {
   const arr = getWaterToday();
   if(!arr.length) return;
-  arr.pop();
+  // Prefer undoing a manual entry: the last item may have been added
+  // automatically alongside a food record, which the user never tapped.
+  let idx = -1;
+  for(let i=arr.length-1;i>=0;i--){ if(!arr[i].fromFood){ idx=i; break; } }
+  if(idx===-1) idx=arr.length-1;
+  arr.splice(idx,1);
   S('water_'+ds(), JSON.stringify(arr));
   HFX.light(); SFX.play('water_undo');
   rWater();
@@ -140,7 +149,7 @@ function openWaterCustom(){
     ov.style.opacity = '1';
     document.getElementById('waterCustomCard').style.transform = 'translateY(0)';
   });
-  document.body.style.overflow = 'hidden';
+  lockScroll(true);
 }
 function _setWaterCustom(v){
   document.getElementById('waterCustomSlider').value = String(v);
@@ -152,7 +161,7 @@ function closeWaterCustom(){
   HFX.light(); SFX.play('sheet_close');
   ov.style.opacity = '0';
   document.getElementById('waterCustomCard').style.transform = 'translateY(20px)';
-  document.body.style.overflow = '';
+  lockScroll(false);
   setTimeout(()=>{ ov.remove(); }, 240);
 }
 function addWaterCustom(){

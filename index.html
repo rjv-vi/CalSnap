@@ -2,7 +2,7 @@
 <html lang="ru" data-theme="light">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,interactive-widget=resizes-content">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -260,8 +260,8 @@
 <div class="screen" id="home">
   <div class="h-top">
     <div>
-      <div class="h-greet" id="greet">Доброе утро ☀️</div>
-      <div class="h-name" id="hname">Привет!</div>
+      <div class="h-greet" id="greet"></div>
+      <div class="h-name" id="hname"></div>
     </div>
     <div class="streak" onclick="HFX.light();SFX.play('btn_tap');goS('prog',document.querySelectorAll('.nb')[1])">
       <span class="sf">🔥</span><span class="sn" id="snum">0</span><span class="sl" data-i18n="streak_days">дней</span>
@@ -294,22 +294,22 @@
         <span class="cc-goal" id="hgoal">2000</span>
       </div>
       <div class="cc-label" data-i18n="hcc_label">Калорий съедено</div>
-      <div class="cc-remain" id="hrem">Осталось 2000 ккал</div>
+      <div class="cc-remain" id="hrem"></div>
     </div>
     <div style="height:16px"></div>
     <div class="macro-row">
       <div class="mac mac-p">
-        <div class="mac-top"><span class="mac-val" id="hprot">0г</span><span class="mac-goal" id="hpg">—г</span></div>
+        <div class="mac-top"><span class="mac-val" id="hprot">0</span><span class="mac-goal" id="hpg">—</span></div>
         <div class="mac-bar"><div class="mac-fill" id="hpbar" style="width:0%"></div></div>
         <div class="mac-name" data-i18n="macro_protein">Белки</div>
       </div>
       <div class="mac mac-c">
-        <div class="mac-top"><span class="mac-val" id="hcarb">0г</span><span class="mac-goal" id="hcg">—г</span></div>
+        <div class="mac-top"><span class="mac-val" id="hcarb">0</span><span class="mac-goal" id="hcg">—</span></div>
         <div class="mac-bar"><div class="mac-fill" id="hcbar" style="width:0%"></div></div>
         <div class="mac-name" data-i18n="macro_carbs">Углеводы</div>
       </div>
       <div class="mac mac-f">
-        <div class="mac-top"><span class="mac-val" id="hfat">0г</span><span class="mac-goal" id="hfg">—г</span></div>
+        <div class="mac-top"><span class="mac-val" id="hfat">0</span><span class="mac-goal" id="hfg">—</span></div>
         <div class="mac-bar"><div class="mac-fill" id="hfbar" style="width:0%"></div></div>
         <div class="mac-name" data-i18n="macro_fat">Жиры</div>
       </div>
@@ -318,9 +318,14 @@
     <div class="mini-water-row" id="miniWaterRow" onclick="HFX.light();SFX.play('btn_tap');goS('prog',document.querySelectorAll('.nb')[1])">
       <svg width="13" height="13" viewBox="0 0 24 24" fill="none"><path d="M12 2.69l5.66 5.66a8 8 0 1 1-11.31 0z" fill="#3b82f6" opacity=".85"/></svg>
       <div class="mini-water-fill-wrap"><div class="mini-water-fill" id="miniWaterFill" style="width:0%"></div></div>
-      <span class="mini-water-label" id="miniWaterLabel">0 / 2000 мл</span>
+      <span class="mini-water-label" id="miniWaterLabel">0 / 2000</span>
     </div>
   </div>
+
+  <!-- Photos taken offline, waiting for AI analysis. Deliberately rendered
+       outside #hlog: until they are analysed their calories are unknown, so
+       counting them would corrupt the day's totals. -->
+  <div class="pq-card" id="pendingCard" style="display:none"></div>
 
   <div class="sec-hdr"><h3 id="dayLabel" data-i18n="label_today">Сегодня</h3></div>
   <div id="hlog"></div>
@@ -420,11 +425,11 @@
     <h4 data-i18n="heatmap_title">Активность за 28 дней</h4>
     <div class="hgrid" id="hgrid"></div>
     <div class="h-legend">
-      <div class="h-sq" style="background:var(--bg0);border:1px solid var(--b0)"></div><span>Нет</span>
-      <div class="h-sq" style="background:#FFE8DC"></div><span>Мало</span>
-      <div class="h-sq" style="background:#FF9B6A"></div><span>Норма</span>
-      <div class="h-sq" style="background:var(--acc)"></div><span>Цель</span>
-      <div class="h-sq" style="background:#EF4444"></div><span>Перебор</span>
+      <div class="h-sq" style="background:var(--bg0);border:1px solid var(--b0)"></div><span data-i18n="heat_none">Нет</span>
+      <div class="h-sq" style="background:#FFE8DC"></div><span data-i18n="heat_low">Мало</span>
+      <div class="h-sq" style="background:#FF9B6A"></div><span data-i18n="heat_norm">Норма</span>
+      <div class="h-sq" style="background:var(--acc)"></div><span data-i18n="heat_goal">Цель</span>
+      <div class="h-sq" style="background:#EF4444"></div><span data-i18n="heat_over">Перебор</span>
     </div>
   </div>
   <!-- DAILY AI SUMMARY -->
@@ -435,15 +440,15 @@
         <div class="daily-ai-title" id="dailyAiTitle" data-i18n="daily_summary_title">📊 Итоги дня</div>
         <div class="daily-ai-sub" id="dailyAiSub">—</div>
       </div>
-      <button class="daily-ai-close" onclick="dismissDailyAi()" aria-label="Скрыть">✕</button>
+      <button class="daily-ai-close" onclick="dismissDailyAi()" aria-label="Close" data-i18n-aria="btn_close">✕</button>
     </div>
     <div class="daily-ai-body" id="dailyAiBody"></div>
   </div>
 
   <div class="wt-card card-enter card-enter-d5">
-    <div class="wt-top"><h4>Динамика веса</h4><button class="wt-btn" onclick="HFX.light();SFX.play('sheet_open');logW()">+ Записать</button></div>
+    <div class="wt-top"><h4 data-i18n="wt_title">Динамика веса</h4><button class="wt-btn" onclick="HFX.light();SFX.play('sheet_open');logW()" data-i18n="wt_log_btn">+ Записать</button></div>
     <canvas id="wc" height="110"></canvas>
-    <p id="wempty" style="text-align:center;font-size:13px;color:var(--t2);padding:16px 0;font-weight:500">Нет данных — записывай вес каждый день</p>
+    <p id="wempty" style="text-align:center;font-size:13px;color:var(--t2);padding:16px 0;font-weight:500" data-i18n="wt_empty">Нет данных — записывай вес каждый день</p>
   </div>
 
   <!-- WEIGHT PACE CARD -->
@@ -451,8 +456,8 @@
     <div class="pace-inner">
       <div class="pace-icon" id="paceIcon">🎯</div>
       <div class="pace-text">
-        <div class="pace-title" id="paceTitle">Прогноз</div>
-        <div class="pace-sub" id="paceSub">Добавь данные веса</div>
+        <div class="pace-title" id="paceTitle" data-i18n="wgoal_label">Прогноз</div>
+        <div class="pace-sub" id="paceSub" data-i18n="wgoal_unknown">Добавь данные веса</div>
       </div>
     </div>
   </div>
@@ -487,18 +492,18 @@
       <div class="fd-portion" id="fdPortion"></div>
       <div class="fd-kcal-row">
         <div class="fd-kcal" id="fdKcal">0</div>
-        <div class="fd-kcal-unit">ккал</div>
+        <div class="fd-kcal-unit" data-i18n="unit_kcal">ккал</div>
       </div>
       <div class="fd-macros">
-        <div class="fd-mac p"><div class="fd-mac-val" id="fdProt">0г</div><div class="fd-mac-lbl">Белки</div></div>
-        <div class="fd-mac c"><div class="fd-mac-val" id="fdCarb">0г</div><div class="fd-mac-lbl">Углеводы</div></div>
-        <div class="fd-mac f"><div class="fd-mac-val" id="fdFat">0г</div><div class="fd-mac-lbl">Жиры</div></div>
+        <div class="fd-mac p"><div class="fd-mac-val" id="fdProt">0</div><div class="fd-mac-lbl" data-i18n="macro_protein">Белки</div></div>
+        <div class="fd-mac c"><div class="fd-mac-val" id="fdCarb">0</div><div class="fd-mac-lbl" data-i18n="macro_carbs">Углеводы</div></div>
+        <div class="fd-mac f"><div class="fd-mac-val" id="fdFat">0</div><div class="fd-mac-lbl" data-i18n="macro_fat">Жиры</div></div>
       </div>
       <div class="fd-desc" id="fdDesc"></div>
       <div id="fdIngr" style="margin-bottom:8px;display:none"></div>
       <div class="fd-time" id="fdTime"></div>
       <div class="fd-qty-row">
-        <span class="fd-qty-label">Количество порций</span>
+        <span class="fd-qty-label" data-i18n="portion_count">Количество порций</span>
         <div class="fd-qty-ctrl">
           <button class="fd-qty-btn minus" onclick="HFX.tick();SFX.play('btn_tap');changeQty(-1)" onpointerdown="_qtyHold(-1)" onpointerup="_qtyClear()" onpointerleave="_qtyClear()">−</button>
           <span class="fd-qty-num" id="fdQty">1</span>
@@ -506,8 +511,8 @@
         </div>
       </div>
       <div style="display:flex;gap:8px;margin-top:14px">
-        <button class="fd-edit-btn" onclick="editFd()">✏️ Изменить</button>
-        <button class="fd-del" id="fdDel" onclick="delFd()" style="flex:1">🗑 Удалить</button>
+        <button class="fd-edit-btn" onclick="editFd()" data-i18n="fd_edit">✏️ Изменить</button>
+        <button class="fd-del" id="fdDel" onclick="delFd()" style="flex:1" data-i18n="fd_delete">🗑 Удалить</button>
       </div>
     </div>
   </div>
@@ -543,7 +548,7 @@
   <div class="ai-bar">
     <input class="ai-inp" id="aiinp" placeholder="Спроси что-нибудь…" data-i18n-placeholder="ai_input_placeholder"
       onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();aiSend();}">
-    <button class="ai-mic" id="aiMicBtn" onclick="aiVoiceToggle()" aria-label="Голосовой ввод" title="Голосовой ввод">
+    <button class="ai-mic" id="aiMicBtn" onclick="aiVoiceToggle()" aria-label="Голосовой ввод" title="Голосовой ввод" data-i18n-aria="ai_mic_label" data-i18n-title="ai_mic_label">
       <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="2" width="6" height="12" rx="3"/><path d="M5 10v2a7 7 0 0 0 14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>
     </button>
     <button class="ai-snd" onclick="aiSend()">
@@ -573,6 +578,11 @@
         <div class="sr-txt"><div class="sr-t" data-i18n="set_haptics">Вибрация</div><div class="sr-s" data-i18n="set_haptics_sub">Тактильный отклик</div></div>
         <div class="toggle" id="hfxToggle"></div>
       </div>
+      <div class="st-row" onclick="toggleFullscreen()">
+        <div class="sr-ico-wrap" style="background:linear-gradient(145deg,#64748b,#334155)">⛶</div>
+        <div class="sr-txt"><div class="sr-t" data-i18n="set_fullscreen">Полноэкранный режим</div><div class="sr-s" data-i18n="set_fullscreen_sub">Скрывать строку браузера и статус-бар</div></div>
+        <div class="toggle" id="fullscreenToggle"></div>
+      </div>
       <div class="st-row" onclick="HFX.light();SFX.play('select');toggleLang()">
         <div class="sr-ico-wrap" style="background:linear-gradient(145deg,#3b82f6,#1e40af);font-size:14px;font-weight:800;color:#fff">🌐</div>
         <div class="sr-txt"><div class="sr-t" data-i18n="set_lang">Язык</div><div class="sr-s" data-i18n="set_lang_sub">Russian / English</div></div>
@@ -583,7 +593,7 @@
   <div class="st-sec">
     <div class="st-lbl" data-i18n="set_profile">Профиль</div>
     <div class="st-card">
-      <div class="st-row" onclick="HFX.light();SFX.play('sheet_open');ed('name')"><div class="sr-ico-wrap blue" style="font-size:14px;font-weight:700;color:#fff;letter-spacing:0">Аа</div><div class="sr-txt"><div class="sr-t" data-i18n="set_name">Имя</div></div><span class="sr-v" id="sname">—</span></div>
+      <div class="st-row" onclick="HFX.light();SFX.play('sheet_open');ed('name')"><div class="sr-ico-wrap blue" style="font-size:14px;font-weight:700;color:#fff;letter-spacing:0">Aa</div><div class="sr-txt"><div class="sr-t" data-i18n="set_name">Имя</div></div><span class="sr-v" id="sname">—</span></div>
       <div class="st-row" onclick="HFX.light();SFX.play('sheet_open');ed('params')"><div class="sr-ico-wrap green" style="font-size:13px;font-weight:700;color:#fff">cm</div><div class="sr-txt"><div class="sr-t" data-i18n="set_params">Возраст / Рост / Вес</div></div><span class="sr-arr">›</span></div>
       <div class="st-row" onclick="HFX.light();SFX.play('sheet_open');ed('goal')"><div class="sr-ico-wrap orange" style="filter:drop-shadow(0 1px 1px rgba(0,0,0,.3))">🎯</div><div class="sr-txt"><div class="sr-t" data-i18n="set_goal">Цель</div></div><span class="sr-v" id="sgoal">—</span></div>
     </div>
@@ -657,7 +667,7 @@
 </div>
 
 <!-- NOTIFICATION SETTINGS MODAL -->
-<div class="ov" id="notifOv" role="dialog" aria-modal="true" aria-label="Настройки уведомлений" onclick="if(event.target===this){HFX.light();closeNotifSettings();}">
+<div class="ov" id="notifOv" role="dialog" aria-modal="true" aria-label="Настройки уведомлений" data-i18n-aria="notif_title" onclick="if(event.target===this){HFX.light();closeNotifSettings();}">
   <div class="sheet" style="max-height:85vh">
     <div class="sh-handle"></div>
     <div class="sh-hdr">
@@ -804,7 +814,7 @@
 </div>
 
 <!-- AUTHORS MODAL -->
-<div class="about-ov" id="aboutOv" role="dialog" aria-modal="true" aria-label="О приложении" onclick="if(event.target===this)closeAbout()">
+<div class="about-ov" id="aboutOv" role="dialog" aria-modal="true" aria-label="О приложении" data-i18n-aria="set_about" onclick="if(event.target===this)closeAbout()">
   <div class="about-sheet">
     <div class="about-handle"></div>
     <button class="sh-close about-x" onclick="HFX.light();SFX.play('sheet_close');closeAbout()" aria-label="Close" data-i18n-aria="btn_close">✕</button>
@@ -813,7 +823,7 @@
       <div class="about-hero-icon" onclick="devTap()" style="cursor:default">🍎</div>
       <div class="about-hero-name">Cal<span>Snap</span></div>
       <div class="about-hero-sub" data-i18n="about_sub">AI-трекер калорий нового поколения</div>
-      <div class="about-hero-ver" data-i18n="about_ver">ВЕРСИЯ 1.4</div>
+      <div class="about-hero-ver" data-i18n="about_ver">ВЕРСИЯ 1.5</div>
     </div>
     <!-- Team -->
     <div class="about-sect-lbl" data-i18n="about_team">КОМАНДА</div>
@@ -845,14 +855,14 @@
 
 
 <!-- MODEL PICKER -->
-<div id="mdlOv" role="dialog" aria-modal="true" aria-label="Выбор модели Gemini" style="position:fixed;inset:0;background:#00000070;z-index:300;display:none;align-items:flex-end">
+<div id="mdlOv" role="dialog" aria-modal="true" aria-label="Gemini model" data-i18n-aria="set_model" onclick="if(event.target===this)closeModelPicker()" style="position:fixed;inset:0;background:#00000070;z-index:300;display:none;align-items:flex-end">
   <div style="background:var(--bg1);border-radius:24px 24px 0 0;width:100%;max-height:75vh;overflow-y:auto;padding:0 0 env(safe-area-inset-bottom)">
     <div style="padding:18px 20px 12px;display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid var(--b1);position:sticky;top:0;background:var(--bg1);z-index:1">
       <div>
-        <div style="font-size:17px;font-weight:800;color:var(--t0)">🧠 Модель Gemini</div>
-        <div style="font-size:12px;color:var(--t1);margin-top:2px" id="mdlCount">Загрузка...</div>
+        <div style="font-size:17px;font-weight:800;color:var(--t0)" data-i18n="mdl_title">🧠 Модель Gemini</div>
+        <div style="font-size:12px;color:var(--t1);margin-top:2px" id="mdlCount" data-i18n="mdl_loading">Загрузка…</div>
       </div>
-      <button onclick="document.getElementById('mdlOv').style.display='none'" 
+      <button onclick="HFX.light();SFX.play('sheet_close');closeModelPicker()" aria-label="Close" data-i18n-aria="btn_close"
         style="width:34px;height:34px;border-radius:50%;background:var(--bg0);border:none;font-size:16px;cursor:pointer;color:var(--t0)">✕</button>
     </div>
     <div id="mdlList" style="padding:12px 16px;display:flex;flex-direction:column;gap:8px"></div>
@@ -870,7 +880,7 @@
   <button onclick="HFX.light();SFX.play('btn_tap');dismissInstallBanner()" style="background:none;border:none;font-size:18px;cursor:pointer;color:var(--t1);padding:0 4px">✕</button>
 </div>
 <!-- BOTTOM NAV -->
-<nav id="nav" aria-label="Основная навигация">
+<nav id="nav" aria-label="Основная навигация" data-i18n-aria="nav_aria">
   <div id="nav-pill" aria-hidden="true"></div>
   <button class="nb on" onclick="goS('home',this)" data-i18n-aria="nav_home" aria-label="Дом">
     <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
@@ -880,7 +890,7 @@
     <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
     <span data-i18n="nav_progress">Прогресс</span>
   </button>
-  <button class="nb-add" onclick="openAdd()" aria-label="Добавить еду" data-i18n-aria="add_food_title">
+  <button class="nb-add" onclick="openAdd()" aria-label="Добавить еду" data-i18n-aria="add_food_title" data-i18n-aria="add_food_title">
     <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
   </button>
   <button class="nb" onclick="goS('ai',this)" data-i18n-aria="nav_ai" aria-label="AI">
@@ -894,7 +904,7 @@
 </nav>
 
 <!-- ADD MODAL -->
-<div class="ov" id="addOv" role="dialog" aria-modal="true" aria-label="Добавить еду" onclick="if(event.target===this){HFX.light();closeAdd();}">
+<div class="ov" id="addOv" role="dialog" aria-modal="true" aria-label="Добавить еду" data-i18n-aria="add_food_title" onclick="if(event.target===this){HFX.light();closeAdd();}">
   <div class="sheet">
     <div class="sh-handle"></div>
     <div class="sh-hdr"><h3 data-i18n="add_food_title">Добавить еду</h3><button class="sh-close" onclick="HFX.light();SFX.play('sheet_close');closeAdd()">✕</button></div>
@@ -928,7 +938,11 @@
         <textarea id="phDesc" class="txa" placeholder="Необязательно: опиши блюдо для точности AI&#10;Например: домашний борщ со сметаной, большая тарелка" data-i18n-placeholder="photo_desc_ph" style="min-height:72px;font-size:14px"></textarea>
       </div>
       <div id="phAbtn" style="display:none;margin-bottom:12px">
-        <button class="btn" onclick="HFX.medium();SFX.play('btn_tap');doPhoto()" data-i18n="photo_analyze">🔍 Анализировать</button>
+        <button class="btn" id="phAnalyzeBtn" onclick="HFX.medium();SFX.play('btn_tap');doPhoto()" data-i18n="photo_analyze">🔍 Анализировать</button>
+        <div id="phQueueBtn" style="display:none;margin-top:8px">
+          <button class="btn2" onclick="HFX.medium();queuePhoto()" data-i18n="photo_queue">🕓 Проанализировать позже</button>
+        </div>
+        <div id="phOfflineNote" style="display:none;margin-top:8px;font-size:12px;line-height:1.45;color:var(--t2);text-align:center" data-i18n="photo_offline_note">Нет интернета — фото сохранится и проанализируется автоматически, когда связь появится.</div>
       </div>
       <div class="ldr" id="phldr"><div class="sp"></div><p id="ldrtxt" data-i18n="gemini_analyzing">Gemini анализирует…</p></div>
       <div class="err" id="pherr"></div>
@@ -937,7 +951,7 @@
         <div class="res-body">
           <div class="res-name" id="rn">—</div>
           <div class="res-portion" id="rp">—</div>
-          <div class="res-kcal" id="rk">— <small>ккал</small></div>
+          <div class="res-kcal" id="rk">— <small data-i18n="unit_kcal">ккал</small></div>
           <div class="res-macs">
             <div class="rm p"><div class="rv" id="rpr">—</div><div class="rk2" style="font-size:10px;color:var(--t1);font-weight:600;margin-top:2px;text-transform:uppercase;letter-spacing:.3px" data-i18n="macro_protein">Белки</div></div>
             <div class="rm c"><div class="rv" id="rcr">—</div><div class="rk2" style="font-size:10px;color:var(--t1);font-weight:600;margin-top:2px;text-transform:uppercase;letter-spacing:.3px" data-i18n="macro_carbs">Углев.</div></div>
@@ -948,43 +962,43 @@
         </div>
       </div>
       <div id="phAddbtn" style="display:none">
-        <button class="btn" onclick="HFX.medium();SFX.play('add_food');addRes('photo')" style="margin-bottom:8px">+ Добавить в дневник</button>
-        <button class="btn2" onclick="HFX.light();SFX.play('btn_tap');rstPhoto()">Новое фото</button>
+        <button class="btn" onclick="HFX.medium();SFX.play('add_food');addRes('photo')" style="margin-bottom:8px" data-i18n="add_in_diary">+ Добавить в дневник</button>
+        <button class="btn2" onclick="HFX.light();SFX.play('btn_tap');rstPhoto()" data-i18n="photo_new">Новое фото</button>
       </div>
     </div>
 
     <!-- TEXT -->
     <div class="panel" id="tp-text">
       <div class="exs">
-        <div class="ex" onclick="HFX.tick();SFX.play('btn_tap');fillTx(this)">1 яблоко</div>
-        <div class="ex" onclick="HFX.tick();SFX.play('btn_tap');fillTx(this)">тарелка гречки</div>
-        <div class="ex" onclick="HFX.tick();SFX.play('btn_tap');fillTx(this)">2 яйца варёных</div>
-        <div class="ex" onclick="HFX.tick();SFX.play('btn_tap');fillTx(this)">200г творога</div>
-        <div class="ex" onclick="HFX.tick();SFX.play('btn_tap');fillTx(this)">кофе с молоком</div>
-        <div class="ex" onclick="HFX.tick();SFX.play('btn_tap');fillTx(this)">бутерброд с сыром</div>
+        <div class="ex" onclick="HFX.tick();SFX.play('btn_tap');fillTx(this)" data-i18n="text_ex1">1 яблоко</div>
+        <div class="ex" onclick="HFX.tick();SFX.play('btn_tap');fillTx(this)" data-i18n="text_ex2">тарелка гречки</div>
+        <div class="ex" onclick="HFX.tick();SFX.play('btn_tap');fillTx(this)" data-i18n="text_ex3">2 яйца варёных</div>
+        <div class="ex" onclick="HFX.tick();SFX.play('btn_tap');fillTx(this)" data-i18n="text_ex4">200г творога</div>
+        <div class="ex" onclick="HFX.tick();SFX.play('btn_tap');fillTx(this)" data-i18n="text_ex5">кофе с молоком</div>
+        <div class="ex" onclick="HFX.tick();SFX.play('btn_tap');fillTx(this)" data-i18n="text_ex6">бутерброд с сыром</div>
       </div>
-      <textarea class="txa" id="txinp" placeholder="Напиши что съел…&#10;Например: 2 яблока и стакан кефира"></textarea>
-      <div class="ldr" id="txldr"><div class="sp"></div><p>Считаю калории…</p></div>
+      <textarea class="txa" id="txinp" placeholder="Напиши что съел…&#10;Например: 2 яблока и стакан кефира" data-i18n-placeholder="text_placeholder"></textarea>
+      <div class="ldr" id="txldr"><div class="sp"></div><p data-i18n="text_calculating">Считаю калории…</p></div>
       <div class="err" id="txerr"></div>
       <div class="res" id="txres">
         <div class="res-body">
           <div class="res-name" id="trn">—</div>
           <div class="res-portion" id="trp">—</div>
-          <div class="res-kcal" id="trk">— <small>ккал</small></div>
+          <div class="res-kcal" id="trk">— <small data-i18n="unit_kcal">ккал</small></div>
           <div class="res-macs">
-            <div class="rm p"><div class="rv" id="trpr">—</div><div style="font-size:10px;color:var(--t1);font-weight:600;margin-top:2px;text-transform:uppercase;letter-spacing:.3px">Белки</div></div>
-            <div class="rm c"><div class="rv" id="trcr">—</div><div style="font-size:10px;color:var(--t1);font-weight:600;margin-top:2px;text-transform:uppercase;letter-spacing:.3px">Углев.</div></div>
-            <div class="rm f"><div class="rv" id="trfr">—</div><div style="font-size:10px;color:var(--t1);font-weight:600;margin-top:2px;text-transform:uppercase;letter-spacing:.3px">Жиры</div></div>
+            <div class="rm p"><div class="rv" id="trpr">—</div><div style="font-size:10px;color:var(--t1);font-weight:600;margin-top:2px;text-transform:uppercase;letter-spacing:.3px" data-i18n="macro_protein">Белки</div></div>
+            <div class="rm c"><div class="rv" id="trcr">—</div><div style="font-size:10px;color:var(--t1);font-weight:600;margin-top:2px;text-transform:uppercase;letter-spacing:.3px" data-i18n="macro_carbs">Углев.</div></div>
+            <div class="rm f"><div class="rv" id="trfr">—</div><div style="font-size:10px;color:var(--t1);font-weight:600;margin-top:2px;text-transform:uppercase;letter-spacing:.3px" data-i18n="macro_fat">Жиры</div></div>
           </div>
           <div class="res-desc" id="trd"></div>
         </div>
       </div>
       <div id="txAbtn">
-        <button class="btn" onclick="HFX.medium();SFX.play('btn_tap');doText()">🔍 Рассчитать</button>
+        <button class="btn" onclick="HFX.medium();SFX.play('btn_tap');doText()" data-i18n="text_calc_btn">🔍 Рассчитать</button>
       </div>
       <div id="txAddbtn" style="display:none;margin-top:12px;padding-bottom:20px">
-        <button class="btn" onclick="HFX.medium();SFX.play('add_food');addRes('text')" style="margin-bottom:8px">+ Добавить в дневник</button>
-        <button class="btn2" onclick="HFX.light();SFX.play('btn_tap');rstText()">Очистить</button>
+        <button class="btn" onclick="HFX.medium();SFX.play('add_food');addRes('text')" style="margin-bottom:8px" data-i18n="add_in_diary">+ Добавить в дневник</button>
+        <button class="btn2" onclick="HFX.light();SFX.play('btn_tap');rstText()" data-i18n="text_clear">Очистить</button>
       </div>
     </div>
 
@@ -995,39 +1009,48 @@
         <h4 style="font-size:15px;font-weight:700;margin-bottom:6px;color:var(--t0)" data-i18n="bc_title">Сканировать штрихкод</h4>
         <p style="font-size:13px;color:var(--t1)" data-i18n="bc_sub">Поиск через OpenFoodFacts + AI</p>
         <div style="display:flex;gap:10px;margin-top:16px">
-          <button onclick="document.getElementById('bc_cam').click()" style="flex:1;background:var(--t0);color:var(--bg0);border:none;border-radius:var(--r1);padding:13px;font-size:14px;font-weight:700;cursor:pointer;transition:opacity .12s" ontouchstart="this.style.opacity=.75" ontouchend="this.style.opacity=1">📷 Камера</button>
-          <button onclick="document.getElementById('bc_gal').click()" style="flex:1;background:var(--f1);border:none;border-radius:12px;padding:13px;font-size:14px;font-weight:600;cursor:pointer;color:var(--t0)">🖼 Галерея</button>
+          <button onclick="document.getElementById('bc_cam').click()" style="flex:1;background:var(--t0);color:var(--bg0);border:none;border-radius:var(--r1);padding:13px;font-size:14px;font-weight:700;cursor:pointer;transition:opacity .12s" ontouchstart="this.style.opacity=.75" ontouchend="this.style.opacity=1" data-i18n="photo_camera">📷 Камера</button>
+          <button onclick="document.getElementById('bc_gal').click()" style="flex:1;background:var(--f1);border:none;border-radius:12px;padding:13px;font-size:14px;font-weight:600;cursor:pointer;color:var(--t0)" data-i18n="photo_gallery">🖼 Галерея</button>
         </div>
         <div style="display:flex;gap:8px;margin-top:10px;align-items:center">
-          <input id="bc_manual" type="tel" inputmode="numeric" pattern="[0-9]*" placeholder="Ввести код вручную (EAN-13)" style="flex:1;background:var(--f1);border:none;border-radius:12px;padding:11px 14px;font-size:14px;color:var(--t0);font-family:var(--ff);font-weight:500;letter-spacing:.5px">
+          <input id="bc_manual" type="tel" inputmode="numeric" pattern="[0-9]*" placeholder="Ввести код вручную (EAN-13)" data-i18n-placeholder="bc_manual_ph" style="flex:1;background:var(--f1);border:none;border-radius:12px;padding:11px 14px;font-size:14px;color:var(--t0);font-family:var(--ff);font-weight:500;letter-spacing:.5px">
           <button onclick="doBarcodeManual()" style="background:var(--t0);color:var(--bg0);border:none;border-radius:12px;padding:11px 14px;font-size:13px;font-weight:700;cursor:pointer">→</button>
         </div>
         <input type="file" id="bc_cam" accept="image/*" capture="environment" onchange="doBarcode(event)" style="display:none">
         <input type="file" id="bc_gal" accept="image/*" onchange="doBarcode(event)" style="display:none">
       </div>
-      <div class="ldr" id="bcldr"><div class="sp"></div><p>Читаю штрихкод…</p></div>
+      <div class="ldr" id="bcldr"><div class="sp"></div><p data-i18n="bc_reading">Читаю штрихкод…</p></div>
       <div class="err" id="bcerr"></div>
       <div class="res" id="bcres">
         <div class="res-body">
           <div class="res-name" id="brn">—</div>
           <div class="res-portion" id="brp">—</div>
-          <div class="res-kcal" id="brk">— <small>ккал</small></div>
+          <div class="res-kcal" id="brk">— <small data-i18n="unit_kcal">ккал</small></div>
           <div class="res-macs">
-            <div class="rm p"><div class="rv" id="brpr">—</div><div style="font-size:10px;color:var(--t1);font-weight:600;margin-top:2px;text-transform:uppercase;letter-spacing:.3px">Белки</div></div>
-            <div class="rm c"><div class="rv" id="brcr">—</div><div style="font-size:10px;color:var(--t1);font-weight:600;margin-top:2px;text-transform:uppercase;letter-spacing:.3px">Углев.</div></div>
-            <div class="rm f"><div class="rv" id="brfr">—</div><div style="font-size:10px;color:var(--t1);font-weight:600;margin-top:2px;text-transform:uppercase;letter-spacing:.3px">Жиры</div></div>
+            <div class="rm p"><div class="rv" id="brpr">—</div><div style="font-size:10px;color:var(--t1);font-weight:600;margin-top:2px;text-transform:uppercase;letter-spacing:.3px" data-i18n="macro_protein">Белки</div></div>
+            <div class="rm c"><div class="rv" id="brcr">—</div><div style="font-size:10px;color:var(--t1);font-weight:600;margin-top:2px;text-transform:uppercase;letter-spacing:.3px" data-i18n="macro_carbs">Углев.</div></div>
+            <div class="rm f"><div class="rv" id="brfr">—</div><div style="font-size:10px;color:var(--t1);font-weight:600;margin-top:2px;text-transform:uppercase;letter-spacing:.3px" data-i18n="macro_fat">Жиры</div></div>
           </div>
           <div class="res-desc" id="brd"></div>
         </div>
       </div>
       <div id="bcAddbtn" style="display:none;margin-top:12px">
-        <button class="btn" onclick="HFX.medium();SFX.play('add_food');addRes('barcode')">+ Добавить в дневник</button>
+        <button class="btn" onclick="HFX.medium();SFX.play('add_food');addRes('barcode')" data-i18n="add_in_diary">+ Добавить в дневник</button>
       </div>
     </div>
 
-    <!-- FAVOURITES PANEL -->
+    <!-- FAVOURITES + OFFLINE FOOD DATABASE -->
     <div class="panel" id="tp-favs">
-      <div id="favsList" style="padding:4px 0 20px;min-height:120px"></div>
+      <div id="favsList" style="padding:4px 0 12px;min-height:80px"></div>
+      <!-- The built-in database is the only way to log food with no API key
+           (and the only one that works offline), so it lives right here. -->
+      <div class="db-sec">
+        <div class="db-sec-hdr" data-i18n="db_title">🗂 База продуктов</div>
+        <input class="db-search" id="dbSearchInp" type="search" autocomplete="off"
+          placeholder="Найти продукт…" data-i18n-placeholder="db_search_ph"
+          oninput="searchDB(this.value)">
+        <div id="searchResults"></div>
+      </div>
     </div>
 
 
@@ -1035,20 +1058,27 @@
 </div>
 
 <!-- API MODAL -->
-<div class="ed-ov" id="apiOv" role="dialog" aria-modal="true" aria-label="Gemini API ключ" onclick="if(event.target===this){HFX.light();SFX.play('back');closeApi()}">
+<div class="ed-ov" id="apiOv" role="dialog" aria-modal="true" aria-label="Gemini API ключ" data-i18n-aria="set_api_key" onclick="if(event.target===this){HFX.light();SFX.play('back');closeApi()}">
   <div class="ed-sheet">
-    <h3>🔑 API ключ Gemini</h3>
-    <p style="font-size:13px;color:var(--t1);margin-bottom:16px;line-height:1.5">Получи бесплатный ключ на <a href="https://aistudio.google.com/apikey" target="_blank" style="color:var(--acc);font-weight:600">aistudio.google.com</a></p>
-    <input class="inp" type="password" id="apiinp" placeholder="AIza...">
-    <button class="btn" onclick="HFX.medium();SFX.play('save');saveApi()" data-i18n="btn_save">Сохранить</button>
-    <button class="btn2" onclick="HFX.light();SFX.play('sheet_close');closeApi()" data-i18n="btn_cancel">Отмена</button>
+    <h3 data-i18n="api_title">🔑 API ключи Gemini</h3>
+    <p style="font-size:13px;color:var(--t1);margin-bottom:14px;line-height:1.5"><span data-i18n="api_desc">Получи бесплатный ключ на</span> <a href="https://aistudio.google.com/apikey" target="_blank" rel="noopener noreferrer" style="color:var(--acc);font-weight:600">aistudio.google.com</a></p>
+    <!-- Several keys can be stored: when one hits its rate limit the app
+         rotates to the next one automatically. -->
+    <div class="key-list" id="keyList"></div>
+    <div class="key-add-row">
+      <input class="inp" style="margin:0" type="password" id="apiinp" placeholder="AIza..." autocomplete="off" spellcheck="false"
+        onkeydown="if(event.key==='Enter'){event.preventDefault();saveApi();}">
+      <button class="key-add-btn" onclick="HFX.medium();SFX.play('save');saveApi()" aria-label="Add" data-i18n-aria="key_add">+</button>
+    </div>
+    <div class="key-hint" data-i18n="key_rotation_hint">Можно добавить несколько ключей — при исчерпании лимита приложение само переключится на следующий.</div>
+    <button class="btn2" onclick="HFX.light();SFX.play('sheet_close');closeApi()" data-i18n="btn_close">Закрыть</button>
   </div>
 </div>
 
 <!-- EDIT MODAL -->
-<div class="ed-ov" id="edOv" role="dialog" aria-modal="true" aria-label="Редактировать профиль" onclick="if(event.target===this)closeEd()">
+<div class="ed-ov" id="edOv" role="dialog" aria-modal="true" aria-label="Редактировать профиль" data-i18n-aria="ed_title" onclick="if(event.target===this)closeEd()">
   <div class="ed-sheet">
-    <h3 id="edtitle">Редактировать</h3>
+    <h3 id="edtitle" data-i18n="ed_title">Редактировать</h3>
     <div id="edcont"></div>
     <button class="btn" onclick="HFX.medium();SFX.play('save');saveEd()" data-i18n="btn_save">Сохранить</button>
     <button class="btn2" onclick="HFX.light();SFX.play('back');closeEd()" data-i18n="btn_cancel">Отмена</button>
@@ -1118,7 +1148,9 @@
 <script src="assets/js/sound.js"></script>
 
 <script src="assets/js/i18n.js"></script>
+<script src="assets/js/store.js"></script>
 <script src="assets/js/state.js"></script>
+<script src="assets/js/keys.js"></script>
 <script src="assets/js/ux.js"></script>
 <script src="assets/js/app.js"></script>
 <script src="assets/js/gemini.js"></script>
@@ -1133,14 +1165,22 @@
 <script src="assets/js/share.js"></script>
 <script src="assets/js/notif.js"></script>
 <script src="assets/js/about.js"></script>
+<script src="assets/js/queue.js"></script>
+<script src="assets/js/fullscreen.js"></script>
 
   <script>
     // ── SERVICE WORKER ──
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', () => {
         navigator.serviceWorker.register('./sw.js').then(reg => {
+          // An update may already be sitting in `waiting` by the time this
+          // handler runs (e.g. it installed during the previous visit). The
+          // old code only listened for `updatefound`, so that pending version
+          // never surfaced the "Update available" banner.
+          if (reg.waiting && navigator.serviceWorker.controller) showUpdateBanner(reg.waiting);
           reg.addEventListener('updatefound', () => {
-            const newSW = reg.installing;
+            const newSW = reg.installing || reg.waiting;
+            if (!newSW) return;
             newSW.addEventListener('statechange', () => {
               if (newSW.state === 'installed' && navigator.serviceWorker.controller) {
                 showUpdateBanner(newSW);
@@ -1192,13 +1232,13 @@
     }
 
     function installPWA() {
-      SFX.play('install'); HFX.medium();
       if (!deferredPrompt) return;
       deferredPrompt.prompt();
-      deferredPrompt.userChoice.then(r => {
+      deferredPrompt.userChoice.then(() => {
         deferredPrompt = null;
-        document.getElementById('installBanner').style.display = 'none';
-      });
+        const b = document.getElementById('installBanner');
+        if (b) b.style.display = 'none';
+      }).catch(() => {});
     }
 
     window.addEventListener('appinstalled', () => {
@@ -1220,19 +1260,19 @@
   </div>
 
 <!-- WEIGHT LOG MODAL -->
-<div class="wlog-ov" id="wlogOv" role="dialog" aria-modal="true" aria-label="Записать вес" onclick="if(event.target===this){HFX.light();closeWlog();}">
+<div class="wlog-ov" id="wlogOv" role="dialog" aria-modal="true" aria-label="Записать вес" data-i18n-aria="wlog_title" onclick="if(event.target===this){HFX.light();closeWlog();}">
   <div class="wlog-sheet">
     <div class="wlog-header">
-      <div class="wlog-title">Записать вес</div>
+      <div class="wlog-title" data-i18n="wlog_title">Записать вес</div>
       <button class="wlog-close" onclick="HFX.light();SFX.play('sheet_close');closeWlog()">✕</button>
     </div>
-    <div class="wlog-sub">Введи текущий вес для отслеживания динамики</div>
+    <div class="wlog-sub" data-i18n="wlog_sub">Введи текущий вес для отслеживания динамики</div>
     <div class="wlog-weight-row">
       <button class="wlog-step-btn" onclick="HFX.tick();SFX.play('btn_tap');wlogStep(-0.1)">−</button>
       <div>
         <div class="wlog-weight-val" id="wlogVal">70.0</div>
       </div>
-      <span class="wlog-weight-unit">кг</span>
+      <span class="wlog-weight-unit" data-i18n="unit_kg">кг</span>
       <button class="wlog-step-btn" onclick="HFX.tick();SFX.play('btn_tap');wlogStep(0.1)">+</button>
     </div>
     <div class="wlog-trend" id="wlogTrend"></div>
@@ -1243,17 +1283,17 @@
 
 
 <!-- DRUM DATE PICKER -->
-<div class="drum-ov" id="drumOv" role="dialog" aria-modal="true" aria-label="Выбор даты">
+<div class="drum-ov" id="drumOv" role="dialog" aria-modal="true" aria-label="Выбор даты" data-i18n-aria="drum_title">
   <div class="drum-sheet">
     <div class="drum-header">
-      <button class="drum-cancel" onclick="HFX.light();SFX.play('back');closeDrum()">Отмена</button>
-      <div class="drum-title">Дата рождения</div>
-      <button class="drum-done" onclick="confirmDrum()">Готово</button>
+      <button class="drum-cancel" onclick="HFX.light();SFX.play('back');closeDrum()" data-i18n="btn_cancel">Отмена</button>
+      <div class="drum-title" data-i18n="drum_title">Дата рождения</div>
+      <button class="drum-done" onclick="confirmDrum()" data-i18n="drum_done">Готово</button>
     </div>
     <div style="display:flex;justify-content:space-around;padding:6px 24px 0">
-      <div class="drum-col-label" style="flex:1">День</div>
-      <div class="drum-col-label" style="flex:1.4">Месяц</div>
-      <div class="drum-col-label" style="flex:1">Год</div>
+      <div class="drum-col-label" style="flex:1" data-i18n="drum_day">День</div>
+      <div class="drum-col-label" style="flex:1.4" data-i18n="drum_month">Месяц</div>
+      <div class="drum-col-label" style="flex:1" data-i18n="drum_year">Год</div>
     </div>
     <div class="drum-cols">
       <div class="drum-sel-line"></div>
@@ -1271,12 +1311,12 @@
   <div class="cfrm-box">
     <div class="cfrm-body">
       <span class="cfrm-icon" id="cfrmIcon">⚠️</span>
-      <div class="cfrm-title" id="cfrmTitle">Подтвердить</div>
+      <div class="cfrm-title" id="cfrmTitle" data-i18n="confirm">Подтвердить</div>
       <div class="cfrm-msg" id="cfrmMsg"></div>
     </div>
     <div class="cfrm-btns">
-      <button class="cfrm-btn danger" id="cfrmOkBtn" onclick="cfrmConfirm()">Удалить</button>
-      <button class="cfrm-btn cancel" onclick="HFX.light();SFX.play('back');cfrmCancel()">Отмена</button>
+      <button class="cfrm-btn danger" id="cfrmOkBtn" onclick="cfrmConfirm()" data-i18n="btn_delete">Удалить</button>
+      <button class="cfrm-btn cancel" onclick="HFX.light();SFX.play('back');cfrmCancel()" data-i18n="btn_cancel">Отмена</button>
     </div>
   </div>
 </div>
@@ -1286,13 +1326,13 @@
 <div id="devOv" role="dialog" aria-modal="true" aria-label="Dev Panel" style="position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:500;display:none;align-items:flex-end;-webkit-backdrop-filter:blur(18px);backdrop-filter:blur(18px)" onclick="if(event.target===this)closeDevPanel()">
   <div class="sheet" style="max-height:90vh;overflow-y:auto;padding:0 0 calc(env(safe-area-inset-bottom)+16px);width:100%">
     <div style="padding:16px 20px 12px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--b1);position:sticky;top:0;background:var(--bg1);z-index:1">
-      <div style="font-size:17px;font-weight:800;color:var(--t0)">🛠 Dev Panel</div>
-      <button onclick="HFX.light();SFX.play('sheet_close');closeDevPanel()" style="background:var(--f1);border:1px solid var(--b0);border-radius:12px;padding:8px 16px;font-family:var(--ff);font-size:13px;font-weight:600;color:var(--t1);cursor:pointer">Закрыть ✕</button>
+      <div style="font-size:17px;font-weight:800;color:var(--t0)" data-i18n="dev_title">🛠 Dev Panel</div>
+      <button onclick="HFX.light();SFX.play('sheet_close');closeDevPanel()" data-i18n="dev_close" style="background:var(--f1);border:1px solid var(--b0);border-radius:12px;padding:8px 16px;font-family:var(--ff);font-size:13px;font-weight:600;color:var(--t1);cursor:pointer">Закрыть ✕</button>
     </div>
     <div id="devContent" style="padding:16px;display:flex;flex-direction:column;gap:10px"></div>
     <div style="padding:0 16px;display:flex;flex-direction:column;gap:8px">
-      <button onclick="HFX.heavy();SFX.play('error');devForceUpdate()" style="background:var(--err);color:#fff;border:none;border-radius:16px;padding:14px;font-family:var(--ff);font-size:15px;font-weight:700;cursor:pointer;width:100%">🔄 Принудительное обновление</button>
-      <button onclick="HFX.light();SFX.play('copy');devCopyLogs()" style="background:var(--f1);border:1px solid var(--b0);border-radius:16px;padding:14px;font-family:var(--ff);font-size:15px;font-weight:600;color:var(--t0);cursor:pointer;width:100%">📋 Скопировать логи</button>
+      <button onclick="HFX.heavy();SFX.play('error');devForceUpdate()" data-i18n="dev_force_update" style="background:var(--err);color:#fff;border:none;border-radius:16px;padding:14px;font-family:var(--ff);font-size:15px;font-weight:700;cursor:pointer;width:100%">🔄 Принудительное обновление</button>
+      <button onclick="HFX.light();SFX.play('copy');devCopyLogs()" data-i18n="dev_copy_logs" style="background:var(--f1);border:1px solid var(--b0);border-radius:16px;padding:14px;font-family:var(--ff);font-size:15px;font-weight:600;color:var(--t0);cursor:pointer;width:100%">📋 Скопировать логи</button>
     </div>
   </div>
 </div>

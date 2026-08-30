@@ -1,20 +1,20 @@
 // ══════════════════════════════════════════════════
 // NOTIFICATIONS — Configurable reminders
 // ══════════════════════════════════════════════════
-const NOTIF_MSGS = {
-  breakfast: [{title:'🌅 Доброе утро!', body:'Время завтрака — не забудь записать!'}],
-  lunch:     [{title:'☀️ Обед', body:'Запиши что ел на обед — 10 секунд!'}],
-  dinner:    [{title:'🌙 Вечер', body:'Как прошёл день? Запиши ужин в CalSnap.'}],
-  water:     [
-    {title:'💧 Выпей воды', body:'Не забывай про водный баланс!'},
-    {title:'💧 Пора пить', body:'Стакан воды помогает достичь цели!'},
-    {title:'💧 Водный баланс', body:'Ты выпил достаточно воды сегодня?'},
-  ],
-};
+// Resolved at fire time so a language switch takes effect immediately
+// (the old object was a hard-coded Russian literal built once at load).
+function notifMsgs(){
+  return {
+    breakfast: [{title:t('notif_bf_title'), body:t('notif_bf_body')}],
+    lunch:     [{title:t('notif_ln_title'), body:t('notif_ln_body')}],
+    dinner:    [{title:t('notif_dn_title'), body:t('notif_dn_body')}],
+    water:     [{title:t('notif_wt_title'), body:t('notif_wt_body')}],
+  };
+}
 
 function openNotifSettings() {
   HFX.light(); SFX.play('sheet_open');
-  document.body.style.overflow='hidden';
+  lockScroll(true);
   // Load saved settings
   const cfg = _getNotifCfg();
   document.getElementById('notifBreakfast').value = cfg.breakfast || '08:30';
@@ -26,7 +26,7 @@ function openNotifSettings() {
     if(tog) tog.classList.toggle('on', cfg[k+'_on'] !== false);
   });
   // Master toggle
-  const masterOn = G('notif_enabled')==='1' && Notification?.permission==='granted';
+  const masterOn = G('notif_enabled')==='1' && window.Notification?.permission==='granted';
   _updateNotifMasterUI(masterOn);
   // Show hint if not installed as standalone PWA
   const _isStandalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone;
@@ -38,7 +38,7 @@ function openNotifSettings() {
 function closeNotifSettings() {
   HFX.light(); SFX.play('sheet_close');
   document.getElementById('notifOv').classList.remove('on');
-  document.body.style.overflow='';
+  lockScroll(false);
 }
 
 function _getNotifCfg() {
@@ -50,7 +50,7 @@ function _updateNotifMasterUI(on) {
   const sub = document.getElementById('notifMasterSub');
   const rows = document.getElementById('notifRows');
   if(tog) tog.classList.toggle('on', on);
-  if(sub) sub.textContent = on ? t('notif_master_active','Активны') : (Notification?.permission==='denied' ? t('notif_master_blocked','Заблокированы в браузере') : t('notif_master_sub','Нажми чтобы включить'));
+  if(sub) sub.textContent = on ? t('notif_master_active') : (window.Notification?.permission==='denied' ? t('notif_master_blocked') : t('notif_master_sub'));
   if(rows) { rows.style.opacity = on ? '1' : '.5'; rows.style.pointerEvents = on ? '' : 'none'; }
 }
 
@@ -77,14 +77,14 @@ async function toggleNotifMaster() {
     _scheduleNotifs();
     _registerPeriodicSync();
     setTimeout(()=>{
-      const opts={body:'Напоминания включены!',icon:'icons/icon-192.png',badge:'icons/icon-72.png'};
+      const opts={body:t('notif_test_body'),icon:'icons/icon-192.png',badge:'icons/icon-72.png'};
       if('serviceWorker' in navigator && navigator.serviceWorker.controller){
         navigator.serviceWorker.ready.then(r=>r.showNotification('🍎 CalSnap',opts)).catch(()=>new Notification('🍎 CalSnap',opts));
       } else { try{new Notification('🍎 CalSnap',opts);}catch(e){} }
     },300);
     // Check if installed as PWA for background notifs
     const _isPWA=window.matchMedia('(display-mode: standalone)').matches||window.navigator.standalone;
-    if(!_isPWA) showToast('📲 Для уведомлений когда закрыто — установи приложение на экран');
+    if(!_isPWA) showToast(t('toast_install_for_notifs_short'));
   } else {
     HFX.light();
     _clearNotifTimers();
@@ -110,7 +110,7 @@ function saveNotifSettings() {
   cfg.dinner = document.getElementById('notifDinner').value;
   cfg.waterInterval = document.getElementById('notifWaterInterval').value;
   S('notif_cfg', JSON.stringify(cfg));
-  if(G('notif_enabled')==='1' && Notification?.permission==='granted') {
+  if(G('notif_enabled')==='1' && window.Notification?.permission==='granted') {
     _clearNotifTimers();
     _scheduleNotifs();
   } else {
@@ -123,13 +123,15 @@ function saveNotifSettings() {
 
 function _clearNotifTimers() {
   if(!Array.isArray(_notifTimers)) { _notifTimers = []; return; }
-  _notifTimers.forEach(id => clearTimeout(id));
+  // The water reminder schedules a setInterval; clear both kinds explicitly
+  // rather than relying on the two id spaces overlapping.
+  _notifTimers.forEach(id => { clearTimeout(id); clearInterval(id); });
   _notifTimers = [];
 }
 
 function _sendNotif(type) {
-  if(Notification.permission !== 'granted') return;
-  const msgs = NOTIF_MSGS[type] || [];
+  if(window.Notification?.permission !== 'granted') return;
+  const msgs = notifMsgs()[type] || [];
   const m = msgs[Math.floor(Math.random()*msgs.length)];
   if(!m) return;
   const opts = {body:m.body, icon:'icons/icon-192.png', badge:'icons/icon-72.png', vibrate:[100,50,100]};
@@ -203,6 +205,9 @@ function _syncScheduleToSW(cfg) {
         type: 'SAVE_NOTIF_SCHEDULE',
         schedule: {
           enabled: G('notif_enabled') === '1',
+          // Without this the SW fell back to 'ru' unconditionally, so
+          // background reminders stayed Russian after switching to English.
+          lang: LANG,
           breakfast: cfg.breakfast || '08:30',
           breakfast_on: cfg.breakfast_on !== false,
           lunch: cfg.lunch || '13:00',
@@ -237,10 +242,10 @@ function _updateNotifStatus(on) {
   const st = document.getElementById('notifStatus');
   const arr = document.getElementById('notifArr');
   if(on){
-    if(st) st.innerHTML='<span class="notif-dot"></span>Включены';
+    if(st) st.innerHTML='<span class="notif-dot"></span>'+esc(t('notif_status_on'));
     if(arr) { arr.textContent='✓'; arr.style.color='var(--ok)'; }
   } else {
-    if(st) st.textContent='Настрой время напоминаний';
+    if(st) st.textContent=t('set_reminders_sub');
     if(arr) { arr.textContent='›'; arr.style.color=''; }
   }
 }

@@ -8,7 +8,7 @@
 // • Navigation Preload speeds up the very first network-first nav request
 // ═══════════════════════════════════════════════════
 
-const CACHE = 'calsnap-v10';
+const CACHE = 'calsnap-v12';
 const NOTIF_CACHE = 'calsnap-notif';
 const API_CACHE = 'calsnap-api-v1';
 // Hard cap so a single user runaway (lots of barcodes) cannot grow the API
@@ -39,13 +39,14 @@ const ICONS = [
   './icons/icon-384.png', './icons/icon-512.png',
 ];
 
+// Keep this list in sync with the files actually present in ./sounds/.
+// Names that don't exist on disk produced a 404 on every install and a wasted
+// network round-trip on every first playback.
 const SOUNDS = [
   'add_food','ai_error','ai_reply','ai_send','back','btn_tap','card_tap','copy',
-  'delete','drum_confirm','drum_tick','error','export_done','goal_reached',
-  'import_done','install','notif_ring','notif_save','ob_finish','ob_next',
-  'onboard_skip','photo_snap','reset_confirm','save','scan_success','select',
-  'sheet_close','sheet_open','splash','streak_up','tab_switch','toggle',
-  'water_add','water_goal','water_undo','weight_log','welcome',
+  'delete','drum_confirm','drum_tick','error','install','notif_save',
+  'ob_finish','photo_snap','reset_confirm','save','scan_success','select',
+  'sheet_open','tab_switch','toggle','water_add','water_undo','weight_log',
 ].map(n => `./sounds/${n}.mp3`);
 
 const CSS_FILES = [
@@ -60,7 +61,9 @@ const JS_FILES = [
   './assets/js/sw-register.js',
   './assets/js/sound.js',
   './assets/js/i18n.js',
+  './assets/js/store.js',
   './assets/js/state.js',
+  './assets/js/keys.js',
   './assets/js/ux.js',
   './assets/js/app.js',
   './assets/js/gemini.js',
@@ -75,6 +78,8 @@ const JS_FILES = [
   './assets/js/share.js',
   './assets/js/notif.js',
   './assets/js/about.js',
+  './assets/js/queue.js',
+  './assets/js/fullscreen.js',
   './assets/js/init.js',
 ];
 
@@ -360,7 +365,7 @@ async function checkScheduledNotifs() {
       const diff = Math.abs(nowMin - targetMin);
       const lastKey = `last_${meal.key}_${todayStr}`;
 
-      if (diff <= 30 && !schedule[lastKey]) {
+      if (diff <= 20 && !schedule[lastKey]) {
         if (!appFocused) {
           const m = MSGS[meal.key];
           await self.registration.showNotification(m.title, {

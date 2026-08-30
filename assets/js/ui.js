@@ -1,6 +1,76 @@
-function openApi(){if(key)document.getElementById('apiinp').value=key;document.getElementById('apiOv').classList.add('on');document.body.style.overflow='hidden';}
-function closeApi(){document.getElementById('apiOv').classList.remove('on');document.body.style.overflow='';}
-function saveApi(){const v=document.getElementById('apiinp').value.trim();if(!v)return;key=v;S('key',v);closeApi();document.getElementById('abar').style.display='none';rSet();fetchGeminiModels();}
+// ── API key manager ──────────────────────────────────────────────
+function openApi(){
+  const i=document.getElementById('apiinp');
+  if(i)i.value='';
+  renderKeyList();
+  document.getElementById('apiOv').classList.add('on');
+  lockScroll(true);
+}
+function closeApi(){document.getElementById('apiOv').classList.remove('on');lockScroll(false);}
+
+function renderKeyList(){
+  const el=document.getElementById('keyList');
+  if(!el)return;
+  const pool=getKeyPool();
+  if(!pool.length){
+    el.innerHTML=`<div class="key-empty">${esc(t('key_empty'))}</div>`;
+    return;
+  }
+  el.innerHTML=pool.map((e,i)=>{
+    const st=keyStatus(e);
+    return `<div class="key-row">
+      <span class="key-dot ${st.cls}"></span>
+      <div class="key-info">
+        <div class="key-val">${esc(maskKey(e.k))}</div>
+        <div class="key-state ${st.cls}">${esc(st.label)}</div>
+      </div>
+      ${(e.invalid||keyCooldownLeft(e)>0)?`<button class="key-mini" onclick="HFX.light();reviveKeyRow(${i})" title="${esc(t('retry'))}">↻</button>`:''}
+      <button class="key-mini del" onclick="HFX.light();removeKeyRow(${i})" title="${esc(t('btn_delete'))}">✕</button>
+    </div>`;
+  }).join('');
+}
+
+function saveApi(){
+  const inp=document.getElementById('apiinp');
+  const v=(inp?.value||'').trim();
+  if(!v){ if(inp){inp.style.borderColor='var(--err)';setTimeout(()=>{inp.style.borderColor='';},1400);} return; }
+  const res=addApiKey(v);
+  if(!res.ok){
+    HFX.error(); SFX.play('error');
+    showToast(res.reason==='duplicate'?t('key_dup'):res.reason==='full'?t('key_pool_full'):t('key_malformed'));
+    if(inp){inp.style.borderColor='var(--err)';setTimeout(()=>{inp.style.borderColor='';},1600);}
+    return;
+  }
+  if(inp)inp.value='';
+  HFX.success(); SFX.play('save');
+  showToast(tf('key_added',{n:res.count}));
+  renderKeyList();
+  document.getElementById('abar').style.display='none';
+  rSet();
+  fetchGeminiModels();
+  // A fresh key may unblock photos parked while everything was exhausted.
+  try{ processQueue({}); }catch(e){}
+}
+
+function removeKeyRow(i){
+  const e=getKeyPool()[i];
+  if(!e)return;
+  showConfirm('🔑',t('key_remove_title'),maskKey(e.k),t('btn_delete'),()=>{
+    removeApiKey(e.k);
+    SFX.play('delete');
+    renderKeyList(); rSet();
+    document.getElementById('abar').style.display=hasApiKey()?'none':'flex';
+  });
+}
+
+function reviveKeyRow(i){
+  const e=getKeyPool()[i];
+  if(!e)return;
+  reviveApiKey(e.k);
+  SFX.play('toggle');
+  renderKeyList(); rSet();
+  try{ processQueue({}); }catch(err){}
+}
 
 // Settings
 function rSet(){
@@ -9,8 +79,23 @@ function rSet(){
   if(U.dob){const _a=calcAgeFromDob(U.dob);if(_a&&_a!==U.age){U.age=_a;rcalc();S('u',JSON.stringify(U));}}
   document.getElementById('sgoal').textContent=GL[U.goal]||'—';
   document.getElementById('skcal').textContent=(U.kcal||0)+' '+t('unit_kcal');
-  const _sp=document.getElementById('sprefs');if(_sp){const _pc=(U.prefs||[]).length,_ac=U.allerg?1:0;_sp.textContent=(_pc+_ac)>0?(_pc?U.prefs.join(', '):'')+(_ac?(_pc?' · ':'')+U.allerg:''):t('not_set');}
-  document.getElementById('sapi').textContent=key?t('set_api_set'):t('set_api_unset');
+  const _sp=document.getElementById('sprefs');
+  if(_sp){
+    // Translate the stored preference keys — this row used to print the raw
+    // identifiers ("no_sugar") in both languages.
+    const _labels=(U.prefs||[]).map(pk=>t('pref_'+pk, pk));
+    const _ac=U.allerg?1:0;
+    _sp.textContent=(_labels.length+_ac)>0
+      ? _labels.join(', ')+(_ac?(_labels.length?' · ':'')+U.allerg:'')
+      : t('not_set');
+  }
+  const _pool=getKeyPool();
+  const _ready=_pool.filter(e=>keyIsUsable(e)).length;
+  document.getElementById('sapi').textContent = !_pool.length
+    ? t('set_api_unset')
+    : (_pool.length===1
+        ? (_ready?t('set_api_set'):t('set_api_paused'))
+        : tf('set_api_pool',{ready:_ready,total:_pool.length}));
   const _mname=ALL_MODELS.find(m=>m.id===selModel)?.name||selModel;
   document.getElementById('smodel').textContent=_mname;
   const dark=document.documentElement.getAttribute('data-theme')==='dark';
@@ -19,6 +104,7 @@ function rSet(){
   const hfxTog=document.getElementById('hfxToggle');if(hfxTog)hfxTog.classList.toggle('on',HFX.isOn());
   const waterTog=document.getElementById('waterTrackingToggle');if(waterTog)waterTog.classList.toggle('on',isWaterOn());
   const memTog=document.getElementById('chatMemoryToggle');if(memTog)memTog.classList.toggle('on',isChatMemoryOn());
+  const fsTog=document.getElementById('fullscreenToggle');if(fsTog)fsTog.classList.toggle('on',isFullscreenPref());
   const sl=document.getElementById('slang');if(sl)sl.textContent = LANG === 'en' ? 'EN' : 'RU';
   // Notif status
   if(typeof Notification!=='undefined'&&Notification.permission==='granted') _updateNotifStatus(true);
@@ -44,7 +130,7 @@ function ed(type){
         ${curDob?`<span class="dob-value">${dispDob}</span>`:`<span class="dob-placeholder">${t('ob_dob_pick')}</span>`}
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
       </button>
-      <div class="dob-age-hint" id="ed_dob_hint" style="margin-bottom:14px">${curAge?tf('age_label',{age:curAge}):''}</div>
+      <div class="dob-age-hint" id="ed_dob_hint" style="margin-bottom:14px">${curAge?tf('age_label',{age:curAge,years:fmtYears(curAge)}):''}</div>
       <div class="gender-row" style="margin-bottom:14px">
         <div class="gender-card ${U.gen==='m'?'on':''}" id="ed_gen_m" onclick="HFX.tick();SFX.play('select');edPickGender('m')"><span class="gc-icon">♂️</span><span class="gc-lbl">${t('gender_male')}</span></div>
         <div class="gender-card ${U.gen==='f'?'on':''}" id="ed_gen_f" onclick="HFX.tick();SFX.play('select');edPickGender('f')"><span class="gc-icon">♀️</span><span class="gc-lbl">${t('gender_female')}</span></div>
@@ -64,7 +150,7 @@ function ed(type){
   }
   else if(type==='kcal'){tl.textContent=t('set_kcal_norm');ct.innerHTML=`<input class="inp" type="number" id="ed_v" value="${U.kcal||2000}">`;}
   document.getElementById('edOv').classList.add('on');
-  document.body.style.overflow='hidden';
+  lockScroll(true);
   // Drag-select for edit modal cards
   if(type==='params') setTimeout(()=>{
     initDragSelect(ct.querySelector('.gender-row'), '.gender-card', c => edPickGender(c.id.includes('_m') ? 'm' : 'f'));
@@ -75,7 +161,7 @@ function ed(type){
     });
   }, 50);
 }
-function closeEd(){document.getElementById('edOv').classList.remove('on');document.body.style.overflow='';}
+function closeEd(){document.getElementById('edOv').classList.remove('on');lockScroll(false);}
 function saveEd(){
   if(edType==='name'){const v=document.getElementById('ed_v')?.value.trim();if(v)U.name=v;}
   else if(edType==='params'){
@@ -111,7 +197,7 @@ function edDobHint(){
   const hint=document.getElementById('ed_dob_hint');
   if(!hint)return;
   const age=calcAgeFromDob(dob);
-  hint.textContent=age&&age>0?tf('age_label',{age:age}):t('check_date');
+  hint.textContent=age&&age>0?tf('age_label',{age:age,years:fmtYears(age)}):t('check_date');
 }
 function rcalc(){
   let bmr=U.gen==='m'?10*U.w+6.25*U.h-5*U.age+5:10*U.w+6.25*U.h-5*U.age-161;
@@ -120,6 +206,12 @@ function rcalc(){
   U.kcal=Math.max(1200,k);U.pr=Math.round(U.w*1.8);U.ft=Math.round(U.kcal*.25/9);U.cb=Math.round((U.kcal-U.pr*4-U.ft*9)/4);
 }
 
+// RFC-4180 field escaping. The previous version just stripped commas from
+// names, which silently corrupted anything containing quotes or a newline.
+function _csvCell(v){
+  const s = String(v == null ? '' : v);
+  return /[",\n\r;]/.test(s) ? '"' + s.replace(/"/g,'""') + '"' : s;
+}
 function exportCSV() {
   try {
     const rows = [[t('csv_date'),t('csv_time'),t('csv_food'),t('csv_portion'),t('csv_kcal'),t('csv_protein'),t('csv_carbs'),t('csv_fats')]];
@@ -130,8 +222,7 @@ function exportCSV() {
     sortedLog.forEach(item => {
       rows.push([
         item.date||'', item.time||'',
-        (item.food||'').replace(/,/g,' '),
-        (item.portion||'').replace(/,/g,' '),
+        item.food||'', item.portion||'',
         item.kcal||0, Math.round(item.prot||0),
         Math.round(item.carb||0), Math.round(item.fat||0)
       ]);
@@ -150,35 +241,42 @@ function exportCSV() {
         });
       } catch(e) {}
     }
-    const csv = rows.map(r => r.join(',')).join('\n');
+    const csv = rows.map(r => r.map(_csvCell).join(',')).join('\r\n');
     const bom = '\uFEFF'; // UTF-8 BOM for Excel
     const blob = new Blob([bom + csv], {type:'text/csv;charset=utf-8;'});
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     const date = new Date().toISOString().split('T')[0];
     a.href = url; a.download = `calsnap-${date}.csv`; a.click();
-    URL.revokeObjectURL(url);
+    setTimeout(()=>URL.revokeObjectURL(url), 4000);
     SFX.play('export_done'); HFX.success();
+    showToast(t('toast_export_ok'));
   } catch(e) { showToast(t('toast_export_error')); }
 }
 
 function exportJSON(){
   try{
     const data={
-      version:1,
+      version:2,
       exported:new Date().toISOString(),
       user:G('u','null'),
       log:G('log','[]'),
       wts:G('wts','[]'),
+      favs:G('favs','[]'),
       key:G('key',''),
+      apiKeys:G('api_keys','[]'),
       model:G('model',''),
       theme:G('theme',''),
+      lang:G('lang',''),
       cal:G('cal',''),
       hfx:G('hfx_enabled','1'),
       sfx:G('sfx_enabled','1'),
       notif:G('notif_enabled','0'),
       notifCfg:G('notif_cfg',''),
       waterEnabled:G('water_enabled','0'),
+      chatMemory:G('chat_memory_enabled','0'),
+      fullscreen:G('fullscreen_enabled','1'),
+      freezes:G('streak_freezes','{}'),
     };
     // Сохраняем water_ ключи
     const waterKeys={};
@@ -192,9 +290,9 @@ function exportJSON(){
     const a=document.createElement('a');
     const date=new Date().toISOString().split('T')[0];
     a.href=url;a.download=`calsnap-backup-${date}.json`;a.click();
-    URL.revokeObjectURL(url);
+    setTimeout(()=>URL.revokeObjectURL(url), 4000);
     HFX.success();SFX.play('export_done');
-    showToast('✅ Данные экспортированы');
+    showToast(t('toast_export_ok'));
   }catch(e){showToast(tf('toast_export_error_msg',{msg:e.message}));}
 }
 
@@ -205,22 +303,29 @@ function importJSON(input){
   reader.onload=function(e){
     try{
       const data=JSON.parse(e.target.result);
-      if(!data.version||!data.log)throw new Error('Неверный формат файла');
+      if(!data.version||!data.log)throw new Error(t('toast_import_bad_format'));
       showConfirm('📥',t('confirm_import_title'),tf('confirm_import_body',{date:new Date(data.exported).toLocaleDateString(_localeTag())}),t('confirm_import_btn'),()=>{
         if(data.user&&data.user!=='null')S('u',data.user);
         if(data.log)S('log',data.log);
         if(data.wts)S('wts',data.wts);
+        if(data.favs)S('favs',data.favs);
         if(data.key)S('key',data.key);
+        if(data.apiKeys)S('api_keys',data.apiKeys);
         if(data.model)S('model',data.model);
         if(data.theme)S('theme',data.theme);
+        if(data.lang)S('lang',data.lang);
         if(data.cal)S('cal',data.cal);
-        if(data.hfx)S('hfx_enabled',data.hfx);
-        if(data.sfx)S('sfx_enabled',data.sfx);
-        if(data.notif)S('notif_enabled',data.notif);
+        if(data.hfx!=null)S('hfx_enabled',data.hfx);
+        if(data.sfx!=null)S('sfx_enabled',data.sfx);
+        if(data.notif!=null)S('notif_enabled',data.notif);
         if(data.notifCfg)S('notif_cfg',data.notifCfg);
         if(data.waterEnabled!=null)S('water_enabled',data.waterEnabled);
+        if(data.chatMemory!=null)S('chat_memory_enabled',data.chatMemory);
+        if(data.fullscreen!=null)S('fullscreen_enabled',data.fullscreen);
+        if(data.freezes)S('streak_freezes',data.freezes);
         HFX.success(); SFX.play('import_done');
-        if(data.water){Object.entries(data.water).forEach(([k,v])=>localStorage.setItem(k,v));}
+        if(data.water){Object.entries(data.water).forEach(([k,v])=>{try{localStorage.setItem(k,v);Ginvalidate(k);}catch(e){}});}
+        resetScrollLock();
         setTimeout(()=>window.location.reload(),300);
       });
     }catch(err){showToast(tf('toast_error_msg',{msg:err.message}));}
@@ -276,14 +381,32 @@ function _drainToastQueue(){
   }, duration);
 }
 
+// "Reset all data" must leave nothing behind. The previous version kept
+// favourites, the streak-freeze ledger, the chat-memory flag, cached AI
+// analyses and the model choice (it cleared a non-existent `mdl` key instead
+// of `model`), so a "fresh start" was not actually fresh.
+// Interface preferences the user picked deliberately — language, theme,
+// sound/haptics, fullscreen — are intentionally preserved.
+const RESET_KEEP_KEYS = ['lang','theme','sfx_enabled','hfx_enabled','fullscreen_enabled','install_dismissed_at','_etag'];
 function clrAll(){
   showConfirm('🗑️',t('confirm_reset_title'),t('confirm_reset_body'),t('confirm_reset_btn'),()=>{
     SFX.play('reset_confirm'); HFX.heavy();
-    log=[];S('log','[]');wts=[];S('wts','[]');S('u','null');U=null;S('key','');key='';S('mdl','');
-    // Clear water data for all dates
-    const keysToRemove=[];for(let i=0;i<localStorage.length;i++){const k=localStorage.key(i);if(k&&(k.startsWith('water_')||k.startsWith('tip_')||k==='notif_cfg'||k==='notif_enabled'||k==='water_enabled'))keysToRemove.push(k);}
-    keysToRemove.forEach(k=>{ localStorage.removeItem(k); Ginvalidate(k); });
+    const doomed=[];
+    for(let i=0;i<localStorage.length;i++){
+      const k=localStorage.key(i);
+      if(k && RESET_KEEP_KEYS.indexOf(k)===-1) doomed.push(k);
+    }
+    doomed.forEach(k=>{ try{ localStorage.removeItem(k); }catch(e){} Ginvalidate(k); });
+    // Drop every stored food photo as well.
+    try { IMG.keys().then(ks=>ks.forEach(k=>IMG.del(k))); } catch(e) {}
+    log=[];wts=[];U=null;key='';
+    try { S('api_keys','[]'); } catch(e) {}
+    try { aiConvo.length=0; } catch(e) {}
+    try { selDay=null; } catch(e) {}
+    try { _clearNotifTimers(); } catch(e) {}
+    try { document.getElementById('aimsg').innerHTML=''; } catch(e) {}
     document.getElementById('nav').style.display='none';
+    resetScrollLock();
     // Brief delay for animation
     setTimeout(()=>ss('ob'),150);
   });
@@ -317,7 +440,7 @@ function toggleWaterTracking(){
   S('water_enabled', newVal?'1':'0');
   const tog=document.getElementById('waterTrackingToggle');
   if(tog)tog.classList.toggle('on',newVal);
-  showToast(newVal ? t('toast_water_on','💧 Трекинг воды включён') : t('toast_water_off','Трекинг воды выключен'));
+  showToast(newVal ? t('toast_water_on') : t('toast_water_off'));
   try { rH && rH(); } catch(e){}
   try { if(document.getElementById('prog')?.classList.contains('active')) rWater(); } catch(e){}
 }
@@ -330,21 +453,21 @@ function toggleChatMemory(){
     S('chat_memory_enabled','0');
     const tog=document.getElementById('chatMemoryToggle');
     if(tog)tog.classList.remove('on');
-    showToast(t('toast_chat_memory_off','Запоминание контекста выключено'));
+    showToast(t('toast_chat_memory_off'));
     return;
   }
-  showConfirm('🧠',t('confirm_chat_memory_title','Включить запоминание контекста?'),
-    t('confirm_chat_memory_body','ИИ будет учитывать предыдущие сообщения в чате. Это увеличивает расход лимита запросов Gemini API, так как история переписки будет отправляться заново с каждым сообщением.'),
-    t('confirm_chat_memory_btn','Включить'),
+  showConfirm('🧠',t('confirm_chat_memory_title'),
+    t('confirm_chat_memory_body'),
+    t('confirm_chat_memory_btn'),
     ()=>{
       S('chat_memory_enabled','1');
       const tog=document.getElementById('chatMemoryToggle');
       if(tog)tog.classList.add('on');
-      showToast(t('toast_chat_memory_on','🧠 Запоминание контекста включено'));
+      showToast(t('toast_chat_memory_on'));
     });
 }
 
-function showErr(id,msg){const e=document.getElementById(id);e.textContent='⚠️ '+(msg||'Неизвестная ошибка');e.classList.add('on');}
+function showErr(id,msg){const e=document.getElementById(id);if(!e)return;e.textContent='⚠️ '+(msg||t('err_unknown'));e.classList.add('on');}
 
 // Тема применена в <head>; здесь только следим за системными изменениями темы (если юзер не выбрал явно)
 try {

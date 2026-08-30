@@ -42,11 +42,14 @@ function rH(){
   const _gk = hr<6 ? 'greet_night' : hr<12 ? 'greet_morning' : hr<18 ? 'greet_day' : 'greet_evening';
   document.getElementById('greet').textContent=t(_gk);
   document.getElementById('hname').textContent=U.name+'!';
-  document.getElementById('abar').style.display=key?'none':'flex';
+  document.getElementById('abar').style.display=hasApiKey()?'none':'flex';
   const _sk=streak();
   const _psk=parseInt(sessionStorage.getItem('_sk')||'0');
   if(_sk>_psk&&_psk>=0&&_sk>0){sessionStorage.setItem('_sk',_sk);if(_psk>0)SFX.play('streak_up');}
   document.getElementById('snum').textContent=_sk;
+  // Agreeing noun — a fixed 'дней' rendered "1 дней".
+  const _sl=document.querySelector('.streak .sl');
+  if(_sl)_sl.textContent=fmtDaysWord(_sk);
   rCal();
   
   const activeDayStr=selDay||ds();
@@ -87,6 +90,7 @@ function rH(){
 
   // Mini water — reflect whichever day is selected (matches the calorie ring above)
   _updateMiniWater(activeDayStr);
+  try { renderQueue(); } catch(e) {}
   const logEl=document.getElementById('hlog');
   if(!tl.length){logEl.innerHTML=`<div class="empty"><span class="ei">🥗</span><p>${t('h_tap_plus')}</p></div>`;return;}
 
@@ -116,11 +120,18 @@ function rH(){
       const idx = log.indexOf(item);
       const em = emo(item.food||'');
       const qty = item.qty||1;
+      // Photos live in IndexedDB now; render a placeholder and fill the src
+      // in after the markup is attached (hydrateImages below).
+      const imgCell = item.imgId
+        ? `<img class="li-img" data-img-id="${esc(item.imgId)}" alt="" onerror="this.outerHTML='<div class=\\'li-img\\'>${em}</div>'">`
+        : (item.img
+            ? `<img class="li-img" src="${esc(item.img)}" alt="" onerror="this.outerHTML='<div class=\\'li-img\\'>${em}</div>'">`
+            : `<div class="li-img">${em}</div>`);
       html += `<div class="logitem" onclick="openFd(${idx})">
-        ${item.img?`<img class="li-img" src="${item.img}" onerror="this.outerHTML='<div class=\\'li-img\\'>${em}</div>'">`:`<div class="li-img">${em}</div>`}
+        ${imgCell}
         <div class="li-info">
-          <div class="li-name">${item.food||t('h_dish')}${qty>1?`<span class="li-qty">${qty} ${t('unit_pcs')}</span>`:''}${item.isDrink?'<span class="li-drink-tag">💧</span>':''}</div>
-          <div class="li-sub">${item.time}${item.portion?' · '+item.portion:''}</div>
+          <div class="li-name">${esc(item.food||t('h_dish'))}${qty>1?`<span class="li-qty">${qty} ${t('unit_pcs')}</span>`:''}${item.isDrink?'<span class="li-drink-tag">💧</span>':''}</div>
+          <div class="li-sub">${esc(item.time||'')}${item.portion?' · '+esc(item.portion):''}</div>
           <div class="li-macs">
             <span class="li-mac p">${t('macro_p_short')}:${Math.round(item.prot||0)}${t('unit_g')}</span>
             <span class="li-mac c">${t('macro_c_short')}:${Math.round(item.carb||0)}${t('unit_g')}</span>
@@ -138,6 +149,7 @@ function rH(){
     html += '</div>';
   });
   logEl.innerHTML = html;
+  hydrateImages(logEl);
 }
 
 
@@ -157,7 +169,7 @@ function toggleFav(idx){
     HFX.light();SFX.play('toggle');
     showToast(t('toast_removed_from_fav'));
   } else {
-    const fav={food:item.food,portion:item.portion,kcal:item.kcal,prot:item.prot,fat:item.fat,carb:item.carb,img:item.img||null};
+    const fav={food:item.food,portion:item.portion,kcal:item.kcal,prot:item.prot,fat:item.fat,carb:item.carb,img:item.img||null,imgId:item.imgId||null};
     favs.unshift(fav);
     if(favs.length>30)favs=favs.slice(0,30);
     HFX.medium();SFX.play('save');
@@ -166,6 +178,7 @@ function toggleFav(idx){
   saveFavs(favs);rH();
 }
 function renderFavs(){
+  renderSearchDB(document.getElementById('dbSearchInp')?.value||'');
   const favs=getFavs();
   const el=document.getElementById('favsList');
   if(!el)return;
@@ -173,21 +186,28 @@ function renderFavs(){
     el.innerHTML=`<div class="fav-empty"><span class="fav-empty-ico">⭐</span><b>${t('fav_empty_title')}</b><br>${t('fav_empty_sub')}</div>`;
     return;
   }
+  const _thumb=(f)=>{
+    if(f.imgId) return `<img data-img-id="${esc(f.imgId)}" alt="" style="width:40px;height:40px;border-radius:12px;object-fit:cover">`;
+    if(f.img)   return `<img src="${esc(f.img)}" alt="" style="width:40px;height:40px;border-radius:12px;object-fit:cover">`;
+    return emo(f.food||'');
+  };
   el.innerHTML=favs.map((f,fi)=>`<div class="fav-item">
-    <div class="fav-icon">${f.img?`<img src="${f.img}" style="width:40px;height:40px;border-radius:12px;object-fit:cover">`:emo(f.food||'')}</div>
+    <div class="fav-icon">${_thumb(f)}</div>
     <div class="fav-info">
-      <div class="fav-name">${f.food||t('h_dish')}</div>
-      <div class="fav-kcal">${f.kcal} ${t('unit_kcal')}${f.portion?' · '+f.portion:''}</div>
+      <div class="fav-name">${esc(f.food||t('h_dish'))}</div>
+      <div class="fav-kcal">${f.kcal} ${t('unit_kcal')}${f.portion?' · '+esc(f.portion):''}</div>
     </div>
     <button class="fav-del-btn" onclick="removeFav(${fi})" title="${t('delete_action')}">✕</button>
     <button class="fav-add-btn" onclick="addFavToLog(${fi})">${t('fav_add_btn')}</button>
   </div>`).join('');
+  hydrateImages(el);
 }
 function addFavToLog(fi){
   const favs=getFavs();
   const f=favs[fi];if(!f)return;
   const entry={...f,time:tnow(),date:ds(),qty:1};
-  log.unshift(entry);S('log',JSON.stringify(log));
+  log.unshift(entry);
+  if(!saveLog()){ log.shift(); HFX.error(); return; }
   HFX.success();SFX.play('add_food');
   showToast(tf('toast_added_with_name',{name:f.food}));
   rH();closeAdd();
@@ -203,111 +223,146 @@ function removeFav(fi){
 // ── FOOD DATABASE ──
 const FOOD_DB = [
   // Зерновые и крупы
-  {n:'Гречка варёная',p:'200г',k:132,pr:5,ft:1,cb:26},{n:'Рис варёный',p:'200г',k:260,pr:5,ft:0,cb:57},
-  {n:'Овсянка на воде',p:'200г',k:88,pr:3,ft:2,cb:15},{n:'Овсянка на молоке',p:'200г',k:140,pr:6,ft:4,cb:21},
-  {n:'Перловка варёная',p:'200г',k:160,pr:4,ft:1,cb:34},{n:'Пшено варёное',p:'200г',k:188,pr:5,ft:1,cb:40},
-  {n:'Спагетти варёные',p:'200г',k:280,pr:10,ft:1,cb:56},{n:'Макароны варёные',p:'200г',k:264,pr:9,ft:1,cb:53},
-  {n:'Хлеб белый',p:'1 кусок 30г',k:79,pr:2,ft:1,cb:15},{n:'Хлеб ржаной',p:'1 кусок 30г',k:66,pr:2,ft:1,cb:13},
-  {n:'Батон нарезной',p:'1 кусок 25г',k:63,pr:2,ft:1,cb:12},{n:'Лаваш',p:'1 шт 60г',k:165,pr:5,ft:2,cb:32},
+  {n:'Гречка варёная',e:'Buckwheat, boiled',p:'200г',k:132,pr:5,ft:1,cb:26},{n:'Рис варёный',e:'White rice, boiled',p:'200г',k:260,pr:5,ft:0,cb:57},
+  {n:'Овсянка на воде',e:'Oatmeal with water',p:'200г',k:88,pr:3,ft:2,cb:15},{n:'Овсянка на молоке',e:'Oatmeal with milk',p:'200г',k:140,pr:6,ft:4,cb:21},
+  {n:'Перловка варёная',e:'Pearl barley, boiled',p:'200г',k:160,pr:4,ft:1,cb:34},{n:'Пшено варёное',e:'Millet, boiled',p:'200г',k:188,pr:5,ft:1,cb:40},
+  {n:'Спагетти варёные',e:'Spaghetti, boiled',p:'200г',k:280,pr:10,ft:1,cb:56},{n:'Макароны варёные',e:'Pasta, boiled',p:'200г',k:264,pr:9,ft:1,cb:53},
+  {n:'Хлеб белый',e:'White bread',p:'1 кусок 30г',k:79,pr:2,ft:1,cb:15},{n:'Хлеб ржаной',e:'Rye bread',p:'1 кусок 30г',k:66,pr:2,ft:1,cb:13},
+  {n:'Батон нарезной',e:'Sliced white loaf',p:'1 кусок 25г',k:63,pr:2,ft:1,cb:12},{n:'Лаваш',e:'Lavash flatbread',p:'1 шт 60г',k:165,pr:5,ft:2,cb:32},
   // Мясо и птица
-  {n:'Куриная грудка варёная',p:'150г',k:165,pr:34,ft:3,cb:0},{n:'Куриная грудка жареная',p:'150г',k:200,pr:32,ft:7,cb:0},
-  {n:'Куриное бедро варёное',p:'150г',k:222,pr:26,ft:13,cb:0},{n:'Говядина варёная',p:'150г',k:255,pr:29,ft:15,cb:0},
-  {n:'Свинина жареная',p:'150г',k:360,pr:24,ft:28,cb:0},{n:'Фарш говяжий жареный',p:'150г',k:345,pr:26,ft:26,cb:0},
-  {n:'Котлета домашняя',p:'1 шт 100г',k:235,pr:15,ft:17,cb:7},{n:'Сосиски молочные',p:'2 шт 80г',k:208,pr:9,ft:18,cb:2},
-  {n:'Колбаса докторская',p:'100г',k:260,pr:13,ft:22,cb:2},{n:'Бекон жареный',p:'50г',k:243,pr:9,ft:22,cb:0},
+  {n:'Куриная грудка варёная',e:'Chicken breast, boiled',p:'150г',k:165,pr:34,ft:3,cb:0},{n:'Куриная грудка жареная',e:'Chicken breast, fried',p:'150г',k:200,pr:32,ft:7,cb:0},
+  {n:'Куриное бедро варёное',e:'Chicken thigh, boiled',p:'150г',k:222,pr:26,ft:13,cb:0},{n:'Говядина варёная',e:'Beef, boiled',p:'150г',k:255,pr:29,ft:15,cb:0},
+  {n:'Свинина жареная',e:'Pork, fried',p:'150г',k:360,pr:24,ft:28,cb:0},{n:'Фарш говяжий жареный',e:'Ground beef, fried',p:'150г',k:345,pr:26,ft:26,cb:0},
+  {n:'Котлета домашняя',e:'Homemade meat patty',p:'1 шт 100г',k:235,pr:15,ft:17,cb:7},{n:'Сосиски молочные',e:'Milk sausages',p:'2 шт 80г',k:208,pr:9,ft:18,cb:2},
+  {n:'Колбаса докторская',e:'Bologna sausage',p:'100г',k:260,pr:13,ft:22,cb:2},{n:'Бекон жареный',e:'Bacon, fried',p:'50г',k:243,pr:9,ft:22,cb:0},
   // Рыба и морепродукты
-  {n:'Лосось запечённый',p:'150г',k:280,pr:33,ft:16,cb:0},{n:'Тунец в собственном соку',p:'1 банка 100г',k:96,pr:22,ft:1,cb:0},
-  {n:'Горбуша варёная',p:'150г',k:175,pr:31,ft:5,cb:0},{n:'Минтай запечённый',p:'150г',k:126,pr:28,ft:1,cb:0},
-  {n:'Скумбрия запечённая',p:'150г',k:317,pr:27,ft:22,cb:0},{n:'Креветки варёные',p:'150г',k:142,pr:29,ft:2,cb:1},
-  {n:'Красная икра',p:'1 ч.л. 15г',k:36,pr:4,ft:2,cb:0},
+  {n:'Лосось запечённый',e:'Salmon, baked',p:'150г',k:280,pr:33,ft:16,cb:0},{n:'Тунец в собственном соку',e:'Tuna in water, canned',p:'1 банка 100г',k:96,pr:22,ft:1,cb:0},
+  {n:'Горбуша варёная',e:'Pink salmon, boiled',p:'150г',k:175,pr:31,ft:5,cb:0},{n:'Минтай запечённый',e:'Pollock, baked',p:'150г',k:126,pr:28,ft:1,cb:0},
+  {n:'Скумбрия запечённая',e:'Mackerel, baked',p:'150г',k:317,pr:27,ft:22,cb:0},{n:'Креветки варёные',e:'Shrimp, boiled',p:'150г',k:142,pr:29,ft:2,cb:1},
+  {n:'Красная икра',e:'Red caviar',p:'1 ч.л. 15г',k:36,pr:4,ft:2,cb:0},
   // Молочные продукты
-  {n:'Творог 5%',p:'200г',k:190,pr:27,ft:10,cb:6},{n:'Творог 0%',p:'200г',k:142,pr:28,ft:0,cb:8},
-  {n:'Йогурт натуральный',p:'200г',k:122,pr:8,ft:3,cb:14},{n:'Кефир 1%',p:'250мл',k:73,pr:8,ft:3,cb:10},
-  {n:'Молоко 2.5%',p:'250мл',k:153,pr:8,ft:6,cb:15},{n:'Молоко 3.2%',p:'250мл',k:160,pr:8,ft:8,cb:12},
-  {n:'Сыр твёрдый',p:'30г',k:114,pr:8,ft:9,cb:0},{n:'Сыр Пармезан',p:'30г',k:132,pr:11,ft:9,cb:1},
-  {n:'Сыр Адыгейский',p:'100г',k:264,pr:19,ft:20,cb:0},{n:'Масло сливочное',p:'10г',k:74,pr:0,ft:8,cb:0},
-  {n:'Сметана 15%',p:'2 ст.л. 40г',k:62,pr:1,ft:6,cb:2},{n:'Мороженое',p:'1 шарик 80г',k:160,pr:3,ft:8,cb:20},
+  {n:'Творог 5%',e:'Cottage cheese 5%',p:'200г',k:190,pr:27,ft:10,cb:6},{n:'Творог 0%',e:'Cottage cheese 0%',p:'200г',k:142,pr:28,ft:0,cb:8},
+  {n:'Йогурт натуральный',e:'Plain yogurt',p:'200г',k:122,pr:8,ft:3,cb:14},{n:'Кефир 1%',e:'Kefir 1%',p:'250мл',k:73,pr:8,ft:3,cb:10},
+  {n:'Молоко 2.5%',e:'Milk 2.5%',p:'250мл',k:153,pr:8,ft:6,cb:15},{n:'Молоко 3.2%',e:'Milk 3.2%',p:'250мл',k:160,pr:8,ft:8,cb:12},
+  {n:'Сыр твёрдый',e:'Hard cheese',p:'30г',k:114,pr:8,ft:9,cb:0},{n:'Сыр Пармезан',e:'Parmesan cheese',p:'30г',k:132,pr:11,ft:9,cb:1},
+  {n:'Сыр Адыгейский',e:'Adyghe cheese',p:'100г',k:264,pr:19,ft:20,cb:0},{n:'Масло сливочное',e:'Butter',p:'10г',k:74,pr:0,ft:8,cb:0},
+  {n:'Сметана 15%',e:'Sour cream 15%',p:'2 ст.л. 40г',k:62,pr:1,ft:6,cb:2},{n:'Мороженое',e:'Ice cream',p:'1 шарик 80г',k:160,pr:3,ft:8,cb:20},
   // Яйца
-  {n:'Яйцо варёное',p:'1 шт 55г',k:78,pr:6,ft:5,cb:1},{n:'Яичница из 2 яиц',p:'120г',k:190,pr:13,ft:14,cb:1},
-  {n:'Омлет 2 яйца',p:'150г',k:205,pr:14,ft:15,cb:3},
+  {n:'Яйцо варёное',e:'Boiled egg',p:'1 шт 55г',k:78,pr:6,ft:5,cb:1},{n:'Яичница из 2 яиц',e:'Fried eggs (2)',p:'120г',k:190,pr:13,ft:14,cb:1},
+  {n:'Омлет 2 яйца',e:'Omelette (2 eggs)',p:'150г',k:205,pr:14,ft:15,cb:3},
   // Овощи
-  {n:'Картофель варёный',p:'200г',k:166,pr:4,ft:0,cb:38},{n:'Картофель жареный',p:'200г',k:380,pr:4,ft:18,cb:50},
-  {n:'Картофельное пюре',p:'200г',k:194,pr:4,ft:7,cb:28},{n:'Морковь сырая',p:'1 шт 100г',k:41,pr:1,ft:0,cb:10},
-  {n:'Свёкла варёная',p:'100г',k:49,pr:2,ft:0,cb:11},{n:'Брокколи варёная',p:'200г',k:70,pr:6,ft:1,cb:13},
-  {n:'Капуста тушёная',p:'200г',k:90,pr:3,ft:4,cb:12},{n:'Огурец',p:'1 шт 120г',k:18,pr:1,ft:0,cb:4},
-  {n:'Помидор',p:'1 шт 120г',k:22,pr:1,ft:0,cb:5},{n:'Болгарский перец',p:'1 шт 130г',k:39,pr:1,ft:0,cb:9},
-  {n:'Лук репчатый',p:'1 шт 100г',k:41,pr:1,ft:0,cb:10},{n:'Чеснок',p:'2 зубчика 10г',k:15,pr:1,ft:0,cb:3},
-  {n:'Баклажан жареный',p:'150г',k:105,pr:2,ft:7,cb:9},{n:'Кабачок тушёный',p:'200г',k:54,pr:2,ft:2,cb:7},
+  {n:'Картофель варёный',e:'Potatoes, boiled',p:'200г',k:166,pr:4,ft:0,cb:38},{n:'Картофель жареный',e:'Potatoes, fried',p:'200г',k:380,pr:4,ft:18,cb:50},
+  {n:'Картофельное пюре',e:'Mashed potatoes',p:'200г',k:194,pr:4,ft:7,cb:28},{n:'Морковь сырая',e:'Carrot, raw',p:'1 шт 100г',k:41,pr:1,ft:0,cb:10},
+  {n:'Свёкла варёная',e:'Beetroot, boiled',p:'100г',k:49,pr:2,ft:0,cb:11},{n:'Брокколи варёная',e:'Broccoli, boiled',p:'200г',k:70,pr:6,ft:1,cb:13},
+  {n:'Капуста тушёная',e:'Braised cabbage',p:'200г',k:90,pr:3,ft:4,cb:12},{n:'Огурец',e:'Cucumber',p:'1 шт 120г',k:18,pr:1,ft:0,cb:4},
+  {n:'Помидор',e:'Tomato',p:'1 шт 120г',k:22,pr:1,ft:0,cb:5},{n:'Болгарский перец',e:'Bell pepper',p:'1 шт 130г',k:39,pr:1,ft:0,cb:9},
+  {n:'Лук репчатый',e:'Onion',p:'1 шт 100г',k:41,pr:1,ft:0,cb:10},{n:'Чеснок',e:'Garlic',p:'2 зубчика 10г',k:15,pr:1,ft:0,cb:3},
+  {n:'Баклажан жареный',e:'Eggplant, fried',p:'150г',k:105,pr:2,ft:7,cb:9},{n:'Кабачок тушёный',e:'Zucchini, braised',p:'200г',k:54,pr:2,ft:2,cb:7},
   // Бобовые
-  {n:'Чечевица варёная',p:'200г',k:230,pr:18,ft:1,cb:40},{n:'Фасоль красная варёная',p:'200г',k:228,pr:15,ft:1,cb:41},
-  {n:'Нут варёный',p:'200г',k:364,pr:20,ft:6,cb:60},{n:'Горох варёный',p:'200г',k:196,pr:13,ft:1,cb:36},
+  {n:'Чечевица варёная',e:'Lentils, boiled',p:'200г',k:230,pr:18,ft:1,cb:40},{n:'Фасоль красная варёная',e:'Red kidney beans, boiled',p:'200г',k:228,pr:15,ft:1,cb:41},
+  {n:'Нут варёный',e:'Chickpeas, boiled',p:'200г',k:364,pr:20,ft:6,cb:60},{n:'Горох варёный',e:'Peas, boiled',p:'200г',k:196,pr:13,ft:1,cb:36},
   // Фрукты
-  {n:'Яблоко',p:'1 шт 180г',k:94,pr:0,ft:0,cb:25},{n:'Банан',p:'1 шт 130г',k:119,pr:1,ft:0,cb:31},
-  {n:'Апельсин',p:'1 шт 180г',k:86,pr:2,ft:0,cb:22},{n:'Мандарин',p:'2 шт 120г',k:62,pr:1,ft:0,cb:15},
-  {n:'Груша',p:'1 шт 160г',k:88,pr:1,ft:0,cb:23},{n:'Виноград',p:'150г',k:103,pr:1,ft:0,cb:27},
-  {n:'Арбуз',p:'300г',k:90,pr:2,ft:0,cb:21},{n:'Клубника',p:'150г',k:48,pr:1,ft:0,cb:11},
-  {n:'Черника',p:'100г',k:57,pr:1,ft:0,cb:14},{n:'Авокадо',p:'½ шт 80г',k:128,pr:2,ft:12,cb:7},
+  {n:'Яблоко',e:'Apple',p:'1 шт 180г',k:94,pr:0,ft:0,cb:25},{n:'Банан',e:'Banana',p:'1 шт 130г',k:119,pr:1,ft:0,cb:31},
+  {n:'Апельсин',e:'Orange',p:'1 шт 180г',k:86,pr:2,ft:0,cb:22},{n:'Мандарин',e:'Mandarin',p:'2 шт 120г',k:62,pr:1,ft:0,cb:15},
+  {n:'Груша',e:'Pear',p:'1 шт 160г',k:88,pr:1,ft:0,cb:23},{n:'Виноград',e:'Grapes',p:'150г',k:103,pr:1,ft:0,cb:27},
+  {n:'Арбуз',e:'Watermelon',p:'300г',k:90,pr:2,ft:0,cb:21},{n:'Клубника',e:'Strawberries',p:'150г',k:48,pr:1,ft:0,cb:11},
+  {n:'Черника',e:'Blueberries',p:'100г',k:57,pr:1,ft:0,cb:14},{n:'Авокадо',e:'Avocado',p:'½ шт 80г',k:128,pr:2,ft:12,cb:7},
   // Орехи и семена
-  {n:'Грецкий орех',p:'30г',k:196,pr:5,ft:20,cb:4},{n:'Миндаль',p:'30г',k:175,pr:6,ft:15,cb:6},
-  {n:'Арахис',p:'30г',k:176,pr:8,ft:14,cb:6},{n:'Кешью',p:'30г',k:174,pr:5,ft:14,cb:9},
-  {n:'Семена чиа',p:'1 ст.л. 15г',k:72,pr:2,ft:5,cb:6},{n:'Льняное семя',p:'1 ст.л. 15г',k:83,pr:3,ft:6,cb:4},
+  {n:'Грецкий орех',e:'Walnuts',p:'30г',k:196,pr:5,ft:20,cb:4},{n:'Миндаль',e:'Almonds',p:'30г',k:175,pr:6,ft:15,cb:6},
+  {n:'Арахис',e:'Peanuts',p:'30г',k:176,pr:8,ft:14,cb:6},{n:'Кешью',e:'Cashews',p:'30г',k:174,pr:5,ft:14,cb:9},
+  {n:'Семена чиа',e:'Chia seeds',p:'1 ст.л. 15г',k:72,pr:2,ft:5,cb:6},{n:'Льняное семя',e:'Flaxseed',p:'1 ст.л. 15г',k:83,pr:3,ft:6,cb:4},
   // Соусы и масла
-  {n:'Оливковое масло',p:'1 ст.л. 15г',k:135,pr:0,ft:15,cb:0},{n:'Подсолнечное масло',p:'1 ст.л. 15г',k:135,pr:0,ft:15,cb:0},
-  {n:'Майонез',p:'1 ст.л. 25г',k:173,pr:0,ft:19,cb:1},{n:'Кетчуп',p:'2 ст.л. 40г',k:50,pr:1,ft:0,cb:12},
-  {n:'Соевый соус',p:'1 ст.л. 15г',k:13,pr:2,ft:0,cb:1},{n:'Мёд',p:'1 ст.л. 20г',k:64,pr:0,ft:0,cb:17},
+  {n:'Оливковое масло',e:'Olive oil',p:'1 ст.л. 15г',k:135,pr:0,ft:15,cb:0},{n:'Подсолнечное масло',e:'Sunflower oil',p:'1 ст.л. 15г',k:135,pr:0,ft:15,cb:0},
+  {n:'Майонез',e:'Mayonnaise',p:'1 ст.л. 25г',k:173,pr:0,ft:19,cb:1},{n:'Кетчуп',e:'Ketchup',p:'2 ст.л. 40г',k:50,pr:1,ft:0,cb:12},
+  {n:'Соевый соус',e:'Soy sauce',p:'1 ст.л. 15г',k:13,pr:2,ft:0,cb:1},{n:'Мёд',e:'Honey',p:'1 ст.л. 20г',k:64,pr:0,ft:0,cb:17},
   // Готовые блюда
-  {n:'Борщ',p:'300г',k:165,pr:8,ft:6,cb:22},{n:'Щи',p:'300г',k:126,pr:6,ft:4,cb:17},
-  {n:'Пельмени варёные',p:'200г',k:420,pr:19,ft:17,cb:47},{n:'Вареники с картошкой',p:'200г',k:280,pr:9,ft:6,cb:48},
-  {n:'Пицца Маргарита',p:'2 куска 200г',k:500,pr:20,ft:18,cb:64},{n:'Бургер',p:'1 шт 200г',k:480,pr:24,ft:24,cb:44},
-  {n:'Шаурма',p:'1 шт 350г',k:700,pr:32,ft:35,cb:62},{n:'Роллы Калифорния',p:'8 шт 200г',k:340,pr:14,ft:8,cb:52},
-  {n:'Хачапури',p:'1 порция 200г',k:580,pr:20,ft:28,cb:60},{n:'Хинкали',p:'3 шт 180г',k:450,pr:22,ft:18,cb:50},
-  {n:'Шашлык из свинины',p:'200г',k:500,pr:30,ft:40,cb:0},{n:'Блины',p:'3 шт 150г',k:363,pr:9,ft:14,cb:52},
-  {n:'Овсяноблин',p:'1 шт 150г',k:195,pr:13,ft:6,cb:22},{n:'Сырники',p:'3 шт 180г',k:430,pr:22,ft:18,cb:44},
-  {n:'Ленивые вареники',p:'200г',k:310,pr:14,ft:9,cb:44},{n:'Плов',p:'300г',k:450,pr:16,ft:14,cb:62},
+  {n:'Борщ',e:'Borscht',p:'300г',k:165,pr:8,ft:6,cb:22},{n:'Щи',e:'Shchi cabbage soup',p:'300г',k:126,pr:6,ft:4,cb:17},
+  {n:'Пельмени варёные',e:'Pelmeni dumplings, boiled',p:'200г',k:420,pr:19,ft:17,cb:47},{n:'Вареники с картошкой',e:'Potato varenyky',p:'200г',k:280,pr:9,ft:6,cb:48},
+  {n:'Пицца Маргарита',e:'Pizza Margherita',p:'2 куска 200г',k:500,pr:20,ft:18,cb:64},{n:'Бургер',e:'Burger',p:'1 шт 200г',k:480,pr:24,ft:24,cb:44},
+  {n:'Шаурма',e:'Shawarma',p:'1 шт 350г',k:700,pr:32,ft:35,cb:62},{n:'Роллы Калифорния',e:'California rolls',p:'8 шт 200г',k:340,pr:14,ft:8,cb:52},
+  {n:'Хачапури',e:'Khachapuri',p:'1 порция 200г',k:580,pr:20,ft:28,cb:60},{n:'Хинкали',e:'Khinkali dumplings',p:'3 шт 180г',k:450,pr:22,ft:18,cb:50},
+  {n:'Шашлык из свинины',e:'Pork shashlik skewers',p:'200г',k:500,pr:30,ft:40,cb:0},{n:'Блины',e:'Pancakes (blini)',p:'3 шт 150г',k:363,pr:9,ft:14,cb:52},
+  {n:'Овсяноблин',e:'Oat pancake',p:'1 шт 150г',k:195,pr:13,ft:6,cb:22},{n:'Сырники',e:'Syrniki cheese pancakes',p:'3 шт 180г',k:430,pr:22,ft:18,cb:44},
+  {n:'Ленивые вареники',e:'Lazy varenyky',p:'200г',k:310,pr:14,ft:9,cb:44},{n:'Плов',e:'Pilaf',p:'300г',k:450,pr:16,ft:14,cb:62},
   // Снеки и сладкое
-  {n:'Шоколад молочный',p:'1 плитка 40г',k:216,pr:3,ft:13,cb:24},{n:'Шоколад тёмный 70%',p:'2 кусочка 20г',k:110,pr:2,ft:7,cb:10},
-  {n:'Печенье овсяное',p:'3 шт 60г',k:270,pr:4,ft:11,cb:38},{n:'Чипсы Лайс',p:'1/2 пачки 30г',k:165,pr:1,ft:11,cb:16},
-  {n:'Гречневые хлебцы',p:'4 шт 30г',k:107,pr:3,ft:1,cb:23},{n:'Протеиновый батончик',p:'1 шт 60г',k:220,pr:20,ft:7,cb:22},
+  {n:'Шоколад молочный',e:'Milk chocolate',p:'1 плитка 40г',k:216,pr:3,ft:13,cb:24},{n:'Шоколад тёмный 70%',e:'Dark chocolate 70%',p:'2 кусочка 20г',k:110,pr:2,ft:7,cb:10},
+  {n:'Печенье овсяное',e:'Oatmeal cookies',p:'3 шт 60г',k:270,pr:4,ft:11,cb:38},{n:'Чипсы Лайс',e:'Lay\'s potato chips',p:'1/2 пачки 30г',k:165,pr:1,ft:11,cb:16},
+  {n:'Гречневые хлебцы',e:'Buckwheat crispbread',p:'4 шт 30г',k:107,pr:3,ft:1,cb:23},{n:'Протеиновый батончик',e:'Protein bar',p:'1 шт 60г',k:220,pr:20,ft:7,cb:22},
   // Напитки (caloric)
-  {n:'Кофе латте 200мл',p:'200мл',k:120,pr:6,ft:5,cb:12,isDrink:true,drinkId:'coffee',ml:200},
-  {n:'Кофе американо',p:'200мл',k:10,pr:0,ft:0,cb:2,isDrink:true,drinkId:'coffee',ml:200},
-  {n:'Капучино 200мл',p:'200мл',k:90,pr:5,ft:4,cb:9,isDrink:true,drinkId:'coffee',ml:200},
-  {n:'Чай с сахаром',p:'250мл',k:45,pr:0,ft:0,cb:11,isDrink:true,drinkId:'tea',ml:250},
-  {n:'Апельсиновый сок',p:'250мл',k:113,pr:2,ft:0,cb:26,isDrink:true,drinkId:'juice',ml:250},
-  {n:'Кефир 1%',p:'250мл',k:73,pr:8,ft:3,cb:10,isDrink:true,drinkId:'milk',ml:250},
-  {n:'Молочный коктейль',p:'400мл',k:400,pr:9,ft:10,cb:66,isDrink:true,drinkId:'milk',ml:400},
-  {n:'Кока-Кола 330мл',p:'330мл',k:139,pr:0,ft:0,cb:35,isDrink:true,drinkId:'other',ml:330},
-  {n:'Вода 250мл',p:'250мл',k:0,pr:0,ft:0,cb:0,isDrink:true,drinkId:'water',ml:250},
-  {n:'Смузи фруктовый',p:'300мл',k:180,pr:2,ft:1,cb:42,isDrink:true,drinkId:'juice',ml:300},
-  {n:'Протеиновый коктейль',p:'400мл',k:280,pr:30,ft:5,cb:28,isDrink:true,drinkId:'milk',ml:400},
+  {n:'Кофе латте 200мл',e:'Latte 200 ml',p:'200мл',k:120,pr:6,ft:5,cb:12,isDrink:true,drinkId:'coffee',ml:200},
+  {n:'Кофе американо',e:'Americano',p:'200мл',k:10,pr:0,ft:0,cb:2,isDrink:true,drinkId:'coffee',ml:200},
+  {n:'Капучино 200мл',e:'Cappuccino 200 ml',p:'200мл',k:90,pr:5,ft:4,cb:9,isDrink:true,drinkId:'coffee',ml:200},
+  {n:'Чай с сахаром',e:'Tea with sugar',p:'250мл',k:45,pr:0,ft:0,cb:11,isDrink:true,drinkId:'tea',ml:250},
+  {n:'Апельсиновый сок',e:'Orange juice',p:'250мл',k:113,pr:2,ft:0,cb:26,isDrink:true,drinkId:'juice',ml:250},
+  {n:'Кефир 1%',e:'Kefir 1%',p:'250мл',k:73,pr:8,ft:3,cb:10,isDrink:true,drinkId:'milk',ml:250},
+  {n:'Молочный коктейль',e:'Milkshake',p:'400мл',k:400,pr:9,ft:10,cb:66,isDrink:true,drinkId:'milk',ml:400},
+  {n:'Кока-Кола 330мл',e:'Coca-Cola 330 ml',p:'330мл',k:139,pr:0,ft:0,cb:35,isDrink:true,drinkId:'other',ml:330},
+  {n:'Вода 250мл',e:'Water 250 ml',p:'250мл',k:0,pr:0,ft:0,cb:0,isDrink:true,drinkId:'water',ml:250},
+  {n:'Смузи фруктовый',e:'Fruit smoothie',p:'300мл',k:180,pr:2,ft:1,cb:42,isDrink:true,drinkId:'juice',ml:300},
+  {n:'Протеиновый коктейль',e:'Protein shake',p:'400мл',k:280,pr:30,ft:5,cb:28,isDrink:true,drinkId:'milk',ml:400},
 ];
 
+// ── Offline food database UI ──────────────────────────────────────
+// This list is the only way to log food without a Gemini API key (and the
+// only one that works offline), so it is surfaced inside the Favourites tab.
+// Names are bilingual; portions are converted from the Russian source strings.
+function dbName(f){ return (LANG === 'en' && f.e) ? f.e : f.n; }
+// NB: `\b` cannot terminate a Cyrillic unit — JS word boundaries only know
+// [A-Za-z0-9_], so `/г\b/` never matched "180г" at the end of a string.
+// A negative lookahead for another Cyrillic letter is the correct guard.
+const _NUM = '([\\d½¼¾]+(?:[.,]\\d+)?)';
+const _PORTION_EN = [
+  [new RegExp(_NUM + '\\s*мл(?![а-яё])', 'g'), '$1 ml'],
+  [new RegExp(_NUM + '\\s*кг(?![а-яё])', 'g'), '$1 kg'],
+  [new RegExp(_NUM + '\\s*г(?![а-яё])', 'g'),  '$1 g'],
+  [new RegExp(_NUM + '\\s*шт(?![а-яё])', 'g'), '$1 pcs'],
+  [new RegExp(_NUM + '\\s*куска', 'g'),    '$1 slices'],
+  [new RegExp(_NUM + '\\s*кусочка', 'g'),  '$1 pieces'],
+  [new RegExp(_NUM + '\\s*кусок', 'g'),    '$1 slice'],
+  [new RegExp(_NUM + '\\s*зубчика', 'g'),  '$1 cloves'],
+  [new RegExp(_NUM + '\\s*банка', 'g'),    '$1 can'],
+  [new RegExp(_NUM + '\\s*плитка', 'g'),   '$1 bar'],
+  [new RegExp(_NUM + '\\s*шарик', 'g'),    '$1 scoop'],
+  [new RegExp(_NUM + '\\s*порция', 'g'),   '$1 serving'],
+  [/(\d+\/\d+|½)\s*пачки/g, '$1 pack'],
+  [/ст\.л\./g, 'tbsp'],
+  [/ч\.л\./g, 'tsp'],
+];
+function dbPortion(f){
+  if (LANG !== 'en') return f.p;
+  let out = f.p;
+  for (const [re, to] of _PORTION_EN) out = out.replace(re, to);
+  return out;
+}
 function searchDB(q){renderSearchDB(q);}
 function renderSearchDB(q){
   const el=document.getElementById('searchResults');
   if(!el)return;
   const query=(q||'').trim().toLowerCase();
-  const results=query?FOOD_DB.filter(f=>f.n.toLowerCase().includes(query)):FOOD_DB.slice(0,30);
+  const results=query
+    ? FOOD_DB.filter(f=>f.n.toLowerCase().includes(query) || (f.e||'').toLowerCase().includes(query))
+    : FOOD_DB.slice(0,24);
   if(!results.length){
-    el.innerHTML='<div style="text-align:center;padding:24px;color:var(--t2);font-size:14px">Ничего не найдено</div>';
+    el.innerHTML=`<div style="text-align:center;padding:24px;color:var(--t2);font-size:14px">${t('search_no_results')}</div>`;
     return;
   }
-  el.innerHTML=results.map((f,i)=>{
+  el.innerHTML=results.map(f=>{
     const fIdx=FOOD_DB.indexOf(f);
     return `<div class="db-item" onclick="addDBItem(${fIdx})">
       <div class="db-ico">${emo(f.n)}</div>
       <div class="db-info">
-        <div class="db-name">${f.n}</div>
-        <div class="db-kcal">${f.k} ккал · ${f.p}</div>
+        <div class="db-name">${esc(dbName(f))}</div>
+        <div class="db-kcal">${f.k} ${t('unit_kcal')} · ${esc(dbPortion(f))}</div>
       </div>
-      <div class="db-macs">Б${f.pr} У${f.cb} Ж${f.ft}</div>
+      <div class="db-macs">${t('macro_p_short')}${f.pr} ${t('macro_c_short')}${f.cb} ${t('macro_f_short')}${f.ft}</div>
     </div>`;
   }).join('');
 }
 function addDBItem(idx){
   const f=FOOD_DB[idx]; if(!f) return;
-  const entry={food:f.n,portion:f.p,kcal:f.k,prot:f.pr,fat:f.ft,carb:f.cb,time:tnow(),date:ds()};
-  log.unshift(entry); S('log',JSON.stringify(log));
+  const entry={food:dbName(f),portion:dbPortion(f),kcal:f.k,prot:f.pr,fat:f.ft,carb:f.cb,time:tnow(),date:ds()};
+  log.unshift(entry);
+  if(!saveLog()){ log.shift(); HFX.error(); return; }
   // If drink — add to water too (background bookkeeping only; UI stays hidden while tracking is off)
   if(f.isDrink && f.ml){
     const arr=getWaterToday();
@@ -316,25 +371,66 @@ function addDBItem(idx){
     if(isWaterOn()) rWater();
   }
   HFX.success(); SFX.play('add_food');
-  showToast('✅ ' + f.n + ' добавлено');
+  showToast(tf('toast_added_with_name',{name:dbName(f)}));
   rH(); closeAdd();
 }
 
+// Food name → emoji. Matches both Russian and English stems: the AI returns
+// dish names in whatever language the UI is set to, so a RU-only table meant
+// every English entry fell through to the generic plate icon.
+const EMO_RULES = [
+  ['🍎', ['яблок','apple']],
+  ['🍌', ['банан','banana']],
+  ['🍗', ['кури','куриц','курин','chicken','poultry','turkey','индейк']],
+  ['🐟', ['рыб','лосос','тунец','fish','salmon','tuna','cod','shrimp','креветк']],
+  ['🥗', ['салат','salad','greens']],
+  ['🍞', ['хлеб','бутерброд','тост','bread','sandwich','toast','bagel','лаваш','wrap']],
+  ['🍲', ['суп','борщ','щи','soup','stew','broth','рамен','ramen']],
+  ['🍕', ['пицц','pizza']],
+  ['🍔', ['бургер','burger','cheeseburger','hamburger','шаурма','shawarma','kebab','hot dog','hotdog','хот-дог']],
+  ['🍚', ['гречк','рис','каша','крупа','buckwheat','rice','porridge','oatmeal','овсян','oats','quinoa','паста','макарон','спагетти','pasta','noodle','spaghetti']],
+  ['🍆', ['баклажан','eggplant','aubergine']],
+  ['🥚', ['яиц','яйц','омлет','egg','omelet','omelette']],
+  ['🥛', ['молок','кефир','творог','йогурт','milk','kefir','yogurt','yoghurt','cottage cheese','curd']],
+  ['🧀', ['сыр','cheese']],
+  ['☕', ['кофе','чай','латте','капучино','coffee','tea','latte','cappuccino','espresso','matcha','матча']],
+  ['🍟', ['чипс','фри','chips','fries','crisps']],
+  ['🍫', ['шоколад','торт','пирож','конфет','печенье','chocolate','cake','cookie','candy','brownie','dessert','десерт']],
+  ['🥦', ['овощ','брокколи','капуст','vegetable','broccoli','cabbage','spinach','шпинат']],
+  ['🥑', ['авокадо','avocado']],
+  ['🥩', ['говядин','свинин','стейк','мясо','фарш','beef','pork','steak','meat','lamb','баранин']],
+  ['🍑', ['фрукт','ягод','fruit','berry','berries','персик','peach','груша','pear','виноград','grape']],
+  ['🥤', ['сок','лимонад','кола','газиров','juice','soda','cola','smoothie','смузи','напиток','drink']],
+  ['💧', ['вода','water']],
+  ['🌰', ['орех','миндал','кешью','арахис','nut','almond','cashew','peanut','walnut']],
+  ['🫘', ['фасол','чечевиц','нут','горох','bean','lentil','chickpea','pea']],
+];
+// Latin needles must start at a word boundary; Cyrillic stems match anywhere
+// (Russian inflects the ending, so "кури" has to catch "куриная").
+// Plain `includes` for Latin made "Steak" match the needle "tea" — S-tea-k —
+// and a steak was logged as a beverage.
+function _hasNeedle(haystack, needle){
+  if(/^[a-z0-9 '\-]+$/.test(needle)){
+    const q = needle.replace(/[.*+?^${}()|[\]\\]/g,'\\$&');
+    return new RegExp('(^|[^a-z])' + q, 'i').test(haystack);
+  }
+  return haystack.includes(needle);
+}
 function emo(f){
-  f=f.toLowerCase();
-  if(f.includes('яблок'))return'🍎';if(f.includes('банан'))return'🍌';if(f.includes('курица')||f.includes('куриц'))return'🍗';
-  if(f.includes('рыб')||f.includes('лосос'))return'🐟';if(f.includes('салат'))return'🥗';if(f.includes('хлеб')||f.includes('бутерброд'))return'🍞';
-  if(f.includes('суп'))return'🍲';if(f.includes('пицц'))return'🍕';if(f.includes('гречк')||f.includes('рис')||f.includes('кашa'))return'🍚';
-  if(f.includes('яиц')||f.includes('яйц'))return'🥚';if(f.includes('молок')||f.includes('кефир')||f.includes('творог'))return'🥛';
-  if(f.includes('кофе')||f.includes('чай'))return'☕';if(f.includes('чипс'))return'🍟';if(f.includes('шоколад')||f.includes('торт'))return'🍫';
-  if(f.includes('овощ'))return'🥦';if(f.includes('фрукт'))return'🍑';return'🍽️';
+  f=String(f||'').toLowerCase();
+  if(!f) return '🍽️';
+  for(const [icon, words] of EMO_RULES){
+    for(const w of words) if(_hasNeedle(f, w)) return icon;
+  }
+  return '🍽️';
 }
 
 function delL(i){
   const item=log[i];if(!item)return;
   showConfirm('🗑️',t('confirm_delete_title'),`«${item.food||t('food_default_label')}» (${item.kcal||0} ${t('food_kcal_short')})`,t('btn_delete'),()=>{
     HFX.heavy();SFX.play('delete');
-    log.splice(i,1);S('log',JSON.stringify(log));rH();
+    releaseEntryImage(item);
+    log.splice(i,1);saveLog();rH();
   });
 }
 
@@ -346,10 +442,23 @@ function openFd(i){
   // Show current qty
   const qtyEl=document.getElementById('fdQty');
   if(qtyEl) qtyEl.textContent=item.qty||1;
-  // Image or emoji
+  // Image or emoji. Built with DOM APIs rather than an inline onerror
+  // handler — the old template produced `class='fd-nophoto'` *inside* a
+  // single-quoted attribute, i.e. broken markup that never recovered.
   const wrap=document.getElementById('fdImgWrap');
-  if(item.img) wrap.innerHTML=`<img class="fd-img" src="${item.img}" onerror="this.outerHTML='<div class=\'fd-nophoto\'>${emo(item.food||'')}</div>'">`;
-  else wrap.innerHTML=`<div class="fd-nophoto">${emo(item.food||'')}</div>`;
+  const _em=emo(item.food||'');
+  const _fallback=()=>{ wrap.innerHTML=`<div class="fd-nophoto">${_em}</div>`; };
+  _fallback();
+  resolveEntryImage(item).then(src=>{
+    if(!src||fdIdx!==i) return;
+    const im=document.createElement('img');
+    im.className='fd-img';
+    im.alt='';
+    im.onerror=_fallback;
+    im.src=src;
+    wrap.innerHTML='';
+    wrap.appendChild(im);
+  }).catch(()=>{});
   document.getElementById('fdName').textContent=item.food||t('h_dish');
   document.getElementById('fdPortion').textContent=item.portion||'';
   document.getElementById('fdKcal').textContent=item.kcal||0;
@@ -361,15 +470,15 @@ function openFd(i){
   const ingrEl=document.getElementById('fdIngr');
   if(ingrEl){
     if(item.ingr&&item.ingr.length>0){
-      ingrEl.innerHTML=`<div class="ingr-hdr">${t('detail_ingr')}</div>`+item.ingr.map(i=>`<div class="ingr-i"><span class="ingr-n">${i.name}</span><span class="ingr-c">${i.calories} ${t('unit_kcal')}</span></div>`).join('');
+      ingrEl.innerHTML=`<div class="ingr-hdr">${t('detail_ingr')}</div>`+item.ingr.map(i=>`<div class="ingr-i"><span class="ingr-n">${esc(i.name)}</span><span class="ingr-c">${Number(i.calories)||0} ${t('unit_kcal')}</span></div>`).join('');
       ingrEl.style.display='block';
     } else {
       ingrEl.style.display='none';
     }
   }
-  document.getElementById('fdTime').textContent='Добавлено: '+item.date+' в '+item.time;
+  document.getElementById('fdTime').textContent=tf('fd_added_at',{date:fmtDate(item.date,{day:'numeric',month:'long',year:'numeric'}),time:item.time||''});
   document.getElementById('fdOv').classList.add('on');
-  document.body.style.overflow='hidden';
+  lockScroll(true);
 }
 function editFd(){
   if(fdIdx===null)return;
@@ -388,12 +497,12 @@ function editFd(){
     c.classList.toggle('on', c.dataset.m === _mt);
   });
   document.getElementById('editFoodOv').classList.add('on');
-  document.body.style.overflow='hidden';
+  lockScroll(true);
 }
 function closeEditFd(){
   HFX.light(); SFX.play('sheet_close');
   document.getElementById('editFoodOv').classList.remove('on');
-  document.body.style.overflow='';
+  lockScroll(false);
 }
 function efPickMeal(el){
   document.querySelectorAll('.ef-meal-chip').forEach(c=>c.classList.remove('on'));
@@ -418,7 +527,7 @@ function saveEditFd(){
   // Reset qty base values if edited
   item.baseKcal=kcal; item.baseProt=prot; item.baseCarb=carb; item.baseFat=fat;
   item.qty=1;
-  S('log',JSON.stringify(log));
+  saveLog();
   rH();
   closeEditFd();
   // Update detail sheet
@@ -427,15 +536,16 @@ function saveEditFd(){
   document.getElementById('fdProt').textContent=Math.round(item.prot)+t('unit_g');
   document.getElementById('fdCarb').textContent=Math.round(item.carb)+t('unit_g');
   document.getElementById('fdFat').textContent=Math.round(item.fat)+t('unit_g');
-  showToast(t('toast_record_updated','✏️ Запись обновлена'));
+  showToast(t('toast_record_updated'));
 }
-function closeFd(){HFX.light();SFX.play('sheet_close');document.getElementById('fdOv').classList.remove('on');document.body.style.overflow='';fdIdx=null;}
+function closeFd(){HFX.light();SFX.play('sheet_close');document.getElementById('fdOv').classList.remove('on');lockScroll(false);fdIdx=null;}
 function delFd(){
   if(fdIdx===null)return;
   const item=log[fdIdx];
   showConfirm('🗑️',t('confirm_delete_diary_title'),`«${item?.food||t('food_default_label')}» (${item?.kcal||0} ${t('food_kcal_short')})`,t('btn_delete'),()=>{
     HFX.heavy();SFX.play('delete');
-    log.splice(fdIdx,1);S('log',JSON.stringify(log));
+    releaseEntryImage(item);
+    log.splice(fdIdx,1);saveLog();
     closeFd();rH();
   });
 }
@@ -459,7 +569,13 @@ function rCal(){
     if(selected&&!today)c+=' sel';
     h+=`<div class="cd ${c}" onclick="selectDay('${dateStr}')"><span class="cn">${dns[d.getDay()]}</span><span class="cv">${d.getDate()}</span><span class="cdot"></span></div>`;
   }
-  el.innerHTML=h;setTimeout(()=>el.parentElement.scrollLeft=9999,30);
+  el.innerHTML=h;
+  // Scroll the selected day into view (today lives at the far right).
+  setTimeout(()=>{
+    const sel=el.querySelector('.cd.sel')||el.querySelector('.cd.today');
+    if(sel&&sel.scrollIntoView) sel.scrollIntoView({block:'nearest',inline:'center'});
+    else el.parentElement.scrollLeft=9999;
+  },30);
 }
 let _qtyHoldTimer=null;
 function _qtyHold(d){_qtyClear();_qtyHoldTimer=setTimeout(()=>{_qtyHoldTimer=setInterval(()=>{changeQty(d);},120);},400);}
@@ -479,7 +595,7 @@ function changeQty(delta){
   item.prot=Math.round(item.baseProt*newQty*10)/10;
   item.carb=Math.round(item.baseCarb*newQty*10)/10;
   item.fat=Math.round(item.baseFat*newQty*10)/10;
-  S('log',JSON.stringify(log));
+  saveLog();
   // Update UI in detail sheet
   const qtyEl=document.getElementById('fdQty');
   if(qtyEl){
@@ -512,6 +628,8 @@ function rP(){
   if(_pgMonth)_pgMonth.textContent=new Date().toLocaleDateString(_localeTag(),{month:'long',year:'numeric'});
   const s=streak();
   document.getElementById('pstr').textContent=s;
+  const _sbl=document.querySelector('.sbc-lbl');
+  if(_sbl)_sbl.textContent=tf('streak_label_tpl',{days:fmtDaysWord(s)});
   // Week
   const n=new Date(),dns=[t('wd_mon'),t('wd_tue'),t('wd_wed'),t('wd_thu'),t('wd_fri'),t('wd_sat'),t('wd_sun')];
   document.getElementById('wkd').innerHTML=Array.from({length:7},(_,i)=>{
@@ -580,7 +698,7 @@ function logW(){
   } else if(trendEl){trendEl.textContent=t('toast_weight_first');}
   document.getElementById('wlogOv').classList.add('on');
   SFX.play('sheet_open');
-  document.body.style.overflow='hidden';
+  lockScroll(true);
 }
 let _wlogHoldTimer=null;
 function _wlogHold(btn,d){
@@ -613,7 +731,7 @@ function wlogStep(d){
   }
   HFX.tick();
 }
-function closeWlog(){HFX.light();SFX.play('sheet_close');document.getElementById('wlogOv').classList.remove('on');document.body.style.overflow='';}
+function closeWlog(){HFX.light();SFX.play('sheet_close');document.getElementById('wlogOv').classList.remove('on');lockScroll(false);}
 function saveWlog(){
   const v=_wlogVal;
   if(isNaN(v)||v<=0)return;
@@ -682,7 +800,7 @@ function rWChart(){
     ctx.beginPath(); ctx.moveTo(padL,yy); ctx.lineTo(cW-padR,yy); ctx.stroke();
     ctx.setLineDash([]);
     ctx.fillStyle=labelColor;
-    ctx.fillText(Math.round(v)+'кг', padL-5, yy+3.5);
+    ctx.fillText(Math.round(v)+t('unit_kg'), padL-5, yy+3.5);
   }
   
   // Smooth curve path (catmull-rom spline)
@@ -743,10 +861,10 @@ function rWChart(){
       ctx.font=`600 11px -apple-system,BlinkMacSystemFont,sans-serif`;
       ctx.textAlign='center';
       ctx.fillStyle=labelColor;
-      ctx.fillText(p.v+'кг', dotX, above?dotY-10:dotY+18);
+      ctx.fillText(p.v+t('unit_kg'), dotX, above?dotY-10:dotY+18);
       // Date label
       const d=new Date(p.d);
-      const dLbl=d.toLocaleDateString('ru',{day:'numeric',month:'short'});
+      const dLbl=d.toLocaleDateString(_localeTag(),{day:'numeric',month:'short'});
       ctx.font=`400 9px -apple-system,BlinkMacSystemFont,sans-serif`;
       ctx.fillStyle=isDark?'rgba(255,255,255,.2)':'rgba(60,60,67,.3)';
       ctx.fillText(dLbl, dotX, cH-padB+14);
@@ -769,7 +887,7 @@ function initAi(){
   const _wArr=getWaterToday();
   const waterNow=_wArr.reduce((s,e)=>s+e.ml,0);
   const waterTarget=getWaterGoal().adjusted;
-  const waterTimeline=_wArr.length?_wArr.slice(-3).map(e=>e.ml+'мл '+e.t).join(', '):'';
+  const waterTimeline=_wArr.length?_wArr.slice(-3).map(e=>e.ml+t('water_ml')+' '+e.t).join(', '):'';
   const c=document.getElementById('aimsg');
   // Only clear and show welcome if no messages yet
   if(!chatHistory||chatHistory<=2){
@@ -779,16 +897,16 @@ function initAi(){
   wcard.className='ai-welcome';
   const _kcalUnit=t('unit_kcal');
   const _mlUnit=t('water_ml');
-  const _ofWord=LANG==='en'?'of':'из';
-  const _goalWord=LANG==='en'?'Goal':'Цель';
-  const _leftWord=LANG==='en'?'left':'Осталось';
-  const _todayWord=LANG==='en'?'Today':'Сегодня';
+  const _ofWord=t('word_of');
+  const _goalWord=t('word_goal');
+  const _leftWord=t('word_left');
+  const _todayWord=t('word_today');
   // Water tracking is opt-in — only surface it in the welcome message when the user has it enabled.
   const _waterSeg=_waterOn?` · 💧 <b style="color:#3b82f6">${waterNow}${_mlUnit}</b> ${_ofWord} ${waterTarget}${_mlUnit}${waterTimeline ? '<br><span style="font-size:11px;color:var(--t2)">' + waterTimeline + '</span>' : ''}`:'';
   wcard.innerHTML=`
     <span class="ai-welcome-icon">🤖</span>
-    <div class="ai-welcome-title">${t('ai_welcome_hi')}, ${U?.name||''}!</div>
-    <div class="ai-welcome-sub">${_todayWord}: <b style="color:#FF8C00">${tt.k} ${_kcalUnit}</b> ${_ofWord} ${U?.kcal||2000}${_waterSeg}<br>${_goalWord}: «${GL[U?.goal]||'—'}» · ${_leftWord} <b>${Math.max(0,(U?.kcal||2000)-tt.k)}</b> ${_kcalUnit}</div>
+    <div class="ai-welcome-title">${t('ai_welcome_hi')}, ${esc(U?.name||'')}!</div>
+    <div class="ai-welcome-sub">${_todayWord}: <b style="color:#FF8C00">${tt.k} ${_kcalUnit}</b> ${_ofWord} ${U?.kcal||2000}${_waterSeg}<br>${_goalWord}: «${esc(GL[U?.goal]||'—')}» · ${_leftWord} <b>${Math.max(0,(U?.kcal||2000)-tt.k)}</b> ${_kcalUnit}</div>
   `;
   c.appendChild(wcard);
   const lbl=document.createElement('div');
@@ -862,50 +980,114 @@ function aiVoiceToggle(){
   try { _voiceRec.start(); } catch(e) { /* already started */ }
 }
 
-async function aiSend(){
-  const inp=document.getElementById('aiinp'),txt=inp.value.trim();
-  if(!txt)return;if(!key){openApi();return;}
-  inp.value='';HFX.medium();SFX.play('ai_send'); _aiThinkStart();aiMsg(txt,'user');
+// ── AI chat ───────────────────────────────────────────────────────
+// The whole prompt (persona, section headings, instructions) is built in the
+// UI language. Previously it was hard-coded Russian and ended with
+// "Отвечай по-русски", so the assistant kept replying in Russian even after
+// the user switched the app to English.
+function _aiBuildSystemPrompt(){
+  const isEn = LANG === 'en';
+  const tl = tlog(), tt = tot(tl);
+  const waterEnabled = isWaterOn();
+  const waterToday = getWaterToday();
+  const totalWaterMl = waterToday.reduce((s2,e)=>s2+e.ml,0);
+  const waterGoal = getWaterGoal().adjusted;
+  const bmi = U?.w && U?.h ? ((U.w/((U.h/100)**2)).toFixed(1)) : '—';
+  const streakDays = streak();
+  const loc = _localeTag();
+  const KC = isEn ? 'kcal' : 'ккал';
+  const G_ = isEn ? 'g' : 'г';
+  const ML = isEn ? 'ml' : 'мл';
+  const KG = isEn ? 'kg' : 'кг';
+  const P_ = isEn ? 'P' : 'Б';
+  const C_ = isEn ? 'C' : 'У';
+  const F_ = isEn ? 'F' : 'Ж';
+  const NONE = isEn ? 'no data' : 'нет данных';
 
-  // Rich context for AI
-  const tl=tlog(),tt=tot(tl);
-  // Water tracking is opt-in — the AI must never mention water when the user has it disabled.
-  const waterEnabled=isWaterOn();
-  const waterToday=getWaterToday();
-  const totalWaterMl=waterToday.reduce((s,e)=>s+e.ml,0);
-  const waterGoal=getWaterGoal().adjusted;
-  const bmi=U?.w&&U?.h?((U.w/((U.h/100)**2)).toFixed(1)):'—';
-  const streakDays=streak();
+  const week7 = [];
+  for(let i=1;i<=7;i++){
+    const d=new Date(); d.setDate(d.getDate()-i);
+    const dl=dlog(ds(d));
+    if(dl.length){ const t2=tot(dl); week7.push(`${d.toLocaleDateString(loc,{weekday:'short'})}: ${t2.k}${KC}`); }
+  }
 
-  // Last 7 days calories
-  const week7=[];
-  for(let i=1;i<=7;i++){const d=new Date();d.setDate(d.getDate()-i);const dl=dlog(ds(d));if(dl.length){const t2=tot(dl);week7.push(`${d.toLocaleDateString('ru',{weekday:'short'})}: ${t2.k}ккал`);}}
+  const foodLog = tl.length
+    ? tl.map((item,i)=>`  ${i+1}. ${item.food||(isEn?'Dish':'Блюдо')}${item.portion?' ('+item.portion+')':''}: ${item.kcal||0}${KC}, ${P_}${Math.round(item.prot||0)}${G_} ${C_}${Math.round(item.carb||0)}${G_} ${F_}${Math.round(item.fat||0)}${G_} — ${item.time||''}`).join('\n')
+    : (isEn ? '  (nothing logged today yet)' : '  (сегодня ещё ничего не добавлено)');
 
-  const foodLog=tl.length
-    ?tl.map((item,i)=>`  ${i+1}. ${item.food||'Блюдо'}${item.portion?' ('+item.portion+')':''}: ${item.kcal||0}ккал, Б${Math.round(item.prot||0)}г У${Math.round(item.carb||0)}г Ж${Math.round(item.fat||0)}г — ${item.time||''}`).join('\n')
-    :'  (сегодня ещё ничего не добавлено)';
+  const prefsStr  = U?.prefs?.length ? (isEn?'\n• Preferences: ':'\n• Предпочтения: ') + U.prefs.map(pk=>t('pref_'+pk, pk)).join(', ') : '';
+  const allergStr = U?.allerg ? (isEn?'\n• Allergies / restrictions: ':'\n• Аллергии/ограничения: ') + U.allerg : '';
 
-  const prefsStr = U?.prefs?.length ? '\n• Предпочтения: ' + U.prefs.join(', ') : '';
-  const allergStr = U?.allerg ? '\n• Аллергии/ограничения: ' + U.allerg : '';
-  const waterTodayLine = waterEnabled ? `Вода сегодня: ${totalWaterMl}мл из ${waterGoal}мл${waterToday.length ? ' ('+waterToday.map(e=>e.ml+'мл в '+e.t).join(', ')+')' : ''}\n` : '';
-  const water7dLine = waterEnabled ? `ВОДА (последние 7 дней): ${(()=>{const r=[];for(let i=1;i<=7;i++){const d=new Date();d.setDate(d.getDate()-i);try{const w=JSON.parse(localStorage.getItem('water_'+d.toDateString())||'[]');const tot=w.reduce((s,x)=>s+x.ml,0);if(tot>0)r.push(d.toLocaleDateString('ru',{weekday:'short'})+': '+tot+'мл');}catch(e){}}return r.length?r.join(', '):'нет данных';})()}\n` : '';
-  const waterInstruction = waterEnabled ? '' : '\n- Трекинг воды у пользователя отключён — НЕ упоминай воду и питьевой режим, если пользователь сам не спросит';
-  const sys=`Ты персональный AI-нутрициолог CalSnap. Ты умный, внимательный, мотивирующий.
+  const waterTodayLine = waterEnabled
+    ? (isEn ? `Water today: ${totalWaterMl} ml of ${waterGoal} ml` : `Вода сегодня: ${totalWaterMl}мл из ${waterGoal}мл`)
+      + (waterToday.length ? ' ('+waterToday.map(e=>e.ml+ML+(isEn?' at ':' в ')+e.t).join(', ')+')' : '') + '\n'
+    : '';
+
+  const water7d = (()=>{
+    const r=[];
+    for(let i=1;i<=7;i++){
+      const d=new Date(); d.setDate(d.getDate()-i);
+      try{
+        const w=JSON.parse(G('water_'+ds(d),'[]'));
+        const sum=w.reduce((a,x)=>a+(x.ml||0),0);
+        if(sum>0) r.push(d.toLocaleDateString(loc,{weekday:'short'})+': '+sum+ML);
+      }catch(e){}
+    }
+    return r.length?r.join(', '):NONE;
+  })();
+  const water7dLine = waterEnabled ? (isEn?`WATER (last 7 days): ${water7d}\n`:`ВОДА (последние 7 дней): ${water7d}\n`) : '';
+  const waterInstruction = waterEnabled ? ''
+    : (isEn ? '\n- The user has water tracking disabled — do NOT mention water or hydration unless they ask'
+            : '\n- Трекинг воды у пользователя отключён — НЕ упоминай воду и питьевой режим, если пользователь сам не спросит');
+
+  const weights = wts.slice(0,5).map(w=>new Date(w.d).toLocaleDateString(loc,{day:'numeric',month:'short'})+': '+w.v+KG).join(', ') || NONE;
+  const goalLabel = GL[U?.goal] || '—';
+  const todayLabel = new Date().toLocaleDateString(loc,{weekday:'long',day:'numeric',month:'long'});
+  const gender = U?.gen==='m' ? (isEn?'male':'мужчина') : (isEn?'female':'женщина');
+
+  if (isEn) {
+    return `You are the CalSnap personal AI nutritionist. You are smart, attentive and motivating.
+
+USER DATA:
+• Name: ${U?.name||'friend'}, sex: ${gender}, age: ${U?.age||'?'}
+• Height: ${U?.h||'?'} cm, weight: ${U?.w||'?'} kg, BMI: ${bmi}
+• Goal: ${goalLabel} | Calorie target: ${U?.kcal||2000} kcal/day${prefsStr}${allergStr}
+• Activity factor: ${U?.act||1.375} | Streak: ${streakDays} days
+
+TODAY (${todayLabel}):
+${foodLog}
+Total: ${tt.k||0} kcal of ${U?.kcal||2000} (${Math.round((tt.k||0)/(U?.kcal||2000)*100)}%)
+Macros: P${Math.round(tt.p||0)}g C${Math.round(tt.c||0)}g F${Math.round(tt.f||0)}g
+Remaining: ${Math.max(0,(U?.kcal||2000)-(tt.k||0))} kcal
+${waterTodayLine}
+THIS WEEK: ${week7.length?week7.join(', '):NONE}
+${water7dLine}WEIGHT (latest entries): ${weights}
+
+INSTRUCTIONS:
+- Reply in English, concretely and in a friendly tone
+- Use the user's own data in the answer (name, calories, facts)
+- Give precise advice (specific dishes, gram amounts, timing)
+- If asked what to eat, suggest real dishes with calorie figures
+- Up to 180 words, use emoji sparingly
+- Do NOT repeat data the user already sees${waterInstruction}`;
+  }
+
+  return `Ты персональный AI-нутрициолог CalSnap. Ты умный, внимательный, мотивирующий.
 
 ДАННЫЕ ПОЛЬЗОВАТЕЛЯ:
-• Имя: ${U?.name||'друг'}, пол: ${U?.gen==='m'?'мужчина':'женщина'}, возраст: ${U?.age||'?'}л
+• Имя: ${U?.name||'друг'}, пол: ${gender}, возраст: ${U?.age||'?'}л
 • Рост: ${U?.h||'?'}см, вес: ${U?.w||'?'}кг, ИМТ: ${bmi}
-• Цель: ${GL[U?.goal]||'—'} | Норма калорий: ${U?.kcal||2000}ккал/день${prefsStr}${allergStr}
+• Цель: ${goalLabel} | Норма калорий: ${U?.kcal||2000}ккал/день${prefsStr}${allergStr}
 • Активность: ${U?.act||1.375} | Серия дней: ${streakDays}
 
-СЕГОДНЯ (${new Date().toLocaleDateString('ru',{weekday:'long',day:'numeric',month:'long'})}):
+СЕГОДНЯ (${todayLabel}):
 ${foodLog}
 Итого: ${tt.k||0}ккал из ${U?.kcal||2000} (${Math.round((tt.k||0)/(U?.kcal||2000)*100)}%)
 Макро: Б${Math.round(tt.p||0)}г У${Math.round(tt.c||0)}г Ж${Math.round(tt.f||0)}г
 Осталось: ${Math.max(0,(U?.kcal||2000)-(tt.k||0))}ккал
 ${waterTodayLine}
-ИСТОРИЯ НЕДЕЛИ: ${week7.length?week7.join(', '):'нет данных'}
-${water7dLine}ВЕС (последние записи): ${wts.slice(0,5).map(w=>new Date(w.d).toLocaleDateString('ru',{day:'numeric',month:'short'})+': '+w.v+'кг').join(', ')||'нет данных'}
+ИСТОРИЯ НЕДЕЛИ: ${week7.length?week7.join(', '):NONE}
+${water7dLine}ВЕС (последние записи): ${weights}
 
 ИНСТРУКЦИИ:
 - Отвечай по-русски, конкретно, дружески
@@ -914,6 +1096,28 @@ ${water7dLine}ВЕС (последние записи): ${wts.slice(0,5).map(w=>
 - Если спрашивают что съесть — предлагай реальные блюда с калориями
 - До 180 слов, используй эмодзи умеренно
 - НЕ повторяй данные которые пользователь уже знает${waterInstruction}`;
+}
+
+// Map a Gemini failure onto a localised, actionable message.
+function _aiErrorText(e){
+  const msg = String(e?.message || e || '');
+  if(/quota|429|exceeded|limit/i.test(msg)) return t('ai_err_quota');
+  if(/API key|invalid|ключ/i.test(msg))     return t('ai_err_key');
+  if(/Failed to fetch|TypeError/i.test(msg)){
+    const isLocal = location.protocol==='file:' || location.protocol==='content:' || !location.hostname;
+    return isLocal ? t('ai_err_local') : t('ai_err_server');
+  }
+  if(/GitHub Pages/i.test(msg)) return '🌐 '+msg;
+  if(/network|Нет соединения|No connection/i.test(msg)) return t('ai_err_net');
+  return t('ai_err_generic');
+}
+
+async function aiSend(){
+  const inp=document.getElementById('aiinp'),txt=inp.value.trim();
+  if(!txt)return;if(!hasApiKey()){openApi();return;}
+  inp.value='';HFX.medium();SFX.play('ai_send'); _aiThinkStart();aiMsg(txt,'user');
+
+  const sys=_aiBuildSystemPrompt();
 
   // Conversation memory — only include prior turns when the user has opted in
   // via Settings, since this meaningfully increases token usage per request.
@@ -939,50 +1143,56 @@ ${water7dLine}ВЕС (последние записи): ${wts.slice(0,5).map(w=>
     if (aiConvo.length > 40) aiConvo.splice(0, aiConvo.length - 40); // cap growth
   }
   catch(e){
-    HFX.error();SFX.play('error');
-    const msg=e.message||'';
-    let errTxt='⚠️ Ошибка. Проверь API ключ.';
-    if(msg.includes('quota')||msg.includes('429'))errTxt='⏳ Лимит запросов. Подожди минуту.';
-    else if(msg.includes('API key')||msg.includes('invalid'))errTxt='🔑 Неверный API ключ → Настройки.';
-    else if(msg.includes('Failed to fetch')||msg.includes('TypeError')){
-      const isLocal=location.protocol==='file:'||location.protocol==='content:'||!location.hostname;
-      errTxt=isLocal?'🌐 Открой через GitHub Pages\n(не как локальный файл)':'📡 Нет связи с сервером.';
-    }
-    else if(msg.includes('GitHub Pages'))errTxt='🌐 '+msg;
-    else if(msg.includes('network'))errTxt='📡 Нет связи. Проверь интернет.';
+    HFX.error();SFX.play('ai_error');
     _aiThinkStop();
-    lm.innerHTML=`<div class="msg-ai-wrap"><div class="msg-ai-ava">🤖</div><div class="bbl">${errTxt}</div></div>`;
+    lm.innerHTML=`<div class="msg-ai-wrap"><div class="msg-ai-ava">🤖</div><div class="bbl">${esc(_aiErrorText(e)).replace(/\n/g,'<br>')}</div></div>`;
   }
 }
+
 function aiMsg(txt,r){
   const el=document.createElement('div');el.className='msg msg-'+r;
   if(r==='ai'){
     el.innerHTML=`<div class="msg-ai-wrap"><div class="msg-ai-ava">🤖</div><div class="bbl">${fmt(txt)}</div></div>`;
   } else {
-    el.innerHTML=`<div class="bbl">${txt}</div>`;
+    el.innerHTML=`<div class="bbl">${esc(txt)}</div>`;
   }
   const c=document.getElementById('aimsg');c.appendChild(el);c.scrollTop=c.scrollHeight;return el;
 }
-function fmt(t){return t.replace(/\*\*(.*?)\*\*/g,'<b>$1</b>').replace(/\n/g,'<br>')}
+// Minimal markdown → HTML. Escapes first so a model that emits raw tags (or a
+// user pasting `<script>`) can never inject markup into the chat.
+function fmt(src){
+  return esc(src)
+    .replace(/\*\*(.+?)\*\*/g,'<b>$1</b>')
+    .replace(/(^|[\s(])\*([^*\n]+)\*(?=[\s.,!?)]|$)/g,'$1<i>$2</i>')
+    .replace(/\n/g,'<br>');
+}
 
 // ADD FOOD
-function openAdd(){if(!key){openApi();return;}HFX.medium();SFX.play('sheet_open');document.getElementById('addOv').classList.add('on');document.body.style.overflow='hidden';
+// The diary itself works fully offline and without an API key (favourites,
+// manual edit, barcode lookup via OpenFoodFacts). Only the AI-backed tabs
+// need a key, and they surface that themselves — so opening the sheet must
+// not be blocked. It used to bounce straight to the API-key modal, which made
+// the app unusable without a key despite the offline screen promising
+// otherwise.
+function openAdd(){HFX.medium();SFX.play('sheet_open');document.getElementById('addOv').classList.add('on');lockScroll(true);
   setTimeout(()=>{const _fi=document.querySelector('#addOv .add-inp');if(_fi)_fi.focus();},350);
   setTimeout(()=>_initPill('addTabPill','addTabs'),60);}
-function closeAdd(){HFX.light();SFX.play('sheet_close');document.getElementById('addOv').classList.remove('on');document.body.style.overflow='';}
-function swTab(t, btn){
+function closeAdd(){HFX.light();SFX.play('sheet_close');document.getElementById('addOv').classList.remove('on');lockScroll(false);}
+// NB: the parameter is deliberately *not* called `t` — that identifier is the
+// global translator, and shadowing it here made every future edit a trap.
+function swTab(name, btn){
   HFX.tick(); SFX.play('btn_tap');
   document.querySelectorAll('#addTabs .tab').forEach(b=>b.classList.remove('on'));
   btn.classList.add('on');
   _movePill('addTabPill', btn);
   // Crossfade panels — no height jump
-  const panels = document.querySelectorAll('.panel');
-  const next = document.getElementById('tp-'+t);
+  const panels = document.querySelectorAll('#addOv .panel');
+  const next = document.getElementById('tp-'+name);
   panels.forEach(p=>{
     if(p === next) return;
     p.classList.remove('on');
   });
-  if(t==='favs') renderFavs();
+  if(name==='favs') renderFavs();
   if(next && !next.classList.contains('on')){
     next.style.opacity = '0';
     next.style.transform = 'translateY(6px)';
@@ -1018,8 +1228,9 @@ function onPhoto(e){
     document.getElementById('upz').style.display='none';
     document.getElementById('phDescWrap').style.display='block';
     document.getElementById('phAbtn').style.display='block';
+    _updatePhotoButtons();
   };
-  fr.onerror=()=>{ showErr('pherr','Не удалось открыть файл'); };
+  fr.onerror=()=>{ showErr('pherr',t('err_file_open')); };
   fr.readAsDataURL(file);
 }
 function rstPhoto(){
@@ -1034,54 +1245,121 @@ function rstPhoto(){
   document.getElementById('phres').classList.remove('on');
   document.getElementById('phAddbtn').style.display='none';
 }
+// Reflect connectivity in the photo tab's buttons: offline (or with every key
+// on cooldown) the primary action parks the photo instead of failing.
+function _updatePhotoButtons(){
+  const wait=photoMustWait();
+  const main=document.getElementById('phAnalyzeBtn');
+  const note=document.getElementById('phOfflineNote');
+  const later=document.getElementById('phQueueBtn');
+  if(main) main.textContent=wait?t('photo_queue'):t('photo_analyze');
+  if(note) note.style.display=wait?'block':'none';
+  if(later) later.style.display='none';
+}
+window.addEventListener('online',()=>{ try{_updatePhotoButtons();}catch(e){} });
+window.addEventListener('offline',()=>{ try{_updatePhotoButtons();}catch(e){} });
+
+// Shared photo-analysis call. Extracted from doPhoto() so the offline queue
+// can replay the exact same prompt later without duplicating it.
+// Accepts a data URL or bare base64 and returns the parsed result object.
+async function analyzePhotoData(imgOrDataUrl, userDesc){
+  const imgData = String(imgOrDataUrl || '').startsWith('data:')
+    ? String(imgOrDataUrl).split(',')[1]
+    : String(imgOrDataUrl || '');
+  if (!imgData) throw new Error(t('err_file_open'));
+  const descHint = userDesc ? `\nUser hint: "${userDesc}" — use this to clarify the dish name and portion.` : '';
+  // Names/descriptions must come back in the UI language, otherwise an
+  // English user gets Russian dish names in their diary.
+  const outLang = LANG === 'en' ? 'English' : 'Russian';
+  const p = `Analyze this food photo.${descHint}\nAll human-readable text in your answer (food, portion, description, ingredient names) MUST be written in ${outLang}.\nReturn ONLY JSON, no other text:\n{"food":"name in ${outLang}","portion":"amount","calories":200,"protein":10,"fat":8,"carbs":20,"description":"brief description in ${outLang}","ingredients":[{"name":"ingredient in ${outLang}","calories":50}]}`;
+  const part = { inline_data: { mime_type: 'image/jpeg', data: imgData } };
+  let raw = await gem([{ text: p }, part], '', { json: true, maxOutputTokens: 2048 });
+  try { return pj(raw); }
+  catch(e) {
+    // One retry without JSON mode in case the model misbehaves with structured output.
+    raw = await gem([{ text: p + '\nReturn ONLY raw JSON, no markdown.' }, part], '', { maxOutputTokens: 2048 });
+    try { return pj(raw); }
+    catch(e2) { throw new Error(t('photo_parse_error')); }
+  }
+}
+
+// True when an immediate analysis cannot succeed, so the photo should be
+// queued instead of failing in the user's face.
+function photoMustWait(){
+  return !navigator.onLine || !hasUsableApiKey();
+}
+
+// Park the currently picked photo for later analysis.
+async function queuePhoto(){
+  if(!phFile) return;
+  const btnWrap=document.getElementById('phAbtn');
+  if(btnWrap) btnWrap.style.display='none';
+  document.getElementById('pherr').classList.remove('on');
+  document.getElementById('phldr').classList.add('on');
+  try{
+    const imgData=await b64(phFile);
+    const n=await enqueuePhoto('data:image/jpeg;base64,'+imgData, document.getElementById('phDesc').value.trim());
+    if(n<0){ HFX.error(); if(btnWrap) btnWrap.style.display='block'; return; }
+    HFX.success(); SFX.play('save');
+    showToast(t('queue_added'));
+    rstPhoto(); closeAdd();
+    try{ rH(); }catch(e){}
+  }catch(e){
+    HFX.error(); SFX.play('error');
+    showErr('pherr', String(e.message||e||t('err_unknown')));
+    if(btnWrap) btnWrap.style.display='block';
+  }finally{
+    document.getElementById('phldr').classList.remove('on');
+  }
+}
+
 async function doPhoto(){
   if(!phFile)return;
+  // Offline, or every key on cooldown: queue instead of failing. The photo is
+  // analysed automatically as soon as the app can reach Gemini again.
+  if(photoMustWait()) return queuePhoto();
   document.getElementById('phAbtn').style.display='none';
   document.getElementById('pherr').classList.remove('on');
   document.getElementById('phldr').classList.add('on');
   try{
     const imgData=await b64(phFile);
-    const mime='image/jpeg';
-    const previewSrc='data:image/jpeg;base64,'+imgData;
-    document.getElementById('previmg').src=previewSrc;
+    const _srcUrl='data:image/jpeg;base64,'+imgData;
+    document.getElementById('previmg').src=_srcUrl;
     const userDesc=document.getElementById('phDesc').value.trim();
-    const descHint=userDesc?`\nUser hint: "${userDesc}" — use this to clarify the dish name and portion.`:'';
-    const p=`Analyze this food photo.${descHint}\nReturn ONLY JSON, no other text:\n{"food":"name in Russian","portion":"amount","calories":200,"protein":10,"fat":8,"carbs":20,"description":"brief description","ingredients":[{"name":"ingredient","calories":50}]}`;
-    let raw='';
-    try{ raw=await gem([{text:p},{inline_data:{mime_type:mime,data:imgData}}],'',{json:true,maxOutputTokens:2048}); }
-    catch(e){ throw new Error('Gemini API: '+(e.message||e)); }
-    let r;
-    try{ r=pj(raw); }
-    catch(e){
-      // One retry without JSON mode in case the model misbehaves with structured output.
-      try{
-        raw=await gem([{text:p+'\nReturn ONLY raw JSON, no markdown.'},{inline_data:{mime_type:mime,data:imgData}}],'',{maxOutputTokens:2048});
-        r=pj(raw);
-      } catch(e2){
-        throw new Error(t('photo_parse_error','Не удалось разобрать ответ AI. Попробуй ещё раз или опиши блюдо вручную.'));
-      }
-    }
-    cur.photo={food:r.food,portion:r.portion,kcal:r.calories||0,prot:r.protein||0,fat:r.fat||0,carb:r.carbs||0,img:'data:image/jpeg;base64,'+imgData,time:tnow(),date:ds(),desc:r.description||'',ingr:r.ingredients||[]};
-    document.getElementById('rn').textContent=r.food||'Блюдо';
+    const r=await analyzePhotoData(imgData,userDesc);
+    // The full-size analysis image is NOT what gets persisted — a 480px
+    // thumbnail goes to IndexedDB instead. Keeping the 1024px base64 blob in
+    // localStorage is what used to blow the 5 MB quota after about a week and
+    // silently stop saving new entries.
+    const _imgRef=await storeFoodImage(_srcUrl);
+    const _g=t('unit_g');
+    cur.photo={food:r.food,portion:r.portion,kcal:r.calories||0,prot:r.protein||0,fat:r.fat||0,carb:r.carbs||0,..._imgRef,time:tnow(),date:ds(),desc:r.description||'',ingr:r.ingredients||[]};
+    document.getElementById('rn').textContent=r.food||t('h_dish');
     document.getElementById('rp').textContent=r.portion||'';
-    document.getElementById('rk').innerHTML=(r.calories||0)+' <small>ккал</small>';
-    document.getElementById('rpr').textContent=(r.protein||0)+'г';
-    document.getElementById('rcr').textContent=(r.carbs||0)+'г';
-    document.getElementById('rfr').textContent=(r.fat||0)+'г';
+    document.getElementById('rk').innerHTML=(r.calories||0)+' <small>'+esc(t('unit_kcal'))+'</small>';
+    document.getElementById('rpr').textContent=(r.protein||0)+_g;
+    document.getElementById('rcr').textContent=(r.carbs||0)+_g;
+    document.getElementById('rfr').textContent=(r.fat||0)+_g;
     document.getElementById('rd').textContent=r.description||'';
-    document.getElementById('resimg').src=document.getElementById('previmg').src;
+    document.getElementById('resimg').src=_srcUrl;
     document.getElementById('resimg').classList.add('on');
     if(r.ingredients?.length){
-      document.getElementById('ringrlist').innerHTML='<div class="ingr-hdr">СОСТАВ</div>'+r.ingredients.slice(0,6).map(i=>`<div class="ingr-i"><span class="ingr-n">${i.name}</span><span class="ingr-c">${i.calories}ккал</span></div>`).join('');
+      document.getElementById('ringrlist').innerHTML=`<div class="ingr-hdr">${t('detail_ingr')}</div>`+r.ingredients.slice(0,6).map(i=>`<div class="ingr-i"><span class="ingr-n">${esc(i.name)}</span><span class="ingr-c">${Number(i.calories)||0} ${t('unit_kcal')}</span></div>`).join('');
+    } else {
+      document.getElementById('ringrlist').innerHTML='';
     }
     document.getElementById('prevw').style.display='none'; // hide preview when result shown
     document.getElementById('phres').classList.add('on');
     document.getElementById('phAddbtn').style.display='block';
     HFX.success();SFX.play('scan_success');
-  }catch(e){const _em=String(e.message||e||'Ошибка');
-    const _msg=_em.includes('quota')||_em.includes('exceeded')||_em.includes('429')?'Превышен лимит Gemini API. Подожди 1-2 мин и попробуй снова.':_em;
+  }catch(e){const _em=String(e.message||e||t('err_unknown'));
+    const _msg=/quota|exceeded|429/.test(_em)?t('err_gem_limit'):_em;
     HFX.error();SFX.play('error');
-    showErr('pherr',_msg);document.getElementById('phAbtn').style.display='block';}
+    showErr('pherr',_msg);document.getElementById('phAbtn').style.display='block';
+    // If the failure was connectivity-shaped, offer the queue instead of a dead end.
+    const q=document.getElementById('phQueueBtn');
+    if(q&&/fetch|соединени|connection|network|интернет|GitHub Pages/i.test(_em)) q.style.display='block';
+  }
   finally{document.getElementById('phldr').classList.remove('on');}
 }
 
@@ -1098,26 +1376,32 @@ async function doText(){
       inp.focus();
       setTimeout(()=>{ inp.style.borderColor=''; }, 1600);
     }
-    showToast(t('text_required','Напиши что съел'));
+    showToast(t('text_required'));
     return;
   }
   document.getElementById('txAbtn').style.display='none';
   document.getElementById('txerr').classList.remove('on');
   document.getElementById('txldr').classList.add('on');
   try{
+    const outLang=LANG==='en'?'English':'Russian';
+    const sample=LANG==='en'
+      ? '{"food":"Buckwheat with chicken","portion":"250 g","calories":320,"protein":28,"fat":8,"carbs":35,"description":"Buckwheat porridge with chicken breast. A balanced, high-protein meal."}'
+      : '{"food":"Гречка с курицей","portion":"250г","calories":320,"protein":28,"fat":8,"carbs":35,"description":"Гречневая каша с куриной грудкой. Сбалансированное блюдо с высоким содержанием белка."}';
     const p=`You are a nutrition expert. The user ate: "${txt}". Calculate calories and macros.
+All human-readable text in your answer (food, portion, description) MUST be written in ${outLang}.
 Respond with ONLY a valid JSON object. No text before or after. No markdown. Example format:
-{"food":"Гречка с курицей","portion":"250г","calories":320,"protein":28,"fat":8,"carbs":35,"description":"Гречневая каша с куриной грудкой. Сбалансированное блюдо с высоким содержанием белка."}
+${sample}
 Now calculate for what the user ate and return JSON in same format:`;
     const raw=await gem([{text:p}],'',{json:true,maxOutputTokens:2048});
     const r=pj(raw);
+    const _g=t('unit_g');
     cur.text={food:r.food,portion:r.portion,kcal:r.calories||0,prot:r.protein||0,fat:r.fat||0,carb:r.carbs||0,time:tnow(),date:ds(),desc:r.description||'',ingr:r.ingredients||[]};
     document.getElementById('trn').textContent=r.food||txt;
     document.getElementById('trp').textContent=r.portion||'';
-    document.getElementById('trk').innerHTML=(r.calories||0)+' <small>ккал</small>';
-    document.getElementById('trpr').textContent=(r.protein||0)+'г';
-    document.getElementById('trcr').textContent=(r.carbs||0)+'г';
-    document.getElementById('trfr').textContent=(r.fat||0)+'г';
+    document.getElementById('trk').innerHTML=(r.calories||0)+' <small>'+esc(t('unit_kcal'))+'</small>';
+    document.getElementById('trpr').textContent=(r.protein||0)+_g;
+    document.getElementById('trcr').textContent=(r.carbs||0)+_g;
+    document.getElementById('trfr').textContent=(r.fat||0)+_g;
     document.getElementById('trd').textContent=r.description||'';
     document.getElementById('txres').classList.add('on');
     document.getElementById('txAddbtn').style.display='block';
@@ -1125,9 +1409,10 @@ Now calculate for what the user ate and return JSON in same format:`;
   }catch(e){HFX.error();SFX.play('ai_error');showErr('txerr', (()=>{
       const m=String(e.message||e||'');
       const isLocal=location.protocol==='file:'||location.protocol==='content:'||!location.hostname;
-      if(m==='Failed to fetch'&&isLocal) return 'Открой через GitHub Pages, не как файл';
-      if(m==='Failed to fetch') return 'Нет соединения с Gemini API';
-      return m||'Ошибка анализа';
+      if(m==='Failed to fetch'&&isLocal) return t('err_open_pages');
+      if(m==='Failed to fetch') return t('err_no_gemini');
+      if(/quota|exceeded|429/.test(m)) return t('err_gem_limit');
+      return m||t('err_analyze');
     })());document.getElementById('txAbtn').style.display='block';}
   finally{document.getElementById('txldr').classList.remove('on');}
 }
@@ -1148,8 +1433,8 @@ async function _offLookup(barcode){
     if (!data || data.status !== 1 || !data.product) return null;
     const p = data.product;
     const n = p.nutriments || {};
-    const name = (lang === 'ru' ? p.product_name_ru : p.product_name_en) || p.product_name || p.brands || 'Продукт';
-    const portionRaw = p.serving_size || (n['energy-kcal_serving'] ? '1 порция' : (p.quantity || '100г'));
+    const name = (lang === 'ru' ? p.product_name_ru : p.product_name_en) || p.product_name || p.brands || t('product_default');
+    const portionRaw = p.serving_size || (n['energy-kcal_serving'] ? (LANG==='en'?'1 serving':'1 порция') : (p.quantity || (LANG==='en'?'100 g':'100г')));
     // Per-serving where available, else per-100g
     const perServing = (n['energy-kcal_serving'] != null);
     const get = (k) => perServing ? (n[k+'_serving'] ?? n[k+'_100g'] ?? 0) : (n[k+'_100g'] ?? n[k+'_serving'] ?? 0);
@@ -1182,12 +1467,13 @@ async function _ocrBarcode(b, mime){
 
 function _renderBarcodeResult(r){
   cur.barcode = { food: r.food, portion: r.portion, kcal: r.calories||0, prot: r.protein||0, fat: r.fat||0, carb: r.carbs||0, time: tnow(), date: ds() };
-  document.getElementById('brn').textContent = r.food || 'Продукт';
+  const _g = t('unit_g');
+  document.getElementById('brn').textContent = r.food || t('product_default');
   document.getElementById('brp').textContent = r.portion || '';
-  document.getElementById('brk').innerHTML = (r.calories || 0) + ' <small>ккал</small>';
-  document.getElementById('brpr').textContent = (r.protein || 0) + 'г';
-  document.getElementById('brcr').textContent = (r.carbs || 0) + 'г';
-  document.getElementById('brfr').textContent = (r.fat || 0) + 'г';
+  document.getElementById('brk').innerHTML = (r.calories || 0) + ' <small>' + esc(t('unit_kcal')) + '</small>';
+  document.getElementById('brpr').textContent = (r.protein || 0) + _g;
+  document.getElementById('brcr').textContent = (r.carbs || 0) + _g;
+  document.getElementById('brfr').textContent = (r.fat || 0) + _g;
   document.getElementById('brd').textContent = (r._source === 'openfoodfacts' ? '🌍 OpenFoodFacts · ' : '') + (r.description || '');
   document.getElementById('bcres').classList.add('on');
   document.getElementById('bcAddbtn').style.display = 'block';
@@ -1203,7 +1489,7 @@ async function doBarcodeManual(){
       inp.style.borderColor = 'var(--err)';
       setTimeout(()=>{ inp.style.borderColor=''; }, 1600);
     }
-    showToast('EAN: 8-14 цифр');
+    showToast(t('bc_ean_hint'));
     return;
   }
   HFX.light(); SFX.play('barcode_scan');
@@ -1212,10 +1498,10 @@ async function doBarcodeManual(){
   try {
     const r = await _offLookup(code);
     if (r) { _renderBarcodeResult(r); return; }
-    showErr('bcerr', 'Продукт не найден в OpenFoodFacts. Попробуй фото.');
+    showErr('bcerr', t('bc_not_found'));
   } catch(e) {
     HFX.error(); SFX.play('ai_error');
-    showErr('bcerr', String(e.message || e || 'Ошибка анализа'));
+    showErr('bcerr', String(e.message || e || t('err_analyze')));
   } finally {
     document.getElementById('bcldr').classList.remove('on');
   }
@@ -1235,14 +1521,19 @@ async function doBarcode(e){
       if (r) { _renderBarcodeResult(r); return; }
     }
     // 2) Fallback: Gemini full vision analysis
+    const outLang=LANG==='en'?'English':'Russian';
+    const sample=LANG==='en'
+      ? `{"food":"Lay's Sour Cream chips","portion":"30 g","calories":165,"protein":2,"fat":11,"carbs":15,"description":"Potato chips. A calorie-dense snack."}`
+      : `{"food":"Чипсы Lay's Сметана","portion":"30г","calories":165,"protein":2,"fat":11,"carbs":15,"description":"Картофельные чипсы. Высококалорийный снек."}`;
     const p=`You are a nutrition expert. This photo shows a product barcode or packaging. Identify the product and its nutrition info per serving or per 100g.
+All human-readable text in your answer MUST be written in ${outLang}.
 Respond with ONLY a valid JSON object. No text before or after. No markdown. Example:
-{"food":"Чипсы Lay's Сметана","portion":"30г","calories":165,"protein":2,"fat":11,"carbs":15,"description":"Картофельные чипсы. Высококалорийный снек."}
+${sample}
 Return JSON for the product in this photo:`;
     const raw=await gem([{text:p},{inline_data:{mime_type:mime,data:b}}],'',{json:true,maxOutputTokens:2048});
     const r=pj(raw);
     _renderBarcodeResult(r);
-  }catch(e){HFX.error();SFX.play('ai_error');showErr('bcerr', String(e.message||e||'Ошибка анализа'));}
+  }catch(e){HFX.error();SFX.play('ai_error');showErr('bcerr', String(e.message||e||t('err_analyze')));}
   finally{document.getElementById('bcldr').classList.remove('on');
     // Reset file inputs so the same file can be selected again
     try { document.getElementById('bc_cam').value=''; document.getElementById('bc_gal').value=''; } catch(e){}
@@ -1253,14 +1544,15 @@ Return JSON for the product in this photo:`;
 function _detectBeverage(item) {
   const f = (item.food||'').toLowerCase();
   const p = (item.portion||'').toLowerCase();
-  const beverageWords = ['вода','чай','кофе','сок','молоко','кефир','компот','морс','лимонад','напиток','смузи','коктейль','газировка','пепси','кола','sprite','fanta','нектар','какао','цикорий','матча'];
-  const isBeverage = beverageWords.some(w => f.includes(w));
+  const beverageWords = ['вода','чай','кофе','сок','молоко','кефир','компот','морс','лимонад','напиток','смузи','коктейль','газировка','пепси','кола','sprite','fanta','нектар','какао','цикорий','матча',
+    'water','tea','coffee','juice','milk','kefir','lemonade','soda','drink','smoothie','shake','cocoa','latte','cappuccino','espresso','americano','matcha','cola','pepsi','beverage','kombucha','ayran'];
+  const isBeverage = beverageWords.some(w => _hasNeedle(f, w));
   if (!isBeverage) return null;
   // Estimate ml from portion
   let ml = 200; // default
-  const mlMatch = p.match(/(\d+)\s*мл/);
-  const gMatch = p.match(/(\d+)\s*г/);
-  const lMatch = p.match(/(\d+(?:[.,]\d+)?)\s*л/);
+  const mlMatch = p.match(/(\d+)\s*(?:мл|ml)/);
+  const gMatch = p.match(/(\d+)\s*(?:г|g)\b/);
+  const lMatch = p.match(/(\d+(?:[.,]\d+)?)\s*(?:л|l)\b/);
   if (mlMatch) ml = parseInt(mlMatch[1]);
   else if (lMatch) ml = Math.round(parseFloat(lMatch[1].replace(',','.')) * 1000);
   else if (gMatch) ml = parseInt(gMatch[1]);
@@ -1268,11 +1560,12 @@ function _detectBeverage(item) {
   ml = Math.max(50, Math.min(1500, ml));
   // Match to DRINKS for hydration factor
   let drinkId = 'other';
-  if (f.includes('вода')) drinkId = 'water';
-  else if (f.includes('чай')) drinkId = 'tea';
-  else if (f.includes('кофе')) drinkId = 'coffee';
-  else if (f.includes('сок')||f.includes('нектар')) drinkId = 'juice';
-  else if (f.includes('молоко')||f.includes('кефир')||f.includes('какао')) drinkId = 'milk';
+  const has = (...ws) => ws.some(w => _hasNeedle(f, w));
+  if (has('вода','water')) drinkId = 'water';
+  else if (has('чай','tea','матча','matcha')) drinkId = 'tea';
+  else if (has('кофе','coffee','латте','latte','cappuccino','капучино','espresso','americano')) drinkId = 'coffee';
+  else if (has('сок','нектар','juice','nectar')) drinkId = 'juice';
+  else if (has('молоко','кефир','какао','milk','kefir','cocoa','ayran')) drinkId = 'milk';
   return { ml, drinkId };
 }
 
@@ -1281,10 +1574,16 @@ function rstBarcode(){
   document.getElementById('bcAddbtn').style.display='none';
   document.getElementById('bcerr').classList.remove('on');
 }
-function addRes(t){
-  const item=cur[t];if(!item)return;
+// `kind` is one of 'photo' | 'text' | 'barcode'. (It used to be named `t`,
+// shadowing the global translator inside this function.)
+function addRes(kind){
+  const item=cur[kind];if(!item)return;
   HFX.success(); SFX.play('add_food');
-  log.unshift(item); S('log',JSON.stringify(log));
+  log.unshift(item);
+  // If the write failed (out of quota) roll the entry back out of memory so
+  // the UI never shows a record that will vanish on the next reload.
+  if(!saveLog()){ log.shift(); HFX.error(); return; }
+  cur[kind]=null;
   // Auto-detect beverage → add to water tracker (background bookkeeping only;
   // the toast + widget refresh are gated behind the water-tracking toggle so
   // the feature stays invisible while it's off).
@@ -1299,7 +1598,7 @@ function addRes(t){
     }
   }
   rH(); closeAdd();
-  if(t==='photo') rstPhoto();
-  if(t==='text')  rstText();
-  if(t==='barcode'){document.getElementById('bcres').classList.remove('on');document.getElementById('bcAddbtn').style.display='none';}
+  if(kind==='photo') rstPhoto();
+  if(kind==='text')  rstText();
+  if(kind==='barcode') rstBarcode();
 }

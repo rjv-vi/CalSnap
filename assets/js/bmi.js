@@ -15,14 +15,18 @@ function rBMI() {
   const start = performance.now();
   const startVal = parseFloat(el.dataset.val || '0') || 0;
   el.dataset.val = bmi;
-  const tick = (now) => {
-    const p = Math.min((now - start) / duration, 1);
-    const ease = 1 - Math.pow(1 - p, 3);
-    el.textContent = (startVal + (bmi - startVal) * ease).toFixed(1);
-    if(p < 1) requestAnimationFrame(tick);
-    else el.textContent = bmi;
-  };
-  requestAnimationFrame(tick);
+  el.textContent = bmi;
+  const reduced = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  if(!reduced && startVal && Math.abs(bmi - startVal) > 0.05){
+    const tick = (now) => {
+      const p = Math.min((now - start) / duration, 1);
+      const ease = 1 - Math.pow(1 - p, 3);
+      el.textContent = (startVal + (bmi - startVal) * ease).toFixed(1);
+      if(p < 1) requestAnimationFrame(tick);
+      else el.textContent = bmi;
+    };
+    requestAnimationFrame(tick);
+  }
 
   // Category
   let label, cls;

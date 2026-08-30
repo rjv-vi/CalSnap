@@ -3,7 +3,7 @@
   "host": "rjv-vi.github.io",
   "name": "CalSnap",
   "launcherName": "CalSnap",
-  "display": "standalone",
+  "display": "fullscreen",
   "themeColor": "#0F0E0C",
   "themeColorDark": "#0F0E0C",
   "navigationColor": "#0F0E0C",

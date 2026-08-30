@@ -29,3 +29,6 @@ android.keystore
 .venv/
 venv/
 __pycache__/
+
+# Test dependency lockfile is intentionally not committed (single dev dep)
+package-lock.json

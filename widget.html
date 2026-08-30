@@ -223,7 +223,7 @@ h2 {
 <body>
 <div class="page">
 
-  <h2>🍎 CalSnap · Виджеты <button id="wRefresh" onclick="location.reload()" title="Обновить" aria-label="Обновить" style="float:right;font-size:13px;background:rgba(0,0,0,.06);border:1px solid rgba(0,0,0,.08);border-radius:14px;padding:6px 12px;cursor:pointer;color:inherit;font-weight:600;font-family:inherit">↻</button></h2>
+  <h2><span data-wt="page_title">🍎 CalSnap · Виджеты</span> <button id="wRefresh" onclick="location.reload()" data-wt-title="refresh" data-wt-aria="refresh" title="Обновить" aria-label="Обновить" style="float:right;font-size:13px;background:rgba(0,0,0,.06);border:1px solid rgba(0,0,0,.08);border-radius:14px;padding:6px 12px;cursor:pointer;color:inherit;font-weight:600;font-family:inherit">↻</button></h2>
 
   <!-- SMALL WIDGET -->
   <div class="widget w-small" id="wSmall">
@@ -235,13 +235,13 @@ h2 {
       </svg>
       <div class="w-ring-label">
         <div class="w-ring-pct" id="wPct">0%</div>
-        <div class="w-ring-sub">норма</div>
+        <div class="w-ring-sub" data-wt="target">норма</div>
       </div>
     </div>
     <div class="w-info">
-      <div class="w-app">🍎 CALSNAP · СЕГОДНЯ</div>
+      <div class="w-app" data-wt="hdr_cal">🍎 CALSNAP · СЕГОДНЯ</div>
       <div class="w-kcal-num" id="wKcal">—</div>
-      <div class="w-kcal-goal">из <span id="wGoal">—</span> ккал</div>
+      <div class="w-kcal-goal"><span data-wt="of">из</span> <span id="wGoal">—</span> <span data-wt="kcal">ккал</span></div>
       <div class="w-rem" id="wRem"></div>
     </div>
   </div>
@@ -250,9 +250,9 @@ h2 {
   <div class="widget w-medium" id="wMedium">
     <div class="w-med-top">
       <div class="w-med-left">
-        <div class="w-app">🍎 CALSNAP · МАКРОНУТРИЕНТЫ</div>
+        <div class="w-app" data-wt="hdr_mac">🍎 CALSNAP · МАКРОНУТРИЕНТЫ</div>
         <div class="w-med-kcal" id="wMedKcal">—</div>
-        <div class="w-med-sub">калорий сегодня</div>
+        <div class="w-med-sub" data-wt="cal_today">калорий сегодня</div>
       </div>
       <div class="w-med-ring">
         <svg viewBox="0 0 60 60">
@@ -268,15 +268,15 @@ h2 {
     <div class="w-macros">
       <div class="w-mac p">
         <div class="w-mac-val" id="wProt">—г</div>
-        <div class="w-mac-lbl">Белки</div>
+        <div class="w-mac-lbl" data-wt="prot">Белки</div>
       </div>
       <div class="w-mac c">
         <div class="w-mac-val" id="wCarb">—г</div>
-        <div class="w-mac-lbl">Углеводы</div>
+        <div class="w-mac-lbl" data-wt="carb">Углеводы</div>
       </div>
       <div class="w-mac f">
         <div class="w-mac-val" id="wFat">—г</div>
-        <div class="w-mac-lbl">Жиры</div>
+        <div class="w-mac-lbl" data-wt="fat">Жиры</div>
       </div>
     </div>
     <div class="w-water">
@@ -284,34 +284,34 @@ h2 {
       <div class="w-water-bar-wrap">
         <div class="w-water-bar" id="wWaterBar" style="width:0%"></div>
       </div>
-      <div class="w-water-txt" id="wWaterTxt">0 мл</div>
+      <div class="w-water-txt" id="wWaterTxt">0</div>
     </div>
   </div>
 
   <!-- LARGE WIDGET -->
   <div class="widget w-large" id="wLarge">
     <div class="w-lg-head">
-      <div class="w-lg-title">Дневник питания</div>
+      <div class="w-lg-title" data-wt="diary">Дневник питания</div>
       <div class="w-lg-date" id="wDate"></div>
     </div>
     <div class="w-lg-kcal">
       <div class="w-lg-num" id="wLgKcal">—</div>
-      <div class="w-lg-unit">ккал</div>
+      <div class="w-lg-unit" data-wt="kcal">ккал</div>
     </div>
     <div class="w-lg-meals" id="wMeals">
       <div class="w-empty">
         <span class="w-empty-icon">🥗</span>
-        Ещё нет записей сегодня.<br>Открой CalSnap и добавь еду!
+        <span data-wt-html="empty">Ещё нет записей сегодня.<br>Открой CalSnap и добавь еду!</span>
       </div>
     </div>
   </div>
 
   <!-- OPEN APP -->
-  <button class="open-btn" onclick="openApp()">
+  <button class="open-btn" onclick="openApp()" data-wt="open_app">
     Открыть CalSnap →
   </button>
 
-  <div class="hint">
+  <div class="hint" data-wt-html="hint">
     Добавь эту страницу на рабочий стол через меню браузера<br>
     для быстрого доступа к виджетам
   </div>
@@ -323,6 +323,54 @@ h2 {
 function G(k,d=''){try{return localStorage.getItem(k)||d;}catch(e){return d;}}
 
 function ds(d){return (d||new Date()).toDateString();}
+
+// ── i18n (mirrors assets/js/i18n.js for the handful of strings used here) ──
+const LANG = (() => {
+  try {
+    const l = localStorage.getItem('lang');
+    if (l === 'ru' || l === 'en') return l;
+    const nl = (navigator.language || 'ru').toLowerCase();
+    return /^(ru|uk|be|kk)/.test(nl) ? 'ru' : 'en';
+  } catch(e) { return 'ru'; }
+})();
+const LOC = LANG === 'en' ? 'en-US' : 'ru-RU';
+const W_T = {
+  ru: {
+    kcal:'ккал', g:'г', ml:'мл',
+    hdr_cal:'🍎 CALSNAP · СЕГОДНЯ', hdr_mac:'🍎 CALSNAP · МАКРОНУТРИЕНТЫ',
+    cal_today:'калорий сегодня', diary:'Дневник питания',
+    prot:'Белки', carb:'Углеводы', fat:'Жиры',
+    remaining:'Осталось {n} ккал', over:'+{n} ккал',
+    empty:'Ещё нет записей сегодня.<br>Открой CalSnap и добавь еду!',
+    open_app:'Открыть CalSnap →', dish:'Блюдо',
+    hint:'Добавь эту страницу на рабочий стол через меню браузера<br>для быстрого доступа к виджетам',
+    page_title:'🍎 CalSnap · Виджеты', refresh:'Обновить',
+    target:'норма', of:'из',
+  },
+  en: {
+    kcal:'kcal', g:'g', ml:'ml',
+    hdr_cal:'🍎 CALSNAP · TODAY', hdr_mac:'🍎 CALSNAP · MACROS',
+    cal_today:'calories today', diary:'Food diary',
+    prot:'Protein', carb:'Carbs', fat:'Fat',
+    remaining:'{n} kcal left', over:'+{n} kcal',
+    empty:'Nothing logged today.<br>Open CalSnap and add a meal!',
+    open_app:'Open CalSnap →', dish:'Dish',
+    hint:'Add this page to your home screen from the browser menu<br>for quick access to the widgets',
+    page_title:'🍎 CalSnap · Widgets', refresh:'Refresh',
+    target:'target', of:'of',
+  },
+};
+function wt(k){ return (W_T[LANG] || W_T.ru)[k] ?? k; }
+function wtf(k,params){ let v=wt(k); for(const p in params) v=v.split('{'+p+'}').join(params[p]); return v; }
+function wesc(v){ return String(v==null?'':v).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+function applyWidgetI18n(){
+  document.documentElement.setAttribute('lang', LANG);
+  document.querySelectorAll('[data-wt]').forEach(el => { el.textContent = wt(el.getAttribute('data-wt')); });
+  document.querySelectorAll('[data-wt-html]').forEach(el => { el.innerHTML = wt(el.getAttribute('data-wt-html')); });
+  document.querySelectorAll('[data-wt-title]').forEach(el => { el.title = wt(el.getAttribute('data-wt-title')); });
+  document.querySelectorAll('[data-wt-aria]').forEach(el => { el.setAttribute('aria-label', wt(el.getAttribute('data-wt-aria'))); });
+  document.title = LANG === 'en' ? 'CalSnap Widgets' : 'CalSnap Виджеты';
+}
 
 function loadData(){
   const U = JSON.parse(G('u','null'));
@@ -346,10 +394,10 @@ function loadData(){
   document.getElementById('wRingFill').style.strokeDashoffset = C_s*(1-pct);
   const rem = document.getElementById('wRem');
   if(tot.k <= goal){
-    rem.textContent = 'Осталось '+( goal-tot.k)+' ккал';
+    rem.textContent = wtf('remaining',{n:goal-tot.k});
     rem.className = 'w-rem ok';
   } else {
-    rem.textContent = '+'+(tot.k-goal)+' ккал';
+    rem.textContent = wtf('over',{n:tot.k-goal});
     rem.className = 'w-rem over';
   }
 
@@ -357,34 +405,42 @@ function loadData(){
   document.getElementById('wMedKcal').textContent = tot.k;
   document.getElementById('wMedPct').textContent = Math.round(pct*100)+'%';
   document.getElementById('wMedRing').style.strokeDashoffset = C_m*(1-pct);
-  document.getElementById('wProt').textContent = Math.round(tot.p)+'г';
-  document.getElementById('wCarb').textContent = Math.round(tot.c)+'г';
-  document.getElementById('wFat').textContent  = Math.round(tot.f)+'г';
+  document.getElementById('wProt').textContent = Math.round(tot.p)+wt('g');
+  document.getElementById('wCarb').textContent = Math.round(tot.c)+wt('g');
+  document.getElementById('wFat').textContent  = Math.round(tot.f)+wt('g');
 
   // Water
   try{
     const waterArr = JSON.parse(G('water_'+today,'[]'));
     const waterMl = waterArr.reduce((s,e)=>s+(e.ml||0),0);
-    const waterGoal = U ? Math.round((U.w||70)*35) : 2000;
+    // Same formula as getWaterGoal() in assets/js/water.js.
+    const waterGoal = Math.max(1500, Math.min(3500, Math.round((U?.w||70)*30/50)*50));
     const wPct = Math.min(waterMl/waterGoal*100,100);
     document.getElementById('wWaterBar').style.width = wPct+'%';
-    document.getElementById('wWaterTxt').textContent = waterMl+' / '+waterGoal+' мл';
+    document.getElementById('wWaterTxt').textContent = waterMl+' / '+waterGoal+' '+wt('ml');
   }catch(e){}
 
   // ── Large widget ──
   const now = new Date();
-  document.getElementById('wDate').textContent = now.toLocaleDateString('ru',{day:'numeric',month:'long'});
+  document.getElementById('wDate').textContent = now.toLocaleDateString(LOC,{day:'numeric',month:'long'});
   document.getElementById('wLgKcal').textContent = tot.k;
 
   const mealsEl = document.getElementById('wMeals');
   if(!todayLog.length){
     mealsEl.innerHTML = `<div class="w-empty">
       <span class="w-empty-icon">🥗</span>
-      Ещё нет записей сегодня.<br>Открой CalSnap и добавь еду!
+      ${wt('empty')}
     </div>`;
   } else {
-    const MEALS = {breakfast:'🌅',lunch:'☀️',dinner:'🌙',snack:'🍎',other:'🍽️'};
-    const emoMap = {яблок:'🍎',банан:'🍌',куриц:'🍗',рыб:'🐟',салат:'🥗',хлеб:'🍞',суп:'🍲',пицц:'🍕',рис:'🍚',яиц:'🥚',кофе:'☕',шоколад:'🍫'};
+    const emoMap = {
+      'яблок':'🍎','apple':'🍎','банан':'🍌','banana':'🍌',
+      'куриц':'🍗','chicken':'🍗','рыб':'🐟','fish':'🐟','salmon':'🐟',
+      'салат':'🥗','salad':'🥗','хлеб':'🍞','bread':'🍞','sandwich':'🍞',
+      'суп':'🍲','soup':'🍲','пицц':'🍕','pizza':'🍕',
+      'рис':'🍚','rice':'🍚','гречк':'🍚','oat':'🍚','овсян':'🍚',
+      'яиц':'🥚','яйц':'🥚','egg':'🥚','кофе':'☕','coffee':'☕','чай':'☕','tea':'☕',
+      'шоколад':'🍫','chocolate':'🍫','сыр':'🧀','cheese':'🧀','мясо':'🥩','beef':'🥩','meat':'🥩',
+    };
     function emo(f){
       const fl=f.toLowerCase();
       for(const[k,v] of Object.entries(emoMap)){if(fl.includes(k))return v;}
@@ -394,10 +450,10 @@ function loadData(){
       <div class="w-meal-row">
         <div class="w-meal-icon">${emo(item.food||'')}</div>
         <div class="w-meal-info">
-          <div class="w-meal-name">${item.food||'Блюдо'}</div>
-          <div class="w-meal-time">${item.time||''}</div>
+          <div class="w-meal-name">${wesc(item.food||wt('dish'))}</div>
+          <div class="w-meal-time">${wesc(item.time||'')}</div>
         </div>
-        <div class="w-meal-kcal">${item.kcal||0} ккал</div>
+        <div class="w-meal-kcal">${item.kcal||0} ${wt('kcal')}</div>
       </div>
     `).join('');
   }
@@ -434,15 +490,33 @@ function animateCounters(){
 }
 
 // Init
+applyWidgetI18n();
 loadData();
 setTimeout(animateCounters, 100);
 
 // Auto-refresh every 30s
 setInterval(loadData, 30000);
 
-// Dark/Light theme from main app
-const theme = G('theme','light');
-if(theme==='dark') document.documentElement.style.background='#000';
+// Follow the app's theme. The widget palette is dark by default, so switch
+// the CSS variables over when the user runs CalSnap in light mode.
+(function(){
+  let theme = G('theme','');
+  if(!theme){
+    try { theme = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'; }
+    catch(e){ theme = 'dark'; }
+  }
+  if(theme === 'light'){
+    const r = document.documentElement.style;
+    r.setProperty('--bg',    '#F2F0EB');
+    r.setProperty('--card',  '#FFFFFF');
+    r.setProperty('--card2', '#F7F5F1');
+    r.setProperty('--text',  '#141210');
+    r.setProperty('--text2', 'rgba(20,18,16,.62)');
+    r.setProperty('--text3', 'rgba(20,18,16,.38)');
+    r.setProperty('--sep',   'rgba(20,18,16,.10)');
+    document.querySelector('meta[name="theme-color"]')?.setAttribute('content','#F2F0EB');
+  }
+})();
 </script>
 </body>
 </html>
