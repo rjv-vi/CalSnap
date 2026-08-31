@@ -316,7 +316,7 @@ window._devErrors=[];
 window.onerror=function(m,s,l){window._devErrors.push(m+' ('+s+':'+l+')');if(window._devErrors.length>20)window._devErrors.shift();};
 window.addEventListener('unhandledrejection',function(e){window._devErrors.push('Promise: '+e.reason);if(window._devErrors.length>20)window._devErrors.shift();});
 
-// ─── Запуск приложения ───
+// ─── App start ───
 // init() defined in state.js; called here after every other module has loaded
 // so that all referenced helpers (_updateMiniWater, rH, etc.) are defined.
 try { init(); } catch(e) { console.error('Init error:', e); }

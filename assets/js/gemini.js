@@ -1,5 +1,5 @@
 let ALL_MODELS=[
-  // ── Gemini 3.x (новейшие — из API) ──
+  // ── Gemini 3.x (newest — also returned by the API) ──
   {id:'gemini-3.1-pro-preview-customtools',   name:'Gemini 3.1 Pro Preview Customtools'},
   {id:'gemini-3.1-pro-preview',               name:'Gemini 3.1 Pro Preview'},
   {id:'gemini-3.1-flash-image-preview',       name:'Gemini 3.1 Flash Image Preview'},

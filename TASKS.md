@@ -1,26 +1,29 @@
-# Список задач
+# Task list
 
-Обновляется по ходу работы. `[ ]` — в очереди, `[~]` — в работе, `[x]` — готово.
+Updated as work progresses. `[ ]` — queued, `[~]` — in progress, `[x]` — done.
 
-## Критичное
-- [x] Данные не сохраняются при перезаходе — проверка записи + зеркало в IndexedDB с авто-восстановлением
-- [x] Онбординг просвечивает при переключении экранов (`#ob` перебивал `.screen{display:none}`)
-- [x] Напиток удалён из водного баланса, но запись осталась в дневнике (связал события в обе стороны)
+## Critical
+- [x] Offline photos in the queue: IndexedDB writes now settle on commit and are read back
+- [x] "Delete all data" also wipes the IndexedDB backup
 
-## Тема и контраст
-- [x] Тёмная тема: выбранная кнопка в онбординге (каскад `components.css` перебивал `.on`)
-- [x] Тёмная тема: график веса рисовался несуществующим `--primary` → почти чёрным
-- [x] Системная тема в выборе (светлая / тёмная / системная)
+## AI chat
+- [x] Full UI / UX / animation rework
+- [x] Photo attachments
 
-## Настройки и поведение
-- [x] Убрать вкладку «Виджеты» из настроек
-- [x] Модель по умолчанию (`gemini-flash-lite-latest`) — только при первой установке
+## Offline mode
+- [x] Improved UI / UX / animations
 
-## Читаемость
-- [x] «Активность за 28 дней»: прозрачные цвета → плотная непрозрачная шкала
-- [x] Перебор на 1% больше не красит день в красный (90–110% = «в норме»)
-- [x] Остальные смысловые подложки (ok/warn/err/blue/streak) стали непрозрачными
+## Small bugs
+- [x] "Install to home screen" hint shown to users who already installed (manifest fullscreen ≠ standalone)
+- [x] Goal-reached ring redesigned — the state lives in the label, not a glow
+- [x] "Rizan" removed from the credits
 
-## Полировка
-- [x] Прочие баги, UI / UX / анимации (повторные анимации, шаги веса, мёртвый код)
-- [x] Прогон тестов и аудита контраста — 381 проверка, контраст ≥ 3:1 в обеих темах
+## Legal
+- [x] Licence: copying and misattribution forbidden, reviews and recordings explicitly allowed
+
+## Polish
+- [x] Remaining UI / UX / animation gaps
+- [x] Test + contrast run — 421 checks, contrast ≥ 3:1 in both themes
+
+## Docs
+- [x] README, CONTRIBUTING, SECURITY, LICENSE and this file are English-only

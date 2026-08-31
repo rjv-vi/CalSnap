@@ -2,17 +2,8 @@
 // CALSNAP SOUND ENGINE
 // ═══════════════════════════════════════════════════
 
-// AI thinking loop sound
-let _aiThinkTimer = null;
-function _aiThinkStart(){
-  _aiThinkStop();
-  _aiThinkTimer = null; // ai_thinking sound removed
-}
-function _aiThinkStop(){
-  if(_aiThinkTimer){ clearInterval(_aiThinkTimer); _aiThinkTimer=null; }
-}
 const SFX = (() => {
-  // Громкость каждого звука (0.0 — 1.0)
+  // Per-sound volume (0.0 – 1.0)
   const VOLUMES = {
     welcome:      0.7,
     splash:       0.5,
@@ -149,19 +140,19 @@ const SFX = (() => {
     } catch(e) { return false; }
   }
 
-  // Пул Audio объектов для каждого звука (2-4 штуки — для быстрых повторов)
+  // A small pool of Audio elements per sound (2–4) so rapid repeats overlap
   const _pool = {};
   const _poolIdx = {};
   // Names whose file is absent / unplayable — they go straight to the synth.
   const _missing = Object.create(null);
 
-  // Звуки включены?
+  // Are sounds enabled?
   let _enabled = localStorage.getItem('sfx_enabled') !== '0';
   let _unlocked = false;
 
   const NAMES = Object.keys(VOLUMES);
 
-  // Создать пул Audio для одного звука
+  // Build the Audio pool for one sound
   function _createPool(name) {
     const vol = VOLUMES[name] ?? 0.5;
     const count = name === 'drum_tick' ? 4 : 2; // для тика больше копий
@@ -179,12 +170,12 @@ const SFX = (() => {
     }
   }
 
-  // Предзагрузка всех звуков
+  // Preload every sound
   function preload() {
     NAMES.forEach(n => { if (!_pool[n]) _createPool(n); });
   }
 
-  // Разблокировка Audio на iOS — через AudioContext без звука
+  // Unlock audio on iOS with a silent AudioContext buffer
   function _unlock() {
     if (_unlocked) return;
     _unlocked = true;
@@ -200,12 +191,12 @@ const SFX = (() => {
     } catch(e) {}
   }
 
-  // Воспроизвести звук
+  // Play a sound
   function play(name) {
     if (!_enabled) return;
     if (_missing[name]) { _synth(name); return; }
     if (!_pool[name]) _createPool(name);
-    // Берём следующий из пула (round-robin) — не прерываем предыдущий
+    // Round-robin through the pool so a repeat does not cut the previous one
     const pool = _pool[name];
     const idx = _poolIdx[name] % pool.length;
     _poolIdx[name] = (idx + 1) % pool.length;
@@ -218,14 +209,14 @@ const SFX = (() => {
     } catch(e) { _missing[name] = true; _synth(name); }
   }
 
-  // Включить/выключить
+  // Enable / disable
   function setEnabled(v) {
     _enabled = v;
     localStorage.setItem('sfx_enabled', v ? '1' : '0');
   }
   function isEnabled() { return _enabled; }
 
-  // Разблокировка при первом касании + предзагрузка
+  // Unlock and preload on the first user gesture
   function _onFirstTouch() {
     preload();
     _unlock();

@@ -1,5 +1,5 @@
 // ══════════════════════════════════════════════════
-// DAILY AI SUMMARY — вечером после 19:00
+// DAILY AI SUMMARY — shown in the evening, after 18:00
 // ══════════════════════════════════════════════════
 function dismissDailyAi(){
   HFX.light(); SFX.play('sheet_close');

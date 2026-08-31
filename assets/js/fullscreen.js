@@ -6,7 +6,7 @@
 // requests the Fullscreen API — which browsers only grant from inside a user
 // gesture, hence the one-shot listener on the first tap.
 //
-// Controlled by Settings → Внешний вид → Полноэкранный режим (default: on).
+// Controlled by Settings → Appearance → Fullscreen mode (default: on).
 
 const isFullscreenPref = () => G('fullscreen_enabled', '1') === '1';
 
@@ -19,13 +19,7 @@ function _fsSupported(){
 }
 // True when the app already fills the screen because it was launched as an
 // installed app — requesting fullscreen again would be pointless.
-function _isStandaloneDisplay(){
-  try {
-    return window.matchMedia('(display-mode: fullscreen)').matches
-        || window.matchMedia('(display-mode: standalone)').matches
-        || window.navigator.standalone === true;
-  } catch(e) { return false; }
-}
+const _isStandaloneDisplay = () => isInstalledApp();
 
 async function enterFullscreen(){
   if (_fsElement() || _isStandaloneDisplay()) return true;

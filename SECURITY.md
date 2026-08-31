@@ -1,38 +1,38 @@
-# Политика безопасности
+# Security Policy
 
-## Поддерживаемые версии
+## Supported versions
 
-Поддерживается только последняя версия CalSnap, развёрнутая на
-[GitHub Pages](https://rjv-vi.github.io/CalSnap/). Старые APK-сборки не
-обновляются автоматически; обновления нужно ставить вручную из
+Only the latest version of CalSnap deployed to
+[GitHub Pages](https://rjv-vi.github.io/CalSnap/) is supported. Older APK builds
+do not update themselves — install updates manually from
 [Releases](https://github.com/rjv-vi/CalSnap/releases).
 
-## Куда сообщать об уязвимостях
+## Reporting a vulnerability
 
-Не открывай публичные issues для проблем безопасности. Используй один из:
+Please don't open a public issue for security problems. Use one of:
 
 1. **GitHub Security Advisories** —
-   [приватный отчёт](https://github.com/rjv-vi/CalSnap/security/advisories/new)
-   (предпочтительно).
-2. Личное сообщение в профиле [@rjv-vi](https://github.com/rjv-vi).
+   [private report](https://github.com/rjv-vi/CalSnap/security/advisories/new)
+   (preferred).
+2. A direct message via the [@rjv-vi](https://github.com/rjv-vi) profile.
 
-Постараюсь ответить в течение **7 дней** и зафиксировать критичные
-проблемы в течение **30 дней**.
+I aim to respond within **7 days** and to fix critical issues within **30 days**.
 
-## Что считается уязвимостью
+## In scope
 
-- XSS / инъекции в любую часть UI или ответа Gemini, ведущие к выполнению
-  кода в контексте приложения.
-- Утечка пользовательских данных (журнал питания, вес, профиль) куда-либо
-  кроме Gemini API и OpenFoodFacts.
-- Bypass проверок Service Worker, позволяющий долго отдавать устаревший
-  контент после релиза.
-- Любые уязвимости в Android TWA-обёртке, кроме известных особенностей
-  Bubblewrap.
+- XSS or injection anywhere in the UI or in a Gemini response that leads to code
+  execution in the app's context.
+- Leaking user data (food log, weight, profile) anywhere other than the Gemini
+  API and OpenFoodFacts.
+- Bypassing the Service Worker checks so that stale content keeps being served
+  long after a release.
+- Any vulnerability in the Android TWA wrapper, other than known Bubblewrap
+  behaviour.
 
-## Что НЕ считается уязвимостью
+## Out of scope
 
-- Гипотетические проблемы при ручном запуске CalSnap через `file://` или с
-  заблокированным Service Worker.
-- Влияние стороннего расширения браузера на UI.
-- Социальная инженерия, требующая отдать свой Gemini API-ключ.
+- Hypothetical issues that only occur when CalSnap is opened over `file://` or
+  with the Service Worker blocked.
+- A third-party browser extension interfering with the UI.
+- Social engineering that requires the victim to hand over their own Gemini API
+  key.

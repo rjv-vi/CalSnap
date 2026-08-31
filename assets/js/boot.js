@@ -1,4 +1,10 @@
-// Применяем тему и язык сразу — до загрузки CSS/CSS, чтобы не было мигания
+/*!
+ * CalSnap — © 2024–2026 RJV. All rights reserved.
+ * Proprietary. Reviews, videos and screenshots are welcome; copying,
+ * redistributing or republishing this code is not. See LICENSE.
+ * https://github.com/rjv-vi/CalSnap
+ */
+// Apply the theme and language before the stylesheets load, so there is no flash
 (function(){
   try{
     // 'light' | 'dark' | 'system' (or absent, which means system).
@@ -14,7 +20,7 @@
       l = nl.startsWith('ru') || nl.startsWith('uk') || nl.startsWith('be') || nl.startsWith('kk') ? 'ru' : 'en';
     }
     document.documentElement.setAttribute('lang', l);
-    // Theme-color мета должен соответствовать актуальной теме
+    // The theme-color meta has to match the resolved theme
     var tcm=document.getElementById('tc-meta');
     if(tcm) tcm.setAttribute('content', t==='dark' ? '#0F0E0C' : '#F2F0EB');
   }catch(e){}

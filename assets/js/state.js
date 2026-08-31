@@ -180,7 +180,7 @@ const Ginvalidate=(k)=>{ if(k==null){ for(const x in _lsCache) delete _lsCache[x
 try { window.addEventListener('storage', e => { if (e.key) delete _lsCache[e.key]; else Ginvalidate(); }); } catch(e) {}
 
 // Water tracking — opt-in feature, OFF by default until the user enables it
-// in Settings → Питание. Used to gate water widgets (Home/Progress) and to
+// in Settings → Nutrition. Used to gate water widgets (Home/Progress) and to
 // decide whether the AI assistant is allowed to mention water at all.
 const isWaterOn = () => G('water_enabled','0') === '1';
 
@@ -222,10 +222,10 @@ function init(){
   document.addEventListener('touchstart', _unlockVibration, {once:true, passive:true});
   document.addEventListener('click', _unlockVibration, {once:true});
 
-  // Применить переводы (если используется локаль EN)
+  // Apply translations for the stored locale
   try { applyI18n(); } catch(e) {}
 
-  // Drag-select для онбординга — вешаем для обоих веток (новый/существующий пользователь)
+  // Drag-select in onboarding — wired for both new and returning users
   setTimeout(()=>{
     try {
       initDragSelect(document.querySelector('#os2 .gender-row'), '.gender-card', c => pickGender(c.id === 'gen_m' ? 'm' : 'f'));
@@ -236,10 +236,10 @@ function init(){
 
   // DOB handled by drum picker
   if(!U){
-    // Первый запуск — звук приветствия (с задержкой после сплэша)
+    // First launch — welcome sound, after the splash has faded
     setTimeout(()=>SFX.play('welcome'), 2000);
     ss('ob');
-    // Прогресс онбординга обновляем через ob-prog
+    // Onboarding progress is driven by the .ob-prog dots
     return;
   }
   document.getElementById('nav').style.display='flex';
@@ -265,11 +265,11 @@ function init(){
     initNavDrag();
   },80);
 
-  // Обработка share-target из manifest (расшарить текст еды → сразу анализ)
+  // Handle the manifest share_target (shared text → straight to analysis)
   try { _handleShareTarget(); } catch(e) {}
-  // Обработка hash-shortcut (#add, #scan)
+  // Handle the hash shortcuts (#add, #scan)
   try { _handleHashShortcut(); } catch(e) {}
-  // Daily AI summary (если уже сегодня показывали — пропускаем)
+  // Daily AI summary (skipped if it was already shown today)
   setTimeout(()=>{ try { _maybeShowDailySummary(); } catch(e){} }, 1500);
   // Move any legacy inline photos out of localStorage and drop unreferenced
   // IndexedDB blobs. Runs off the critical path.
@@ -473,7 +473,7 @@ const tnow=(d)=>{
   return String(n.getHours()).padStart(2,'0') + ':' + String(n.getMinutes()).padStart(2,'0');
 };
 
-// Streak — с поддержкой стрик-фриза (1 пропуск/неделю)
+// Streak, with a freeze that forgives one missed day per week
 function streak(){
   let s=0;
   const n=new Date();
@@ -484,9 +484,9 @@ function streak(){
     const dStr=ds(d);
     if(dlog(dStr).length){ s++; continue; }
     if(i===0){ continue; } // today not logged yet — check yesterday
-    // Если уже есть фриз в этом дне — учитываем
+    // A freeze already recorded for this day keeps the streak alive
     if(freezes[dStr]){ continue; }
-    // Авто-фриз: один пропуск в неделю можно «подморозить»
+    // Auto-freeze: one missed day a week can be covered
     if(!usedFreezeThisWeek){
       freezes[dStr] = true;
       usedFreezeThisWeek = true;

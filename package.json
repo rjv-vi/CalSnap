@@ -12,5 +12,7 @@
   "devDependencies": {
     "jsdom": "^30.0.1"
   },
-  "license": "UNLICENSED"
+  "license": "SEE LICENSE IN LICENSE",
+  "author": "RJV (https://github.com/rjv-vi)",
+  "homepage": "https://rjv-vi.github.io/CalSnap/"
 }

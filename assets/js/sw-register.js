@@ -1,7 +1,7 @@
-// ── АВТО-ОБНОВЛЕНИЕ ЧЕРЕЗ ETAG ──
-// Ничего не нужно менять вручную — система сама обнаруживает изменения на GitHub
+// ── AUTO-UPDATE VIA ETAG ──
+// Nothing to bump by hand: a changed ETag on GitHub Pages triggers the refresh
 (function() {
-  // Защита от SW reload loop: если страница перезагрузилась < 4с назад — прячем сплэш
+  // Guard against a SW reload loop: if the page reloaded < 4s ago, skip the splash
   try {
     var last = parseInt(sessionStorage.getItem('_sl') || '0');
     var now = Date.now();
@@ -14,7 +14,7 @@
     }
   } catch(e) {}
 
-  // ETag проверка — только если онлайн
+  // Only check the ETag when online
   if (!navigator.onLine) return;
 
   try {
@@ -28,7 +28,7 @@
         if (!newEtag) return; // сервер не вернул ETag — пропускаем
 
         if (res.status === 200 && savedEtag && newEtag !== savedEtag) {
-          // Файл изменился! Чистим всё и перезагружаемся
+          // The file changed — clear the caches and reload
           localStorage.setItem('_etag', newEtag);
           var kills = [];
           if ('serviceWorker' in navigator) {
@@ -47,7 +47,7 @@
             window.location.replace(location.pathname + '?_=' + Date.now());
           });
         } else if (newEtag) {
-          // Сохраняем ETag для следующей проверки
+          // Remember the ETag for the next check
           localStorage.setItem('_etag', newEtag);
         }
       })

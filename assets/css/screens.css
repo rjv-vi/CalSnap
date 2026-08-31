@@ -89,12 +89,6 @@
 /* Overflow hidden on body when any modal open */
 body.modal-open { overflow: hidden !important; touch-action: none; }
 
-/* AI Welcome card */
-.ai-welcome{background:var(--bg1);border-radius:22px;padding:20px;margin-bottom:4px;border:.5px solid var(--b0);box-shadow:var(--s2),var(--si);text-align:center;}
-.ai-welcome-icon{font-size:42px;display:block;margin-bottom:10px;filter:drop-shadow(0 8px 20px rgba(0,0,0,.15));}
-.ai-welcome-title{font-size:20px;font-weight:900;letter-spacing:-.6px;margin-bottom:8px;}
-.ai-welcome-sub{font-size:14px;color:var(--t1);line-height:1.65;}
-.ai-chips-label{font-size:10px;font-weight:700;color:var(--t2);letter-spacing:1px;text-transform:uppercase;padding:14px 4px 8px;}
 
 /* ── MEAL TIMELINE ── */
 .meal-group{margin-bottom:2px;}.meal-group+.meal-group{border-top:.5px solid var(--b0);margin-top:4px;padding-top:4px;}

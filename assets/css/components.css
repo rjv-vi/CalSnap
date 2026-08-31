@@ -280,13 +280,6 @@
   transition: transform var(--dur-micro) var(--ease-accel), opacity var(--dur-micro) !important;
 }
 
-.ai-sg {
-  transition: all var(--dur-med) var(--ease-spring) !important;
-}
-.ai-sg:active {
-  transform: scale(.9) translateZ(0) !important;
-  transition: transform var(--dur-micro) var(--ease-accel) !important;
-}
 
 .tab:active{transform:scale(.93) translateZ(0);transition:transform .08s cubic-bezier(.4,0,1,1);}
 

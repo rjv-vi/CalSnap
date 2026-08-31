@@ -32,12 +32,14 @@ async function storeQueueImage(dataUrl){
   try {
     const id = newImgId();
     await IMG.put(id, full);
-    return { imgId: id };
-  } catch(e) {
-    // No IndexedDB (private-mode WebView): fall back to a smaller inline copy
-    // so the queue still works, at some cost to analysis detail.
-    return { img: await shrinkDataUrl(dataUrl, 768, 0.7) };
-  }
+    // Read it back before calling the photo saved: a record whose blob did not
+    // survive looks perfectly fine right up until analysis time, and then the
+    // photo is simply gone.
+    if (await IMG.get(id)) return { imgId: id };
+  } catch(e) { /* fall through to the inline copy */ }
+  // No usable IndexedDB (private-mode WebView), or the write did not stick:
+  // keep a smaller inline copy so the queue still works.
+  return { img: await shrinkDataUrl(dataUrl, 768, 0.7) };
 }
 
 // Park a photo for later analysis. Returns the new queue length, or -1 on
@@ -118,7 +120,14 @@ async function processQueue(opts){
       if (rec.failed) continue;
       if (queueBlockedReason()) break;
       const src = rec.img || (rec.imgId ? await IMG.get(rec.imgId) : null);
-      if (!src) { _dropQueueItem(rec.id); continue; }
+      if (!src) {
+        // The image is unreadable. Flag it so the row explains itself instead
+        // of the photo quietly disappearing from the queue.
+        const cur = getQueue();
+        const live = cur.find(x => x.id === rec.id);
+        if (live) { live.failed = true; live.lastErr = 'image-missing'; saveQueue(cur); }
+        continue;
+      }
       try {
         const r = await analyzePhotoData(src, rec.desc);
         const imgRef = await storeFoodImage(src);

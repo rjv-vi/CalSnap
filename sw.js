@@ -1,3 +1,9 @@
+/*!
+ * CalSnap — © 2024–2026 RJV. All rights reserved.
+ * Proprietary. Reviews, videos and screenshots are welcome; copying,
+ * redistributing or republishing this code is not. See LICENSE.
+ * https://github.com/rjv-vi/CalSnap
+ */
 // ═══════════════════════════════════════════════════
 // CALSNAP SERVICE WORKER
 // • Precache all sounds + icons + manifest
@@ -8,7 +14,7 @@
 // • Navigation Preload speeds up the very first network-first nav request
 // ═══════════════════════════════════════════════════
 
-const CACHE = 'calsnap-v13';
+const CACHE = 'calsnap-v14';
 const NOTIF_CACHE = 'calsnap-notif';
 const API_CACHE = 'calsnap-api-v1';
 // Hard cap so a single user runaway (lots of barcodes) cannot grow the API

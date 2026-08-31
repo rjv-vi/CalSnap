@@ -1,4 +1,24 @@
 // ══════════════════════════════════════════════════════════════════
+// INSTALL STATE
+// ══════════════════════════════════════════════════════════════════
+// One place to answer "are we running as an installed app?". The manifest asks
+// for `display: fullscreen`, so an installed instance reports
+// `display-mode: fullscreen` — checking only `standalone` (as the notification
+// hint did) told installed users to install the app they were already using.
+const INSTALL_DISPLAY_MODES = ['fullscreen', 'standalone', 'minimal-ui', 'window-controls-overlay'];
+function isInstalledApp(){
+  try {
+    if (window.navigator.standalone === true) return true;              // iOS
+    for (const m of INSTALL_DISPLAY_MODES) {
+      if (window.matchMedia(`(display-mode: ${m})`).matches) return true;
+    }
+    // Android TWA: the page is opened by the app shell, not by a browser tab.
+    if (document.referrer.startsWith('android-app://')) return true;
+  } catch(e) {}
+  return false;
+}
+
+// ══════════════════════════════════════════════════════════════════
 // IMAGE STORE + STORAGE SAFETY
 // ══════════════════════════════════════════════════════════════════
 // Why this file exists
@@ -38,8 +58,20 @@ function _openImgDb(){
   return _imgDbPromise;
 }
 
-function _imgTx(mode){
-  return _openImgDb().then(db => db.transaction(IMG_STORE, mode).objectStore(IMG_STORE));
+// Run one request inside its own transaction and settle on *commit*, not on the
+// request's success. Resolving early is how a queued photo could report "saved"
+// and then vanish when the transaction aborted (quota, eviction) — leaving an
+// `imgId` in localStorage pointing at nothing.
+function _imgRun(mode, fn){
+  return _openImgDb().then(db => new Promise((resolve, reject) => {
+    let out;
+    const tx = db.transaction(IMG_STORE, mode);
+    const req = fn(tx.objectStore(IMG_STORE));
+    if (req) req.onsuccess = () => { out = req.result; };
+    tx.oncomplete = () => resolve(out);
+    tx.onerror = () => reject(tx.error || new Error('idb-tx-failed'));
+    tx.onabort = () => reject(tx.error || new Error('idb-tx-aborted'));
+  }));
 }
 
 const IMG = {
@@ -48,40 +80,26 @@ const IMG = {
     try { await _openImgDb(); return true; } catch(e) { return false; }
   },
   async put(id, dataUrl){
-    const store = await _imgTx('readwrite');
-    return new Promise((res, rej) => {
-      const r = store.put(dataUrl, id);
-      r.onsuccess = () => res(id);
-      r.onerror = () => rej(r.error || new Error('idb-put-failed'));
-    });
+    await _imgRun('readwrite', st => st.put(dataUrl, id));
+    return id;
   },
   async get(id){
     if (!id) return null;
-    try {
-      const store = await _imgTx('readonly');
-      return await new Promise((res, rej) => {
-        const r = store.get(id);
-        r.onsuccess = () => res(r.result || null);
-        r.onerror = () => rej(r.error || new Error('idb-get-failed'));
-      });
-    } catch(e) { return null; }
+    try { return (await _imgRun('readonly', st => st.get(id))) || null; }
+    catch(e) { return null; }
   },
   async del(id){
     if (!id) return;
-    try {
-      const store = await _imgTx('readwrite');
-      await new Promise(res => { const r = store.delete(id); r.onsuccess = res; r.onerror = res; });
-    } catch(e) {}
+    try { await _imgRun('readwrite', st => st.delete(id)); } catch(e) {}
   },
   async keys(){
-    try {
-      const store = await _imgTx('readonly');
-      return await new Promise((res) => {
-        const r = store.getAllKeys();
-        r.onsuccess = () => res(r.result || []);
-        r.onerror = () => res([]);
-      });
-    } catch(e) { return []; }
+    try { return (await _imgRun('readonly', st => st.getAllKeys())) || []; }
+    catch(e) { return []; }
+  },
+  // Wipe everything — used by "delete all data".
+  async clear(){
+    try { await _imgRun('readwrite', st => st.clear()); return true; }
+    catch(e) { return false; }
   },
 };
 
@@ -224,23 +242,38 @@ function _openMetaDb(){
   return _metaDbPromise;
 }
 
+function _metaRun(mode, fn){
+  return _openMetaDb().then(db => new Promise((resolve, reject) => {
+    let out;
+    const tx = db.transaction(META_STORE, mode);
+    const req = fn(tx.objectStore(META_STORE));
+    if (req) req.onsuccess = () => { out = req.result; };
+    tx.oncomplete = () => resolve(out);
+    tx.onerror = () => reject(tx.error || new Error('meta-tx-failed'));
+    tx.onabort = () => reject(tx.error || new Error('meta-tx-aborted'));
+  }));
+}
+
 async function _metaPut(key, value){
-  const db = await _openMetaDb();
-  return new Promise((res, rej) => {
-    const r = db.transaction(META_STORE, 'readwrite').objectStore(META_STORE).put(value, key);
-    r.onsuccess = () => res(true);
-    r.onerror = () => rej(r.error || new Error('meta-put-failed'));
-  });
+  await _metaRun('readwrite', st => st.put(value, key));
+  return true;
 }
 async function _metaGet(key){
-  try {
-    const db = await _openMetaDb();
-    return await new Promise((res) => {
-      const r = db.transaction(META_STORE, 'readonly').objectStore(META_STORE).get(key);
-      r.onsuccess = () => res(r.result ?? null);
-      r.onerror = () => res(null);
-    });
-  } catch(e) { return null; }
+  try { return (await _metaRun('readonly', st => st.get(key))) ?? null; }
+  catch(e) { return null; }
+}
+
+// Drop the whole IndexedDB mirror. "Delete all data" must leave nothing behind,
+// otherwise the next launch would helpfully restore everything the user just
+// asked to erase.
+async function wipeBackup(){
+  let ok = true;
+  _snapshotSuspended = true;
+  try { clearTimeout(_snapTimer); } catch(e) {}
+  try { await _metaRun('readwrite', st => st.clear()); } catch(e) { ok = false; }
+  try { await IMG.clear(); } catch(e) { ok = false; }
+  _snapshotSuspended = false;
+  return ok;
 }
 
 // Ask the browser not to evict us. Installed PWAs usually get this for free;
@@ -269,8 +302,12 @@ function _collectWaterKeys(){
 }
 
 let _snapTimer = null;
+// While a wipe is in flight no new mirror may be written, or "delete all data"
+// would race against its own backup.
+let _snapshotSuspended = false;
 // Mirror the durable slice of state. Called after every diary/profile write.
 function snapshotSave(delay){
+  if (_snapshotSuspended) return;
   clearTimeout(_snapTimer);
   _snapTimer = setTimeout(async () => {
     try {

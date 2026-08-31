@@ -159,7 +159,8 @@ async function boot({ lang = 'ru', quota = Infinity, seed = {}, fetchImpl = null
                    'QUEUE_MAX_ATTEMPTS', 'GEM_MAX_ATTEMPTS', 'OVERLAYS',
                    'RESET_KEEP_KEYS', 'EMO_RULES', 'isWaterOn', 'isChatMemoryOn', 'isFullscreenPref',
                    'selDay', 'aiConvo', 'selModel', 'DEFAULT_MODEL', 'THEME_ORDER',
-                   'themePref', 'resolvedTheme', 'systemPrefersDark'];
+                   'themePref', 'resolvedTheme', 'systemPrefersDark',
+                   'aiChat', 'AI_CHAT_MAX', '_aiPhoto'];
   const expose = doc.createElement('script');
   expose.textContent = `for (const n of ${JSON.stringify(LEXICAL)}) {
     try { window[n] = eval(n); } catch(e) {}
@@ -573,8 +574,12 @@ console.log('CalSnap smoke tests\n');
   window.enterOffline();
   const addBtn = window.document.querySelector('.nb-add');
   ok('the + button stays usable offline', addBtn.style.pointerEvents !== 'none', addBtn.style.pointerEvents);
+  // The AI tab stays reachable so the transcript can be read offline; it is the
+  // composer that goes inert, with an explanation.
   const aiBtn = [...window.document.querySelectorAll('.nb')].find(b => (b.getAttribute('onclick') || '').includes("'ai'"));
-  eq('the AI tab is disabled offline', aiBtn.style.pointerEvents, 'none');
+  ok('the AI tab is still reachable offline', aiBtn.style.pointerEvents !== 'none', aiBtn.style.pointerEvents);
+  ok('the document is flagged offline', window.document.documentElement.classList.contains('is-offline'));
+  ok('the offline bar is shown', window.document.getElementById('offlBar').classList.contains('on'));
   window.close();
 }
 
@@ -1414,6 +1419,138 @@ console.log('CalSnap smoke tests\n');
   ok('the persistence result is kept for the dev panel', /storagePersisted/.test(store));
   const init = readFileSync(path.join(ROOT, 'assets/js/init.js'), 'utf8');
   ok('the dev panel reports it', /dev_persisted/.test(init) && /dev_backup/.test(init));
+}
+
+// ── 53. AI chat: photos, persistence, cancel, markdown ─────────────
+{
+  const PROFILE = JSON.stringify({ name: 'Иван', kcal: 2100, goal: 'lose', w: 80, h: 180, age: 30, gen: 'm', pr: 144, ft: 58, cb: 230 });
+  const KEYS = JSON.stringify([{ k: 'K1', added: 1, strikes: 0, cooldownUntil: 0, invalid: false, uses: 0 }]);
+  let reply = 'Съешь **200 г** творога.\n- белка много\n- углеводов мало\n1. сначала вода\n2. потом еда';
+  let hold = null;
+  const fetchImpl = () => hold
+    ? new Promise(res => { hold = () => res({ ok: true, status: 200, json: () => Promise.resolve({ candidates: [{ content: { parts: [{ text: reply }] } }] }) }); })
+    : Promise.resolve({ ok: true, status: 200, json: () => Promise.resolve({ candidates: [{ content: { parts: [{ text: reply }] } }] }) });
+
+  const { window, storage } = await boot({ lang: 'ru', idb: true, fetchImpl, seed: { u: PROFILE, wts: '[]', api_keys: KEYS } });
+  const doc = window.document;
+  const nbs = [...doc.querySelectorAll('.nb')];
+  window.goS('ai', nbs.find(b => (b.getAttribute('onclick') || '').includes("'ai'")));
+
+  // Welcome state: hero + suggestion chips, no bubbles.
+  ok('hero is shown when empty', !!doc.querySelector('#aimsg .ai-hero'));
+  eq('six suggestions', doc.querySelectorAll('#aimsg .ai-chip').length, 6);
+  ok('hero mentions the goal', /Похудеть/.test(doc.querySelector('.ai-hero-sub').textContent),
+     doc.querySelector('.ai-hero-sub').textContent);
+  eq('status is online', doc.getElementById('aiStatusText').textContent, 'Онлайн');
+
+  // Send a text message.
+  doc.getElementById('aiinp').value = 'Что съесть?';
+  await window.aiSend();
+  eq('two bubbles', doc.querySelectorAll('#aimsg .msg').length, 2);
+  ok('hero is gone', !doc.querySelector('#aimsg .ai-hero'));
+  const bubble = doc.querySelector('#aimsg .msg-ai .bbl').innerHTML;
+  ok('bold is rendered', /<b>200 г<\/b>/.test(bubble), bubble.slice(0, 120));
+  ok('bullet list is rendered', /<ul><li>белка много<\/li>/.test(bubble), bubble);
+  ok('numbered list is rendered', /<ol><li>сначала вода<\/li>/.test(bubble), bubble);
+  ok('each message has a timestamp', doc.querySelectorAll('#aimsg .msg-meta').length >= 2);
+  ok('AI messages offer copy', !!doc.querySelector('#aimsg .msg-ai .msg-copy'));
+
+  // Persistence across a reopen.
+  eq('transcript persisted', JSON.parse(storage.getItem('ai_chat') || '[]').length, 2);
+  window.goS('home', nbs[0]);
+  window.goS('ai', nbs.find(b => (b.getAttribute('onclick') || '').includes("'ai'")));
+  eq('transcript survives reopening', doc.querySelectorAll('#aimsg .msg').length, 2);
+
+  // Attach a photo and send it.
+  window.__read("_aiPhoto = { dataUrl: 'data:image/jpeg;base64,QUJD' };");
+  doc.getElementById('aiinp').value = '';
+  await window.aiSend();
+  const userMsgs = [...doc.querySelectorAll('#aimsg .msg-user')];
+  const last = userMsgs[userMsgs.length - 1];
+  ok('the photo appears in the bubble', !!last.querySelector('.bbl-img, img'), last.innerHTML.slice(0, 160));
+  const saved = JSON.parse(storage.getItem('ai_chat') || '[]');
+  ok('the photo is stored by reference', !!saved[saved.length - 2].imgId,
+     JSON.stringify(saved[saved.length - 2]));
+  ok('the attachment chip is cleared', doc.getElementById('aiAttach').hidden);
+
+  // Error bubble offers a retry.
+  reply = '';
+  window.__read("window.fetch = () => Promise.resolve({ok:false,status:500,json:()=>Promise.resolve({error:{message:'boom'}})});");
+  doc.getElementById('aiinp').value = 'ещё раз';
+  await window.aiSend();
+  ok('an error bubble is shown', !!doc.querySelector('#aimsg .msg-err'));
+  ok('and offers a retry', !!doc.querySelector('#aimsg .msg-retry'));
+
+  // Clearing wipes the transcript and brings the hero back.
+  window.clearAiChat();
+  window.cfrmConfirm();
+  eq('transcript cleared', JSON.parse(storage.getItem('ai_chat') || '[]').length, 0);
+  ok('hero is back', !!doc.querySelector('#aimsg .ai-hero'));
+  window.close();
+}
+
+// ── 54. Sending can be cancelled mid-flight ────────────────────────
+{
+  const PROFILE = JSON.stringify({ name: 'A', kcal: 2000, goal: 'maintain', w: 80, h: 180, age: 30, gen: 'm', pr: 100, ft: 60, cb: 200 });
+  const KEYS = JSON.stringify([{ k: 'K1', added: 1, strikes: 0, cooldownUntil: 0, invalid: false, uses: 0 }]);
+  let release;
+  const fetchImpl = () => new Promise(res => { release = () => res({ ok: true, status: 200, json: () => Promise.resolve({ candidates: [{ content: { parts: [{ text: 'late answer' }] } }] }) }); });
+  const { window } = await boot({ lang: 'en', idb: true, fetchImpl, seed: { u: PROFILE, wts: '[]', api_keys: KEYS } });
+  const doc = window.document;
+  doc.getElementById('aiinp').value = 'hello';
+  const p = window.aiSend();
+  await new Promise(r => setTimeout(r, 20));
+  ok('typing indicator is up', !!doc.getElementById('aiTyping'));
+  ok('the send button became a stop button', doc.getElementById('aiSendBtn').classList.contains('busy'));
+  eq('status says typing', doc.getElementById('aiStatusText').textContent, 'typing…');
+
+  window.aiCancel();
+  ok('typing indicator removed', !doc.getElementById('aiTyping'));
+  ok('back to the send button', !doc.getElementById('aiSendBtn').classList.contains('busy'));
+  release();
+  await p;
+  ok('the late answer is discarded', !/late answer/.test(doc.getElementById('aimsg').textContent),
+     doc.getElementById('aimsg').textContent.slice(0, 120));
+  window.close();
+}
+
+// ── 55. Offline mode: sheet, bar, queue-aware copy ─────────────────
+{
+  const PROFILE = JSON.stringify({ name: 'A', kcal: 2000, goal: 'maintain', w: 80, h: 180, age: 30, gen: 'm', pr: 100, ft: 60, cb: 200 });
+  const KEYS = JSON.stringify([{ k: 'K1', added: 1, strikes: 0, cooldownUntil: 0, invalid: false, uses: 0 }]);
+  const { window } = await boot({ lang: 'en', online: false, idb: true, seed: { u: PROFILE, wts: '[]', api_keys: KEYS } });
+  const doc = window.document;
+
+  // The sheet is a themed overlay now, not an always-dark inline block.
+  window.showOfflineModal();
+  ok('sheet opens via a class', doc.getElementById('offlOv').classList.contains('on'));
+  ok('it locks scrolling', doc.body.style.overflow === 'hidden');
+  ok('the retry button is localised', /Retry connection/i.test(doc.getElementById('offlRetryBtn').textContent),
+     doc.getElementById('offlRetryBtn').textContent);
+  ok('it says photos get queued', /queued/i.test(doc.querySelector('.offl-feat.wait').textContent),
+     doc.querySelector('.offl-feat.wait').textContent);
+
+  window.enterOffline();
+  ok('sheet closed', !doc.getElementById('offlOv').classList.contains('on'));
+  ok('scroll released', doc.body.style.overflow === '');
+  eq('bar text with an empty queue', doc.getElementById('offlBarText').textContent, 'Offline — AI unavailable');
+
+  // Queue a photo: the bar starts reporting it.
+  await window.enqueuePhoto('data:image/jpeg;base64,QUJD', '');
+  window.__read('_applyOfflineUI(true)');
+  ok('bar counts queued photos', /1 photo/.test(doc.getElementById('offlBarText').textContent),
+     doc.getElementById('offlBarText').textContent);
+
+  // The AI composer explains itself instead of the tab going dead.
+  ok('composer notice is in the DOM', !!doc.querySelector('.ai-offline-note'));
+  eq('AI status says offline', doc.getElementById('aiStatusText').textContent, 'No connection — waiting');
+
+  // Coming back online clears everything and drains the queue.
+  window.navigator.onLine = true;
+  await window.retryConnection(true);
+  ok('offline flag cleared', !doc.documentElement.classList.contains('is-offline'));
+  ok('bar hidden', !doc.getElementById('offlBar').classList.contains('on'));
+  window.close();
 }
 
 console.log(`\n${pass} passed, ${fail} failed`);

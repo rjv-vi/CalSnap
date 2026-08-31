@@ -23,23 +23,24 @@ function toggleHfx() {
   if(newVal) setTimeout(()=>HFX.medium(), 80);
 }
 
-// Проверяем после сплэша
+// Runs once the splash screen is done
 
 (function(){
   const s=document.getElementById('splashOv');
   if(!s) return;
-  // Звук запуска приложения
+  // App launch sound
   SFX.play('splash');
-  // Failsafe: принудительно скрыть через 5с при любых ошибках
+  // Failsafe: hide it after 5s no matter what went wrong
   const _failsafe = setTimeout(() => { if(s) s.style.display='none'; }, 5000);
   setTimeout(()=>{
     s.classList.add('hide');
     setTimeout(()=>{
       clearTimeout(_failsafe);
       s.style.display='none';
-      // Проверяем интернет после сплэша
+      // Check connectivity once the splash is gone
       // Only show offline modal if browser confirms no connection
       if(!navigator.onLine){
+        _applyOfflineUI(true);
         showOfflineModal();
       }
       // Don't run slow ping check on startup — navigator.onLine is sufficient

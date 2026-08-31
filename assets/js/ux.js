@@ -10,7 +10,7 @@
 //   tweenNumber(el, 1240);                      // default 380ms, integer formatting
 //   tweenNumber(el, 1240, { suffix: ' kcal' }); // appends suffix
 //   tweenNumber(el, 12.5, { decimals: 1 });     // 1 decimal
-//   tweenNumber(el, 1240, { format: v => Math.round(v) + 'г' }); // custom formatter
+//   tweenNumber(el, 1240, { format: v => Math.round(v) + ' g' }); // custom formatter
 function tweenNumber(el, target, opts) {
   if (!el) return;
   opts = opts || {};

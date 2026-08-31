@@ -161,7 +161,7 @@ function keyStatus(e){
   return { cls: 'ok', label: t('key_state_ready') };
 }
 
-// Compact "2 мин" / "2 min" style duration.
+// Compact duration, e.g. "2 min".
 function fmtDuration(ms){
   const s = Math.max(1, Math.round(ms / 1000));
   if (s < 60) return tf('dur_sec', { n: s });

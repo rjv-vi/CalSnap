@@ -78,8 +78,25 @@ function rH(){
   const C=2*Math.PI*33;
   ring.style.strokeDasharray=C;
   ring.style.strokeDashoffset=C*(1-pct);
-  ring.style.stroke=tt.k>g*1.05?'var(--err)':(tt.k>=g?'var(--ok)':'var(--acc)');
-  ring.classList.toggle('goal-hit', g>0 && tt.k>=g && tt.k<=g*1.05);
+  // Ring state: under goal → accent, goal met → green, clearly over → red.
+  // The label carries the "done" signal so the ring itself stays a clean
+  // stroke; the previous drop-shadow glow read as a rendering artefact.
+  const _over = g>0 && tt.k>g*1.05;
+  const _done = g>0 && tt.k>=g && !_over;
+  ring.style.stroke = _over ? 'var(--err)' : _done ? 'var(--ok)' : 'var(--acc)';
+  const _lbl = document.querySelector('.cc-ring-label');
+  if(_lbl){
+    const _wasDone = _lbl.classList.contains('done');
+    _lbl.classList.toggle('done', _done);
+    _lbl.classList.toggle('over', _over);
+    // Celebrate only on the crossing, not on every re-render.
+    if(_done && !_wasDone){
+      _lbl.classList.remove('just-done'); void _lbl.offsetWidth; _lbl.classList.add('just-done');
+      setTimeout(()=>_lbl.classList.remove('just-done'), 900);
+    }
+  }
+  const _sub = document.querySelector('.cc-pct-s');
+  if(_sub) _sub.textContent = _done ? t('hcc_pct_done') : t('hcc_pct_sub');
   tweenNumber(document.getElementById('hpct'), Math.round(pct*100), { suffix:'%', duration:480 });
   tweenNumber(document.getElementById('hkcal'), tt.k, { duration:520 });
   document.getElementById('hgoal').textContent=g;
@@ -754,52 +771,285 @@ function rWChart(){
 // matching how the visible chat itself already resets on reload). Only
 // included in the Gemini request payload when the user has explicitly
 // enabled it, since sending prior turns costs meaningfully more tokens.
+// ══════════════════════════════════════════════════════════════════
+// AI CHAT
+// ══════════════════════════════════════════════════════════════════
+// Conversation memory — opt-in (Settings → toggle), OFF by default. Controls
+// whether prior turns are *sent* to Gemini. The visible transcript is a
+// separate thing and is always kept, so reopening the screen does not wipe the
+// conversation the user was in the middle of.
 let aiConvo = []; // {role:'user'|'model', text}
-function initAi(){
-  aiReady=true;
-  const chatHistory=document.getElementById('aimsg')?.children?.length;
-  const tl=tlog(),tt=tot(tl);
-  const _waterOn=isWaterOn();
-  const _wArr=getWaterToday();
-  const waterNow=_wArr.reduce((s,e)=>s+e.ml,0);
-  const waterTarget=getWaterGoal().adjusted;
-  const waterTimeline=_wArr.length?_wArr.slice(-3).map(e=>e.ml+t('water_ml')+' '+e.t).join(', '):'';
-  const c=document.getElementById('aimsg');
-  // Only clear and show welcome if no messages yet
-  if(!chatHistory||chatHistory<=2){
-  c.innerHTML='';
-  // Welcome card
-  const wcard=document.createElement('div');
-  wcard.className='ai-welcome';
-  const _kcalUnit=t('unit_kcal');
-  const _mlUnit=t('water_ml');
-  const _ofWord=t('word_of');
-  const _goalWord=t('word_goal');
-  const _leftWord=t('word_left');
-  const _todayWord=t('word_today');
-  // Water tracking is opt-in — only surface it in the welcome message when the user has it enabled.
-  const _waterSeg=_waterOn?` · 💧 <b style="color:#3b82f6">${waterNow}${_mlUnit}</b> ${_ofWord} ${waterTarget}${_mlUnit}${waterTimeline ? '<br><span style="font-size:11px;color:var(--t2)">' + waterTimeline + '</span>' : ''}`:'';
-  wcard.innerHTML=`
-    <span class="ai-welcome-icon">🤖</span>
-    <div class="ai-welcome-title">${t('ai_welcome_hi')}, ${esc(U?.name||'')}!</div>
-    <div class="ai-welcome-sub">${_todayWord}: <b style="color:#FF8C00">${tt.k} ${_kcalUnit}</b> ${_ofWord} ${U?.kcal||2000}${_waterSeg}<br>${_goalWord}: «${esc(GL[U?.goal]||'—')}» · ${_leftWord} <b>${Math.max(0,(U?.kcal||2000)-tt.k)}</b> ${_kcalUnit}</div>
-  `;
-  c.appendChild(wcard);
-  const lbl=document.createElement('div');
-  lbl.className='ai-chips-label';
-  lbl.textContent=t('ai_chips_label');
-  c.appendChild(lbl);
-  } // end if no chat history
+
+const AI_CHAT_KEY = 'ai_chat';
+const AI_CHAT_MAX = 40;          // rendered + persisted turns
+let aiChat = [];                 // {role:'user'|'ai'|'err', text, at, imgId?}
+let _aiBusy = false;
+let _aiToken = 0;                // bumped to abandon an in-flight reply
+let _aiPhoto = null;             // {dataUrl} pending attachment
+
+function _aiLoadChat(){
+  try {
+    const raw = JSON.parse(G(AI_CHAT_KEY, '[]'));
+    aiChat = Array.isArray(raw) ? raw.slice(-AI_CHAT_MAX) : [];
+  } catch(e) { aiChat = []; }
+  // Rebuild the model-facing history from the transcript so turning memory on
+  // mid-conversation immediately has something to work with.
+  aiConvo = aiChat.filter(m => m.role === 'user' || m.role === 'ai')
+    .map(m => ({ role: m.role === 'user' ? 'user' : 'model', text: m.text }));
 }
+function _aiSaveChat(){
+  if (aiChat.length > AI_CHAT_MAX) aiChat = aiChat.slice(-AI_CHAT_MAX);
+  S(AI_CHAT_KEY, JSON.stringify(aiChat));
+}
+
+const AI_SUGGESTIONS = ['ai_sug_norm','ai_sug_eat','ai_sug_diet','ai_sug_bulk','ai_sug_snack','ai_sug_cut'];
+
+// ── Header status ────────────────────────────────────────────────
+function aiSetStatus(state, text){
+  const wrap = document.getElementById('aiStatus');
+  const dot  = document.getElementById('aiDot');
+  const txt  = document.getElementById('aiStatusText');
+  if (wrap) { wrap.classList.toggle('busy', state === 'busy'); wrap.classList.toggle('off', state === 'off'); }
+  if (dot)  { dot.classList.toggle('busy', state === 'busy'); dot.classList.toggle('off', state === 'off'); }
+  if (txt)  txt.textContent = text || (state === 'busy' ? t('ai_typing') : state === 'off' ? t('queue_offline') : t('ai_online'));
+}
+
+// ── Rendering ────────────────────────────────────────────────────
+function initAi(){
+  aiReady = true;
+  if (!aiChat.length) _aiLoadChat();
+  aiRender();
+  aiSetStatus(navigator.onLine ? (_aiBusy ? 'busy' : 'on') : 'off');
+  _aiSyncSendBtn();
+}
+
+function _aiHeroHtml(){
+  const tl = tlog(), tt = tot(tl);
+  const goal = U?.kcal || 2000;
+  const left = Math.max(0, goal - (tt.k || 0));
+  const stats = [
+    { v: `${tt.k || 0}`, l: t('word_today') },
+    { v: `${left}`,      l: t('word_left') },
+    { v: `${streak()}`,  l: fmtDaysWord(streak()) },
+  ];
+  if (isWaterOn()) {
+    const ml = getWaterToday().reduce((a, e) => a + (e.ml || 0), 0);
+    stats.push({ v: `${ml}`, l: t('water_ml') });
+  }
+  return `<div class="ai-hero">
+      <div class="ai-hero-ava">🤖</div>
+      <div class="ai-hero-title">${esc(t('ai_welcome_hi'))}, ${esc(U?.name || '')}!</div>
+      <div class="ai-hero-sub">${esc(tf('ai_hero_sub', { goal: esc(GL[U?.goal] || '—') }))}</div>
+      <div class="ai-hero-stats">
+        ${stats.map(s2 => `<div class="ai-stat"><div class="ai-stat-v">${esc(s2.v)}</div><div class="ai-stat-l">${esc(s2.l)}</div></div>`).join('')}
+      </div>
+    </div>
+    <div class="ai-chips-label">${esc(t('ai_chips_label'))}</div>
+    <div class="ai-chips">
+      ${AI_SUGGESTIONS.map(k => `<button class="ai-chip" onclick="aiSug(this)">${esc(t(k))}</button>`).join('')}
+    </div>`;
+}
+
+function _aiMsgHtml(m, i, prev){
+  const time = m.at || '';
+  if (m.role === 'user') {
+    const img = m.imgId ? `<img class="bbl-img" data-img-id="${esc(m.imgId)}" alt="">` : '';
+    return `<div class="msg msg-user" data-i="${i}">
+      <div class="bbl">${img}${m.text ? fmt(m.text) : ''}</div>
+      <div class="msg-meta"><span>${esc(time)}</span></div>
+    </div>`;
+  }
+  const isErr = m.role === 'err';
+  const actions = isErr
+    ? `<button class="msg-retry" onclick="aiRetry()">↻ ${esc(t('retry'))}</button>`
+    : `<button class="msg-copy" onclick="aiCopy(this,${i})">⧉ ${esc(t('ai_copy'))}</button>`;
+  return `<div class="msg msg-ai${isErr ? ' msg-err' : ''}" data-i="${i}">
+    <div class="msg-ai-wrap">
+      <div class="msg-ai-ava">🤖</div>
+      <div class="bbl">${fmt(m.text)}</div>
+    </div>
+    <div class="msg-meta"><span>${esc(time)}</span>${actions}</div>
+  </div>`;
+}
+
+function aiRender(keepScroll){
+  const c = document.getElementById('aimsg');
+  if (!c) return;
+  const atEnd = !keepScroll || _aiNearBottom();
+  c.innerHTML = aiChat.length
+    ? aiChat.map((m, i) => _aiMsgHtml(m, i, aiChat[i - 1])).join('')
+    : _aiHeroHtml();
+  hydrateImages(c);
+  if (_aiBusy) _aiAppendTyping();
+  if (atEnd) aiScrollToEnd(false);
+  _aiSyncJump();
+}
+
+function _aiAppendTyping(){
+  const c = document.getElementById('aimsg');
+  if (!c || c.querySelector('#aiTyping')) return;
+  const el = document.createElement('div');
+  el.className = 'msg msg-ai';
+  el.id = 'aiTyping';
+  el.innerHTML = '<div class="msg-ai-wrap"><div class="msg-ai-ava">🤖</div><div class="typing-indicator"><div class="typing-dot"></div><div class="typing-dot"></div><div class="typing-dot"></div></div></div>';
+  c.appendChild(el);
+}
+function _aiRemoveTyping(){ document.getElementById('aiTyping')?.remove(); }
+
+function _aiNearBottom(){
+  const c = document.getElementById('aimsg');
+  if (!c) return true;
+  return c.scrollHeight - c.scrollTop - c.clientHeight < 120;
+}
+function aiScrollToEnd(smooth){
+  const c = document.getElementById('aimsg');
+  if (!c) return;
+  if (smooth) { HFX.light(); c.scrollTo({ top: c.scrollHeight, behavior: 'smooth' }); }
+  else c.scrollTop = c.scrollHeight;
+  _aiSyncJump();
+}
+function _aiSyncJump(){
+  const b = document.getElementById('aiJump');
+  if (b) b.classList.toggle('on', !_aiNearBottom());
+}
+
+// ── Message helpers ──────────────────────────────────────────────
+function aiPush(role, text, extra){
+  aiChat.push({ role, text: text || '', at: tnow(), ...(extra || {}) });
+  _aiSaveChat();
+  aiRender(true);
+}
+
+function aiCopy(btn, i){
+  const m = aiChat[i];
+  if (!m) return;
+  const done = () => {
+    HFX.light(); SFX.play('copy');
+    btn.classList.add('done');
+    const orig = btn.innerHTML;
+    btn.innerHTML = '✓ ' + esc(t('saved'));
+    setTimeout(() => { btn.classList.remove('done'); btn.innerHTML = orig; }, 1600);
+  };
+  try {
+    navigator.clipboard.writeText(m.text).then(done).catch(() => {
+      const ta = document.createElement('textarea');
+      ta.value = m.text; ta.style.position = 'fixed'; ta.style.opacity = '0';
+      document.body.appendChild(ta); ta.select();
+      document.execCommand('copy'); ta.remove(); done();
+    });
+  } catch(e) {}
+}
+
 function clearAiChat(){
-  showConfirm('💬',t('confirm_clear_chat_title'),t('confirm_clear_chat_body'),t('confirm_clear_chat_btn'),()=>{
-    const c=document.getElementById('aimsg');
-    if(c) c.innerHTML='';
-    aiConvo.length=0; // drop remembered context along with the visible chat
-    initAi();
+  if (!aiChat.length) { HFX.light(); return; }
+  showConfirm('💬', t('confirm_clear_chat_title'), t('confirm_clear_chat_body'), t('confirm_clear_chat_btn'), () => {
+    // Drop the attached images too, so they do not linger in IndexedDB.
+    aiChat.forEach(m => { if (m.imgId) IMG.del(m.imgId); });
+    aiChat = [];
+    aiConvo.length = 0;
+    _aiSaveChat();
+    aiClearPhoto();
+    aiRender();
   });
 }
-function aiSug(el){document.getElementById('aiinp').value=el.textContent;aiSend();}
+
+function aiSug(el){
+  const inp = document.getElementById('aiinp');
+  if (inp) { inp.value = el.textContent.trim(); aiGrowInput(inp); }
+  HFX.light();
+  aiSend();
+}
+
+// ── Wiring ───────────────────────────────────────────────────────
+// The jump-to-latest button appears only when the user has scrolled away, so
+// reading history is never yanked back down by an incoming message.
+document.addEventListener('DOMContentLoaded', () => {
+  const c = document.getElementById('aimsg');
+  if (c) c.addEventListener('scroll', _aiSyncJump, { passive: true });
+}, { once: true });
+window.addEventListener('online',  () => { if (!_aiBusy) aiSetStatus('on'); });
+window.addEventListener('offline', () => { if (!_aiBusy) aiSetStatus('off'); });
+
+// ── Composer ─────────────────────────────────────────────────────
+function aiGrowInput(el){
+  if (!el) return;
+  el.style.height = 'auto';
+  el.style.height = Math.min(el.scrollHeight, 132) + 'px';
+  _aiSyncSendBtn();
+}
+function _aiSyncSendBtn(){
+  const btn = document.getElementById('aiSendBtn');
+  if (!btn) return;
+  const inp = document.getElementById('aiinp');
+  const hasText = !!(inp && inp.value.trim());
+  btn.classList.toggle('busy', _aiBusy);
+  btn.disabled = !_aiBusy && !hasText && !_aiPhoto;
+}
+
+function aiPickPhoto(){
+  HFX.light(); SFX.play('btn_tap');
+  document.getElementById('aiPhotoInput')?.click();
+}
+async function aiOnPhoto(ev){
+  const file = ev.target.files?.[0];
+  ev.target.value = '';
+  if (!file) return;
+  SFX.play('photo_snap'); HFX.light();
+  try {
+    const b = await b64(file);                      // resized to 1024px
+    _aiPhoto = { dataUrl: 'data:image/jpeg;base64,' + b };
+    const wrap = document.getElementById('aiAttach');
+    const img = document.getElementById('aiAttachImg');
+    if (img) img.src = _aiPhoto.dataUrl;
+    if (wrap) wrap.hidden = false;
+    _aiSyncSendBtn();
+    document.getElementById('aiinp')?.focus();
+  } catch(e) {
+    HFX.error(); SFX.play('error');
+    showToast(t('err_file_open'));
+  }
+}
+function aiClearPhoto(){
+  const had = !!_aiPhoto;
+  _aiPhoto = null;
+  const wrap = document.getElementById('aiAttach');
+  if (wrap) wrap.hidden = true;
+  const img = document.getElementById('aiAttachImg');
+  if (img) img.removeAttribute('src');
+  if (had) { HFX.light(); SFX.play('sheet_close'); }
+  _aiSyncSendBtn();
+}
+
+// Re-send the last user turn after a failure.
+function aiRetry(){
+  for (let i = aiChat.length - 1; i >= 0; i--) {
+    if (aiChat[i].role === 'user') {
+      const m = aiChat[i];
+      // Drop the error bubble(s) that followed it.
+      aiChat = aiChat.slice(0, i);
+      _aiSaveChat();
+      const inp = document.getElementById('aiinp');
+      if (inp) { inp.value = m.text; aiGrowInput(inp); }
+      if (m.imgId) {
+        IMG.get(m.imgId).then(src => {
+          if (src) {
+            _aiPhoto = { dataUrl: src };
+            const img = document.getElementById('aiAttachImg');
+            if (img) img.src = src;
+            const wrap = document.getElementById('aiAttach');
+            if (wrap) wrap.hidden = false;
+          }
+          aiRender(); aiSend();
+        });
+        return;
+      }
+      aiRender();
+      aiSend();
+      return;
+    }
+  }
+}
+
 
 // Voice input via Web Speech API (Chrome desktop/Android — webkit-prefixed in some)
 let _voiceRec = null, _voiceListening = false;
@@ -989,59 +1239,124 @@ function _aiErrorText(e){
 }
 
 async function aiSend(){
-  const inp=document.getElementById('aiinp'),txt=inp.value.trim();
-  if(!txt)return;if(!hasApiKey()){openApi();return;}
-  inp.value='';HFX.medium();SFX.play('ai_send'); _aiThinkStart();aiMsg(txt,'user');
+  // While a reply is in flight the send button becomes a stop button.
+  if (_aiBusy) { aiCancel(); return; }
+  const inp = document.getElementById('aiinp');
+  const txt = (inp?.value || '').trim();
+  const photo = _aiPhoto;
+  if (!txt && !photo) return;
+  if (!hasApiKey()) { openApi(); return; }
 
-  const sys=_aiBuildSystemPrompt();
+  if (inp) { inp.value = ''; aiGrowInput(inp); }
+  HFX.medium(); SFX.play('ai_send');
 
-  // Conversation memory — only include prior turns when the user has opted in
-  // via Settings, since this meaningfully increases token usage per request.
-  const memoryOn = isChatMemoryOn();
-  const history = memoryOn ? aiConvo.map(m => ({ role: m.role, parts: [{ text: m.text }] })) : [];
-
-  // Show typing indicator
-  const lm=document.createElement('div');lm.className='msg msg-ai';
-  lm.innerHTML='<div class="msg-ai-wrap"><div class="msg-ai-ava">🤖</div><div class="typing-indicator"><div class="typing-dot"></div><div class="typing-dot"></div><div class="typing-dot"></div></div></div>';
-  const _c=document.getElementById('aimsg');_c.appendChild(lm);_c.scrollTop=_c.scrollHeight;
-  try{
-    const r=await gem([{text:txt}],sys,{},history);
-    HFX.double();_aiThinkStop();
-    SFX.play('ai_reply');
-    const _bbl=document.createElement('div');_bbl.className='bbl';_bbl.innerHTML=fmt(r);
-    lm.innerHTML='<div class="msg-ai-wrap"><div class="msg-ai-ava">🤖</div></div>';
-    lm.querySelector('.msg-ai-wrap').appendChild(_bbl);
-    _c.scrollTop=_c.scrollHeight;
-    // Record this turn for future requests (kept regardless of the toggle so
-    // turning memory on mid-conversation immediately has context to use).
-    aiConvo.push({ role: 'user', text: txt });
-    aiConvo.push({ role: 'model', text: r });
-    if (aiConvo.length > 40) aiConvo.splice(0, aiConvo.length - 40); // cap growth
+  // Persist the attached photo so the transcript survives a reload.
+  let imgId = null;
+  if (photo) {
+    try {
+      const ref = await storeFoodImage(photo.dataUrl);
+      imgId = ref.imgId || null;
+    } catch(e) {}
   }
-  catch(e){
-    HFX.error();SFX.play('ai_error');
-    _aiThinkStop();
-    lm.innerHTML=`<div class="msg-ai-wrap"><div class="msg-ai-ava">🤖</div><div class="bbl">${esc(_aiErrorText(e)).replace(/\n/g,'<br>')}</div></div>`;
-  }
-}
+  aiClearPhoto();
+  aiPush('user', txt, imgId ? { imgId } : undefined);
 
-function aiMsg(txt,r){
-  const el=document.createElement('div');el.className='msg msg-'+r;
-  if(r==='ai'){
-    el.innerHTML=`<div class="msg-ai-wrap"><div class="msg-ai-ava">🤖</div><div class="bbl">${fmt(txt)}</div></div>`;
+  const sys = _aiBuildSystemPrompt();
+  // Conversation memory — only include prior turns when the user has opted in,
+  // since this meaningfully increases token usage per request.
+  const history = isChatMemoryOn()
+    ? aiConvo.map(m => ({ role: m.role, parts: [{ text: m.text }] }))
+    : [];
+
+  const parts = [];
+  if (photo) {
+    parts.push({ inline_data: { mime_type: 'image/jpeg', data: photo.dataUrl.split(',')[1] } });
+    // With an image but no question, ask the obvious thing.
+    parts.push({ text: txt || t('ai_photo_default_q') });
   } else {
-    el.innerHTML=`<div class="bbl">${esc(txt)}</div>`;
+    parts.push({ text: txt });
   }
-  const c=document.getElementById('aimsg');c.appendChild(el);c.scrollTop=c.scrollHeight;return el;
+
+  const token = ++_aiToken;
+  _aiBusy = true;
+  _aiSyncSendBtn();
+  aiSetStatus('busy');
+  _aiAppendTyping();
+  aiScrollToEnd(false);
+
+  try {
+    const r = await gem(parts, sys, {}, history);
+    if (token !== _aiToken) return;            // cancelled or superseded
+    HFX.double(); SFX.play('ai_reply');
+    aiPush('ai', r);
+    aiConvo.push({ role: 'user', text: txt || t('ai_photo_default_q') });
+    aiConvo.push({ role: 'model', text: r });
+    if (aiConvo.length > AI_CHAT_MAX) aiConvo.splice(0, aiConvo.length - AI_CHAT_MAX);
+  } catch(e) {
+    if (token !== _aiToken) return;
+    HFX.error(); SFX.play('ai_error');
+    aiPush('err', _aiErrorText(e));
+  } finally {
+    if (token === _aiToken) {
+      _aiBusy = false;
+      _aiRemoveTyping();
+      _aiSyncSendBtn();
+      aiSetStatus(navigator.onLine ? 'on' : 'off');
+    }
+  }
 }
-// Minimal markdown → HTML. Escapes first so a model that emits raw tags (or a
-// user pasting `<script>`) can never inject markup into the chat.
+
+// Abandon the in-flight reply. The request itself cannot be aborted (an
+// AbortSignal cannot be structured-cloned through the Service Worker), so the
+// response is discarded instead — the user gets their input back immediately.
+function aiCancel(){
+  if (!_aiBusy) return;
+  _aiToken++;
+  _aiBusy = false;
+  _aiRemoveTyping();
+  _aiSyncSendBtn();
+  aiSetStatus(navigator.onLine ? 'on' : 'off');
+  HFX.light(); SFX.play('back');
+  showToast(t('ai_cancelled'));
+}
+
+// ── Markdown-ish rendering ───────────────────────────────────────
+// Escapes first, so a model that emits raw tags (or a user pasting markup)
+// can never inject anything into the transcript.
 function fmt(src){
-  return esc(src)
-    .replace(/\*\*(.+?)\*\*/g,'<b>$1</b>')
-    .replace(/(^|[\s(])\*([^*\n]+)\*(?=[\s.,!?)]|$)/g,'$1<i>$2</i>')
-    .replace(/\n/g,'<br>');
+  const lines = esc(String(src == null ? '' : src)).split(/\r?\n/);
+  const out = [];
+  let list = null;                                  // 'ul' | 'ol' | null
+  const inline = (s2) => s2
+    .replace(/\*\*(.+?)\*\*/g, '<b>$1</b>')
+    .replace(/`([^`]+)`/g, '<code>$1</code>')
+    .replace(/(^|[\s(])\*([^*\n]+)\*(?=[\s.,!?)]|$)/g, '$1<i>$2</i>');
+  const closeList = () => { if (list) { out.push(`</${list}>`); list = null; } };
+  for (const raw of lines) {
+    const line = raw.trim();
+    if (!line) { closeList(); continue; }
+    const bullet = line.match(/^(?:[-*•]|&bull;)\s+(.*)$/);
+    const numbered = line.match(/^\d+[.)]\s+(.*)$/);
+    if (bullet) {
+      if (list !== 'ul') { closeList(); out.push('<ul>'); list = 'ul'; }
+      out.push('<li>' + inline(bullet[1]) + '</li>');
+      continue;
+    }
+    if (numbered) {
+      if (list !== 'ol') { closeList(); out.push('<ol>'); list = 'ol'; }
+      out.push('<li>' + inline(numbered[1]) + '</li>');
+      continue;
+    }
+    closeList();
+    out.push(inline(line));
+    out.push('<br>');
+  }
+  closeList();
+  // Drop a trailing line break so bubbles do not gain empty space.
+  while (out.length && out[out.length - 1] === '<br>') out.pop();
+  return out.join('');
 }
+
 
 // ADD FOOD
 // The diary itself works fully offline and without an API key (favourites,
@@ -1295,7 +1610,7 @@ Now calculate for what the user ate and return JSON in same format:`;
 
 // Barcode
 
-// OpenFoodFacts lookup — бесплатно, без ключа
+// OpenFoodFacts lookup — free, no API key needed
 async function _offLookup(barcode){
   try {
     const lang = LANG === 'en' ? 'en' : 'ru';

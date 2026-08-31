@@ -29,9 +29,11 @@ function openNotifSettings() {
   const masterOn = G('notif_enabled')==='1' && window.Notification?.permission==='granted';
   _updateNotifMasterUI(masterOn);
   // Show hint if not installed as standalone PWA
-  const _isStandalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone;
+  const _isStandalone = isInstalledApp();
   const _pwaHint = document.getElementById('notifPwaHint');
   if(_pwaHint) _pwaHint.style.display = _isStandalone ? 'none' : 'block';
+  const _pwaOk = document.getElementById('notifPwaOk');
+  if(_pwaOk) _pwaOk.style.display = _isStandalone ? 'block' : 'none';
   document.getElementById('notifOv').classList.add('on');
 }
 
@@ -83,7 +85,7 @@ async function toggleNotifMaster() {
       } else { try{new Notification('🍎 CalSnap',opts);}catch(e){} }
     },300);
     // Check if installed as PWA for background notifs
-    const _isPWA=window.matchMedia('(display-mode: standalone)').matches||window.navigator.standalone;
+    const _isPWA=isInstalledApp();
     if(!_isPWA) showToast(t('toast_install_for_notifs_short'));
   } else {
     HFX.light();
@@ -135,7 +137,7 @@ function _sendNotif(type) {
   const m = msgs[Math.floor(Math.random()*msgs.length)];
   if(!m) return;
   const opts = {body:m.body, icon:'icons/icon-192.png', badge:'icons/icon-72.png', vibrate:[100,50,100]};
-  // Используем SW showNotification — работает даже когда вкладка свёрнута
+  // Use the SW's showNotification — it works even when the tab is backgrounded
   if('serviceWorker' in navigator && navigator.serviceWorker.controller) {
     navigator.serviceWorker.ready.then(reg => {
       reg.showNotification(m.title, opts);

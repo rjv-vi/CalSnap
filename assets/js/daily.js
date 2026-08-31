@@ -23,7 +23,7 @@ async function loadWeekAnalysis(force=false) {
     `<div class="week-ai-empty" style="margin-top:14px;font-size:12px;opacity:.6">${t('week_ai_loading')}</div>`;
   document.getElementById('weekAiSub').textContent=t('week_ai_analyzing');
 
-  // Собираем данные за 7 дней
+  // Collect the last 7 days
   const _loc = _localeTag();
   const _isEn = LANG === 'en';
   const days7 = [];

@@ -176,7 +176,7 @@ function textOnlyRules(theme) {
 // theme (the always-dark offline sheet, the no-JS splash). Anything inside them
 // is composited over that colour instead of --bg0.
 const FIXED_REGIONS = [
-  { name: 'offline sheet', from: '<!-- OFFLINE MODAL -->', to: '<!-- OFFLINE STATUS BAR -->', backdrop: 'rgb(28,26,22)' },
+  { name: 'offline bar', from: '<!-- OFFLINE STATUS BAR -->', to: '<!-- SPLASH SCREEN -->', backdrop: '#2E2621' },
   { name: 'noscript', from: '<noscript>', to: '</noscript>', backdrop: '#0F0E0C' },
   { name: 'update banner', from: '<div id="updateBanner"', to: '<!-- WEIGHT LOG MODAL -->', backdrop: '#BE3A00' },
 ].map(r => ({ ...r, start: HTML.indexOf(r.from), end: HTML.indexOf(r.to) }));

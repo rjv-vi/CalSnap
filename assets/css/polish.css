@@ -204,9 +204,23 @@ html.is-fullscreen .daily-ai-body {
 .streak.celebrate .sf { animation: streakFire .62s cubic-bezier(.22,1,.36,1); }
 @keyframes streakFire { 0%,100% { transform:none; } 40% { transform: scale(1.4) translateY(-2px); } }
 
-/* Calorie ring: a soft glow once the goal is met. */
-#hring.goal-hit { filter: drop-shadow(0 0 6px color-mix(in srgb, var(--ok) 55%, transparent)); }
-.cc-ring { transition: filter .45s var(--ease-out); }
+/* Calorie ring — the goal state lives in the label, not in a glow around the
+   stroke (which read as a rendering artefact rather than a reward). */
+.cc-ring-label .cc-pct { transition: color .32s var(--ease-out); }
+.cc-ring-label .cc-pct-s { transition: color .32s var(--ease-out), letter-spacing .32s var(--ease-out); }
+.cc-ring-label.done .cc-pct { color: var(--ok-ink); }
+.cc-ring-label.done .cc-pct-s { color: var(--ok-ink); font-weight: 800; }
+.cc-ring-label.over .cc-pct { color: var(--err-ink); }
+.cc-ring-label.over .cc-pct-s { color: var(--err-ink); }
+/* One-shot pop the moment the goal is crossed. */
+@keyframes goalPop {
+  0%   { transform: scale(1); }
+  30%  { transform: scale(1.18); }
+  55%  { transform: scale(.96); }
+  100% { transform: scale(1); }
+}
+.cc-ring-label.just-done { animation: goalPop .62s cubic-bezier(.22,1,.36,1); }
+@media (prefers-reduced-motion: reduce) { .cc-ring-label.just-done { animation: none; } }
 
 /* Macro bars grow from the left rather than fading in place. */
 .mac-fill { transform-origin: left center; }
@@ -254,12 +268,6 @@ html.is-fullscreen .daily-ai-body {
 /* Progress stat cards react to touch like the rest of the UI. */
 .sc { transition: transform .18s var(--ease-spring), box-shadow .2s var(--ease-out); }
 .sc:active { transform: scale(.97); }
-
-/* The AI suggestion strip should hint that it scrolls. */
-.ai-sugs {
-  -webkit-mask-image: linear-gradient(90deg, transparent 0, #000 12px, #000 calc(100% - 12px), transparent 100%);
-  mask-image: linear-gradient(90deg, transparent 0, #000 12px, #000 calc(100% - 12px), transparent 100%);
-}
 
 @media (prefers-reduced-motion: reduce) {
   .cal-wrap { scroll-behavior: auto; }

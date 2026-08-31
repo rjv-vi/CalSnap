@@ -277,7 +277,7 @@ function exportJSON(){
       fullscreen:G('fullscreen_enabled','1'),
       freezes:G('streak_freezes','{}'),
     };
-    // Сохраняем water_ ключи
+    // Include every water_ key
     const waterKeys={};
     for(let i=0;i<localStorage.length;i++){
       const k=localStorage.key(i);
@@ -333,7 +333,7 @@ function importJSON(input){
   reader.readAsText(file);
 }
 
-// Toast — очередь до 3 одновременно, чтобы не перетирать важные сообщения
+// Toasts are queued rather than overwritten, so one message cannot swallow another
 const _toastQueue = [];
 let _toastShowing = false;
 function showToast(msg, duration){
@@ -396,8 +396,6 @@ function clrAll(){
       if(k && RESET_KEEP_KEYS.indexOf(k)===-1) doomed.push(k);
     }
     doomed.forEach(k=>{ try{ localStorage.removeItem(k); }catch(e){} Ginvalidate(k); });
-    // Drop every stored food photo as well.
-    try { IMG.keys().then(ks=>ks.forEach(k=>IMG.del(k))); } catch(e) {}
     log=[];wts=[];U=null;key='';
     try { S('api_keys','[]'); } catch(e) {}
     // Back to the first-install default (the key was just deleted above).
@@ -408,6 +406,12 @@ function clrAll(){
     try { document.getElementById('aimsg').innerHTML=''; } catch(e) {}
     document.getElementById('nav').style.display='none';
     resetScrollLock();
+    // The IndexedDB mirror must go too: leaving it would make the very next
+    // launch cheerfully restore everything the user just asked to erase.
+    // `wipeBackup()` suspends new snapshots while it runs, so nothing written
+    // above can sneak back in.
+    Promise.resolve().then(wipeBackup).catch(()=>{});
+    showToast(t('toast_reset_done'));
     // Brief delay for animation
     setTimeout(()=>ss('ob'),150);
   });
@@ -503,7 +507,7 @@ function toggleChatMemory(){
 
 function showErr(id,msg){const e=document.getElementById(id);if(!e)return;e.textContent='⚠️ '+(msg||t('err_unknown'));e.classList.add('on');}
 
-// Тема применена в <head>; здесь только следим за системными изменениями темы (если юзер не выбрал явно)
+// The theme is applied in <head>; here we only follow later OS changes
 try {
   const _mq = window.matchMedia('(prefers-color-scheme: dark)');
   if (_mq && _mq.addEventListener) {

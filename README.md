@@ -5,142 +5,159 @@
 [![Android TWA](https://img.shields.io/badge/Android-TWA-3DDC84?style=flat-square&logo=android&logoColor=white)](./ANDROID.md)
 [![License: Proprietary](https://img.shields.io/badge/License-Proprietary-red.svg?style=flat-square)](./LICENSE)
 
-> AI-калькулятор калорий, который помещается в одну вкладку браузера. Снимаешь
-> еду — Gemini оценивает калории, БЖУ и порцию. Дневник, графики веса и
-> уведомления работают офлайн.
+> An AI calorie tracker that fits in a single browser tab. Photograph your food
+> and Gemini estimates the calories, macros and portion size. The diary, weight
+> charts and reminders all work offline.
 
 **Live:** https://rjv-vi.github.io/CalSnap/
 
 ---
 
-## Возможности
+## Features
 
-- **AI-анализ еды по фото / тексту / штрихкоду** через Gemini API + OpenFoodFacts
-- **Пул API-ключей** — можно добавить до 10 ключей; при исчерпании лимита (429)
-  ключ уходит на растущий кулдаун, а запрос уходит следующему по кругу
-- **Отложенный анализ** — фото, снятое без интернета, встаёт в очередь и
-  анализируется автоматически, как только связь появится
-- **Дневник питания** с группировкой по приёмам пищи (завтрак / обед / перекус / ужин)
-- **Цели и норма калорий** — расчёт BMR (Mifflin-St Jeor) c учётом активности
-- **Прогресс**: стрик с авто-фризом, BMI, тепловая карта 28 дней, динамика веса
-- **Водный баланс** с напоминаниями каждые 1–3 ч
-- **AI-нутрициолог** — отдельный экран с чатом и быстрыми подсказками
-- **Локальные уведомления** через Service Worker + Periodic Background Sync
-- **Виджет «Калории сегодня»** ([widget.html](./widget.html))
-- **Импорт / экспорт** в JSON и CSV (Excel)
-- **PWA**: устанавливается на главный экран, работает офлайн (всё, кроме AI)
-- **Полноэкранный режим** — `display: fullscreen` в манифесте + Fullscreen API
-  в обычной вкладке браузера; переключатель в Настройки → Внешний вид
-- **Android-приложение** через Trusted Web Activity ([ANDROID.md](./ANDROID.md))
-- **i18n** — русский и английский, автоопределение по браузеру
-- **Тема**: светлая / тёмная / системная (следует настройке ОС на ходу)
-- **Защита данных**: запись в `localStorage` проверяется чтением, а весь дневник
-  зеркалится в IndexedDB — если браузер вытеснит хранилище, записи вернутся
-- Haptics и звуковая обратная связь
-- **Аппаратная кнопка «Назад» и Esc** закрывают открытые шторки по одной,
-  а не выходят из приложения
-- **Звук без бинарников** — у каждого события есть Web Audio-фолбэк, поэтому
-  отсутствующий mp3 не превращается в тишину
+- **AI food analysis from a photo, text or barcode** — Gemini API + OpenFoodFacts
+- **API key pool** — store up to 10 keys; a key that hits its rate limit (429)
+  goes on an escalating cooldown while the request rotates to the next one
+- **Deferred analysis** — a photo taken offline is queued and analysed
+  automatically the moment connectivity returns
+- **Food diary** grouped by meal (breakfast / lunch / snack / dinner)
+- **Goals and calorie targets** — BMR (Mifflin-St Jeor) adjusted for activity
+- **Progress** — streak with an automatic freeze, BMI, 28-day heat map, weight trend
+- **Water balance** with reminders every 1–3 hours
+- **AI nutritionist** — chat with persistent history, photo attachments, copyable
+  answers, request cancellation and rich formatting (lists, emphasis)
+- **Local notifications** via Service Worker + Periodic Background Sync
+- **"Calories today" widget** ([widget.html](./widget.html))
+- **Import / export** as JSON and CSV (Excel)
+- **PWA** — installs to the home screen and works offline (everything except AI)
+- **Fullscreen mode** — `display: fullscreen` in the manifest plus the Fullscreen
+  API in a plain browser tab; toggle in Settings → Appearance
+- **Android app** via Trusted Web Activity ([ANDROID.md](./ANDROID.md))
+- **i18n** — Russian and English, auto-detected from the browser
+- **Theme** — light / dark / system (follows the OS setting live)
+- **Data safety** — every `localStorage` write is verified by reading it back, and
+  the whole diary is mirrored into IndexedDB, so entries survive storage eviction
+- Haptics and sound feedback
+- **Hardware back and Esc** peel open sheets one layer at a time instead of
+  leaving the app
+- **Sound without binaries** — every event has a Web Audio fallback, so a missing
+  mp3 never turns into silence
 
 ## Tech stack
 
-- **Pure HTML / CSS / vanilla JS** — без бандлеров, без фреймворков
-- **Service Worker v13** — кэш + offline + push + periodic sync
-- **localStorage** для состояния (с in-memory кэшем поверх для горячего пути
-  рендера и защитой от переполнения квоты)
-- **IndexedDB** для фото блюд и резервной копии состояния — в `localStorage`
-  лежат только ссылки, поэтому квота в 5 МБ больше не заканчивается через
-  неделю использования, а вытеснение хранилища больше не теряет дневник
-- **Gemini 2.0/2.5/3.x** — модели подгружаются из API динамически
-- **Google Fonts** (DM Sans) с preconnect
-- **GitHub Pages** хостинг + GitHub Actions для сборки Android APK через
+- **Plain HTML / CSS / vanilla JS** — no bundlers, no frameworks
+- **Service Worker v14** — caching + offline + push + periodic sync
+- **localStorage** for state, behind a small in-memory cache for the hot render
+  path, with quota-exhaustion handling
+- **IndexedDB** for food photos and the state mirror — `localStorage` only holds
+  references, so the 5 MB quota no longer runs out after a week of use and
+  storage eviction no longer loses the diary
+- **Gemini 2.0 / 2.5 / 3.x** — the model list is fetched from the API at runtime
+- **Google Fonts** (DM Sans) with preconnect
+- **GitHub Pages** hosting + GitHub Actions to build the Android APK with
   [Bubblewrap](https://github.com/GoogleChromeLabs/bubblewrap)
 
-## Локальный запуск
+## Running locally
 
 ```bash
-# Любой статический сервер подойдёт. Например:
+# Any static server will do. For example:
 python3 -m http.server 8080
-# или
+# or
 npx serve .
 ```
 
-Открой `http://localhost:8080`. Всё, что нужно для AI — это бесплатный
-API-ключ Gemini ([получить за 1 минуту](https://aistudio.google.com/app/apikey)),
-вводится в Настройки → API.
+Open `http://localhost:8080`. The only thing the AI features need is a free
+Gemini API key ([takes a minute](https://aistudio.google.com/app/apikey)),
+entered in Settings → API.
 
-> ⚠️ Открытие через `file://` отключает Service Worker и AI-функции — всегда
-> запускай через HTTP-сервер.
+> ⚠️ Opening the page over `file://` disables the Service Worker and the AI
+> features — always serve it over HTTP.
 
-## Приватность
+## Privacy
 
-- **Все данные** (дневник, вес, профиль) хранятся локально в `localStorage`
-  браузера. На сервер ничего не отправляется.
-- **AI-запросы** (фото, описание блюда) уходят напрямую в Google Gemini —
-  ключи хранятся только у тебя в браузере (в UI всегда показаны замаскированными).
-- **Фото из офлайн-очереди** лежат в IndexedDB на устройстве до анализа.
-- **Штрихкоды** ищутся в открытой базе [OpenFoodFacts](https://world.openfoodfacts.org/).
-- **Уведомления** работают локально через Service Worker, ничего не пушится с сервера.
+- **All data** (diary, weight, profile) lives locally in the browser's
+  `localStorage`. Nothing is sent to a server.
+- **AI requests** (photos, meal descriptions) go straight to Google Gemini. Keys
+  are stored only in your browser and are always masked in the UI.
+- **Photos in the offline queue** stay in IndexedDB on the device until analysed.
+- **Barcodes** are looked up in the open [OpenFoodFacts](https://world.openfoodfacts.org/) database.
+- **Notifications** are generated locally by the Service Worker; nothing is
+  pushed from a server.
 
-## Структура проекта
+## Project layout
 
 ```
 .
-├── index.html            # Single-page UI (онбординг + 4 экрана)
-├── widget.html           # Standalone-виджет «Калории сегодня»
+├── index.html            # Single-page UI (onboarding + 4 screens)
+├── widget.html           # Standalone "Calories today" widget
 ├── manifest.json         # PWA manifest
 ├── sw.js                 # Service Worker (cache + push + periodic sync)
-├── twa-manifest.json     # Bubblewrap config для Android TWA
+├── twa-manifest.json     # Bubblewrap config for the Android TWA
 ├── assets/
-│   ├── css/              # 4 CSS-файла: base / components / screens / polish
-│   └── js/               # 24 JS-модуля: state, store, keys, queue, ui, ...
-│       ├── store.js      # IndexedDB-хранилище фото + защита квоты
-│       ├── keys.js       # Пул Gemini-ключей с ротацией и кулдаунами
-│       ├── queue.js      # Очередь офлайн-фото для отложенного анализа
-│       └── fullscreen.js # Полноэкранный режим (Fullscreen API + манифест)
-├── icons/                # PWA-иконки 72…512
-├── sounds/               # 26 интерфейсных мини-звуков
+│   ├── css/              # 4 stylesheets: base / components / screens / polish
+│   └── js/               # 24 modules: state, store, keys, queue, ui, ...
+│       ├── store.js      # IndexedDB photo store + quota safety
+│       ├── keys.js       # Gemini key pool with rotation and cooldowns
+│       ├── queue.js      # Offline photo queue for deferred analysis
+│       └── fullscreen.js # Fullscreen mode (Fullscreen API + manifest)
+├── icons/                # PWA icons, 72…512
+├── sounds/               # 26 short interface sounds
 ├── tests/
-│   ├── smoke.mjs         # jsdom-тесты: i18n, персистентность, UI-потоки
-│   └── contrast.mjs      # аудит контраста тем (ловит белое-на-белом)
-├── package.json          # Только для запуска тестов (сайт статический)
-├── TASKS.md              # Текущий список задач по доработке
+│   ├── smoke.mjs         # jsdom tests: i18n, persistence, UI flows
+│   └── contrast.mjs      # theme contrast audit (catches white-on-white)
+├── package.json          # Only used to run the tests; the site is static
+├── TASKS.md              # Current work list
 ├── .well-known/
-│   └── assetlinks.json   # Digital Asset Links для Android TWA
+│   └── assetlinks.json   # Digital Asset Links for the Android TWA
 ├── .github/workflows/
-│   ├── android.yml       # CI для сборки APK + AAB через Bubblewrap
-│   ├── lighthouse.yml    # Lighthouse-аудит
-│   └── tests.yml         # CI для smoke-тестов
-└── ANDROID.md            # Инструкция по релизу Android-сборки
+│   ├── android.yml       # CI: build APK + AAB with Bubblewrap
+│   ├── lighthouse.yml    # Lighthouse audit
+│   └── tests.yml         # CI: smoke tests
+└── ANDROID.md            # Android release guide
 ```
 
-## Тесты
+## Tests
 
-Smoke-тесты поднимают `index.html` в jsdom, прогоняют реальные модули и
-проверяют то, что исторически ломалось: полноту словарей i18n, отсутствие
-русского текста в EN-режиме, сохранение дневника при переполнении квоты
-`localStorage`, группировку по приёмам пищи, стрик, экспорт/импорт, склонения,
-ротацию API-ключей при 429, очередь офлайн-анализа, закрытие шторок по «Назад»
-и покрытие звуков.
+The smoke tests load `index.html` in jsdom, run the real modules and check the
+things that have actually broken before: i18n dictionary coverage, the absence of
+Russian text in EN mode, the diary surviving a full `localStorage` quota, meal
+grouping, streaks, export/import, plural agreement, API key rotation on 429, the
+offline analysis queue, sheets closing on Back, and sound coverage.
 
-Аудит контраста разбирает CSS и инлайновые стили, раскрывает кастомные свойства
-для каждой темы и считает WCAG-контраст каждой пары «фон + текст». Именно он
-ловит «белый текст на белом фоне»: `--acc` в светлой теме почти чёрный, а в
-тёмной — почти белый, так что захардкоженный `color:#fff` на нём исчезает.
+The contrast audit parses the stylesheets and inline styles, resolves the custom
+properties for each theme and computes the WCAG contrast of every
+background/text pair. That is what catches "white text on a white background":
+`--acc` is near-black in the light theme and near-**white** in the dark one, so a
+hard-coded `color:#fff` on top of it disappears in one of them.
 
 ```bash
-npm install          # единственная зависимость — jsdom
-npm run lint         # синтаксическая проверка всех модулей
-npm run test:contrast # аудит контраста тем
-npm test             # аудит + 381 smoke-проверка
+npm install           # the only dependency is jsdom
+npm run lint          # syntax-check every module
+npm run test:contrast # theme contrast audit
+npm test              # audit + 421 smoke checks
 ```
 
-## Авторы
+## Author
 
-- **RJV** — разработка, дизайн, идея
-- **Rizan** — идеи и обратная связь
+- **RJV** — engineering, design, idea
 
-## Лицензия
+## License
 
-Все права защищены. См. [LICENSE](./LICENSE) — код не MIT, копирование,
-изменение и распространение без письменного разрешения автора запрещены.
+**Proprietary.** © 2024–2026 RJV, all rights reserved — see [LICENSE](./LICENSE).
+The repository is public so the app can be hosted, inspected and discussed, not
+so that it can be copied.
+
+**Allowed without asking:** using the app, reading the code, taking screenshots
+and screen recordings, publishing reviews (including negative ones), streams,
+tutorials, articles and posts — monetised content included. No approval and no
+revenue share required. Coverage will never be the subject of a takedown request.
+
+**Not allowed:** copying, forking or mirroring the code, creating derivative
+works, distributing or selling it, publishing it to app stores or package
+registries, claiming authorship, removing author credits, replacing the branding
+with your own, or using the code as training data for models.
+
+Any violation terminates every permission automatically. The author may file
+DMCA and equivalent notices, contact hosting providers, stores and platforms, and
+request strikes or suspensions. Anything beyond the list above requires a written
+agreement.

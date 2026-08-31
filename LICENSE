@@ -1,10 +1,121 @@
-Copyright (c) 2024–2026 RJV
-All Rights Reserved.
+CalSnap — Proprietary Software License
+Copyright (c) 2024–2026 RJV (github.com/rjv-vi). All rights reserved.
 
-This software and associated source code are proprietary and confidential.
-Unauthorized copying, modification, distribution, or use of this software,
-in whole or in part, via any medium, is strictly prohibited without the
-prior written permission of the copyright holder.
+This is not an open-source licence. The repository is public so that the app can
+be hosted, inspected and discussed — not so that it can be copied.
 
-This repository is made publicly viewable for demonstration purposes only.
-Viewing the source code does not grant any license to use, copy, or modify it.
+--------------------------------------------------------------------------------
+1. DEFINITIONS
+--------------------------------------------------------------------------------
+"Software" — the CalSnap application: its source code, markup, stylesheets,
+scripts, configuration, sound assets, icons, texts and translations, in whole or
+in part, in original or modified form.
+"Author" — RJV, the copyright holder.
+"You" — any natural person or legal entity accessing the Software.
+"Brand" — the name "CalSnap", the app icon, the wordmark and the visual identity.
+
+--------------------------------------------------------------------------------
+2. WHAT YOU MAY DO (no permission needed)
+--------------------------------------------------------------------------------
+2.1. Use the Software as an end user, via an instance published by the Author.
+2.2. Read the source code for personal study and security review.
+2.3. Cover the app publicly, freely and without a fee to the Author:
+     - screenshots and screen recordings of the app;
+     - reviews, critiques, comparisons, ratings;
+     - videos, streams, tutorials, walkthroughs, "how it works" explainers;
+     - articles, blog posts, social-media threads, podcasts;
+     - educational and journalistic use, including monetised content
+       (ads, sponsorships, memberships) on the coverage itself.
+     No approval, notification or revenue share is required. Please name the app
+     "CalSnap" and, where the format allows, link to the official page.
+2.4. Quote short excerpts of the code (a few lines) in reviews, articles,
+     tutorials or bug reports, with attribution to CalSnap and its Author.
+2.5. Report bugs and vulnerabilities, and include the excerpts needed to do so.
+
+--------------------------------------------------------------------------------
+3. WHAT YOU MAY NOT DO (without prior written permission)
+--------------------------------------------------------------------------------
+3.1. Copy, download-and-keep, fork, mirror, re-host or otherwise reproduce the
+     Software or a substantial part of it, in source or compiled form.
+3.2. Modify, adapt, translate, refactor or create derivative works.
+3.3. Distribute, publish, sell, licence, rent, lend or share the Software or a
+     derivative of it — free of charge or otherwise.
+3.4. Publish the Software, or an app substantially derived from it, to any
+     distribution channel: Google Play, App Store, RuStore, F-Droid, Web Store,
+     APK sites, npm, other repositories, or any website.
+3.5. Present the Software, or a derivative, as your own work, or claim authorship
+     of it in any form.
+3.6. Remove, obscure, alter or replace copyright notices, this licence, author
+     credits, the Brand, or the in-app "Authors" screen.
+3.7. Rebrand: replace the Brand with your own and release the result as a
+     different product ("white-labelling").
+3.8. Use the Brand in the name, icon, description or promotion of your own
+     product, or in any way suggesting endorsement or affiliation.
+3.9. Use the Software or its code as training data for machine-learning models,
+     or to generate a functionally equivalent product.
+3.10. Reuse the architecture, module structure, prompts or data schemas of the
+     Software to build a competing product where the copying is substantial.
+
+Reading the source grants no licence. Nothing here is waived by the Author's
+silence, by the absence of technical protection, or by public availability.
+
+--------------------------------------------------------------------------------
+4. ENFORCEMENT
+--------------------------------------------------------------------------------
+4.1. Any use outside Section 2 without written permission is copyright
+     infringement and terminates all rights you have under Section 2
+     automatically, immediately and without notice.
+4.2. The Author may pursue any remedy available by law, including but not limited
+     to: takedown notices under the U.S. DMCA (17 U.S.C. § 512) and equivalent
+     national procedures; complaints to hosting providers, registrars, CDNs, app
+     stores, package registries and platforms; copyright-strike and repeat-
+     infringer reports; account suspension requests; and claims for damages and
+     legal costs.
+4.3. Coverage permitted by Section 2.3 will never be the subject of a takedown
+     request by the Author. Reviews — including negative ones — are expressly
+     welcome.
+4.4. If you have copied the Software, you must, upon notice: stop distributing
+     it, remove every published copy and derivative, and confirm in writing that
+     you have done so.
+4.5. The Author is the sole party entitled to enforce this licence.
+
+--------------------------------------------------------------------------------
+5. THIRD-PARTY COMPONENTS
+--------------------------------------------------------------------------------
+This licence covers only the Software. It does not apply to third-party services
+and assets used by it, which remain under their own terms:
+  - Google Gemini API — Google APIs Terms of Service;
+  - OpenFoodFacts data — Open Database License (ODbL);
+  - DM Sans typeface — SIL Open Font License 1.1.
+
+--------------------------------------------------------------------------------
+6. PRIVACY AND DATA
+--------------------------------------------------------------------------------
+The Software stores its data locally on the user's device. The Author operates no
+server, collects no telemetry and receives no user data. Requests to the Gemini
+API are made directly from the user's browser using the user's own API key.
+
+--------------------------------------------------------------------------------
+7. NO WARRANTY
+--------------------------------------------------------------------------------
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS
+FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. CalSnap is not a medical device.
+Calorie and nutrition figures are estimates produced by an AI model and must not
+be relied upon for medical decisions. Consult a qualified professional.
+
+--------------------------------------------------------------------------------
+8. LIMITATION OF LIABILITY
+--------------------------------------------------------------------------------
+IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT
+OF OR IN CONNECTION WITH THE SOFTWARE OR ITS USE.
+
+--------------------------------------------------------------------------------
+9. PERMISSIONS AND CONTACT
+--------------------------------------------------------------------------------
+Licences beyond Section 2 — commercial use, forks, white-labelling, store
+publication — are available only by written agreement with the Author:
+  https://github.com/rjv-vi/CalSnap  ·  github.com/rjv-vi
+
+This document is the licence itself, not legal advice.

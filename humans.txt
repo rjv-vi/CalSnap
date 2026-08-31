@@ -3,7 +3,6 @@
   Site: https://github.com/rjv-vi
   Github: @rjv-vi
 
-  Ideas & feedback: Rizan
 
 /* SITE */
   Last update: 2025
