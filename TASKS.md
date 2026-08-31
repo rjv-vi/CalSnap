@@ -47,3 +47,18 @@ Updated as work progresses. `[ ]` — queued, `[~]` — in progress, `[x]` — d
 
 ## AI chat
 - [x] Reply in the language of the message, not the app's language setting
+
+## Model picker — full rework
+- [x] It is a real bottom sheet now (handle, standard header, scrim, `sheetUp`) —
+      it used to be a one-off overlay with its own radius, scrim and close button,
+      which is why it looked unlike every other sheet
+- [x] A card at the top states the model in use, its family/version and its id
+- [x] Kind filters (All / Recommended / Fast / Accurate / Legacy) with live counts,
+      driven by the same tags the rows show, so a filter cannot disagree with a pill
+- [x] Models unfit for food analysis are grouped last with an explanation instead
+      of being scattered through the list behind a red pill
+- [x] Rows lost the redundant tier line; the tick is a filling radio with a spring
+- [x] Recommended group follows the declared order, so the default leads
+- [x] A pick is confirmed on the row before the sheet closes, and the close no
+      longer stacks two sounds
+- [x] `radiogroup` / `radio` / `aria-checked` semantics throughout

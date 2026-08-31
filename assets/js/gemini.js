@@ -144,7 +144,13 @@ function modelTags(m){
   return tags.filter(x => !seen.has(x.key) && seen.add(x.key)).slice(0, 4);
 }
 
-// Short tier line shown above the tags.
+// ── Model picker ──────────────────────────────────────────────────
+// Fifty-odd ids, most of them meaningless without the Gemini docs, and exactly
+// one decision to make. The sheet is built around that: what you are on now, a
+// way to narrow the list, and rows that say what each model is good for.
+
+// Family + version, e.g. "⚡ Flash 2.5". Shown once, on the current-model card —
+// on every row it only repeated what the name already said.
 function _modelTier(m){
   const id = (m?.id || '').toLowerCase();
   const tier =
@@ -156,30 +162,109 @@ function _modelTier(m){
   return tier + (ver ? ' ' + ver : '');
 }
 
-function _modelRowHtml(m){
+const _modelTagKeys = (m) => modelTags(m).map(x => x.key);
+const _isUnfitModel  = (m) => _modelTagKeys(m).includes('mdl_tag_not_for_food');
+
+// The kind filters. `all` keeps everything; the rest read the tags a model
+// already carries, so a filter can never disagree with the pills on the row.
+const MDL_FILTERS = [
+  { key: 'all',      test: () => true },
+  { key: 'rec',      test: (m) => isRecommendedModel(m.id) },
+  { key: 'fast',     test: (m) => _modelTagKeys(m).some(k => k === 'mdl_tag_fast' || k === 'mdl_tag_fastest') },
+  { key: 'accurate', test: (m) => _modelTagKeys(m).includes('mdl_tag_accurate') },
+  { key: 'legacy',   test: (m) => _modelTagKeys(m).some(k => k === 'mdl_tag_legacy' || k === 'mdl_tag_older') },
+];
+let _mdlFilter = 'all';
+let _mdlQuery = '';
+
+function _modelTagsHtml(m){
+  return modelTags(m).map(x => `<span class="mdl-tag ${x.tone}">${esc(t(x.key))}</span>`).join('');
+}
+
+function _modelRowHtml(m, i){
   const on = m.id === selModel;
-  const tags = modelTags(m).map(x => `<span class="mdl-tag ${x.tone}">${esc(t(x.key))}</span>`).join('');
-  return `<button class="mdl-row${on ? ' on' : ''}" onclick="HFX.tick();SFX.play('select');selectModel('${esc(m.id)}')">
-      <div class="mdl-main">
-        <div class="mdl-name">${esc(m.name)}</div>
-        <div class="mdl-tier">${esc(_modelTier(m))}</div>
-        ${tags ? `<div class="mdl-tags">${tags}</div>` : ''}
-      </div>
-      <span class="mdl-check" aria-hidden="true">${on ? '✓' : ''}</span>
+  const tags = _modelTagsHtml(m);
+  return `<button class="mdl-row${on ? ' on' : ''}" role="radio" aria-checked="${on}"
+      style="animation-delay:${Math.min(i, 7) * 28}ms"
+      onclick="selectModel('${esc(m.id)}')">
+      <span class="mdl-radio" aria-hidden="true"></span>
+      <span class="mdl-main">
+        <span class="mdl-name">${esc(m.name)}</span>
+        ${tags ? `<span class="mdl-tags">${tags}</span>` : ''}
+      </span>
     </button>`;
 }
 
-// Grouped, searchable list. Fifty-odd ids is far too many to scan, so the ones
-// worth picking come first under their own heading and everything else follows.
-function _renderModelList(filter){
+// The card at the top of the sheet: the model actually in use.
+function _renderModelNow(){
+  const box = document.getElementById('mdlNow');
+  if (!box) return;
+  const m = ALL_MODELS.find(x => x.id === selModel) || { id: selModel, name: selModel };
+  const unfit = _isUnfitModel(m);
+  box.innerHTML = `
+    <div class="mdl-now-card${unfit ? ' warn' : ''}">
+      <div class="mdl-now-lbl">${esc(t('mdl_now'))}</div>
+      <div class="mdl-now-name">${esc(m.name)}</div>
+      <div class="mdl-now-tier">${esc(_modelTier(m))} · <code>${esc(m.id)}</code></div>
+      <div class="mdl-tags">${_modelTagsHtml(m)}</div>
+    </div>`;
+}
+
+function _renderModelChips(){
+  const box = document.getElementById('mdlChips');
+  if (!box) return;
+  box.innerHTML = MDL_FILTERS.map(f => {
+    const n = ALL_MODELS.filter(f.test).length;
+    if (!n && f.key !== 'all') return '';
+    const on = f.key === _mdlFilter;
+    return `<button class="mdl-chip${on ? ' on' : ''}" role="radio" aria-checked="${on}"
+        onclick="setModelFilter('${f.key}')">${esc(t('mdl_filter_' + f.key))}<span>${n}</span></button>`;
+  }).join('');
+}
+
+function setModelFilter(key){
+  if (!MDL_FILTERS.some(f => f.key === key)) return;
+  const same = _mdlFilter === key;
+  _mdlFilter = key;
+  HFX.tick(); SFX.play('select');
+  _renderModelChips();
+  if (!same) _renderModelList({ animate: true });
+  // Coming back to the top makes the new set readable from its first row.
+  document.getElementById('mdlList')?.scrollIntoView({ block: 'nearest' });
+}
+
+// Grouped list: recommended first, then the rest, then the models that are not
+// built for looking at food at all — those used to be scattered through the list
+// with only a red pill to warn you.
+let _lastModelSig = '';
+function _renderModelList(opts){
   const list = document.getElementById('mdlList');
   if (!list) return;
-  const f = String(filter || '').trim().toLowerCase();
-  const match = (m) => !f || m.name.toLowerCase().includes(f) || m.id.toLowerCase().includes(f)
-                    || modelTags(m).some(x => t(x.key).toLowerCase().includes(f));
-  const rec = ALL_MODELS.filter(m => isRecommendedModel(m.id) && match(m));
-  const rest = ALL_MODELS.filter(m => !isRecommendedModel(m.id) && match(m));
-  if (!rec.length && !rest.length) {
+  const f = _mdlQuery.trim().toLowerCase();
+  const filter = MDL_FILTERS.find(x => x.key === _mdlFilter) || MDL_FILTERS[0];
+  const matches = (m) => filter.test(m) && (!f
+    || m.name.toLowerCase().includes(f)
+    || m.id.toLowerCase().includes(f)
+    || _modelTagKeys(m).some(k => t(k).toLowerCase().includes(f)));
+
+  const hits = ALL_MODELS.filter(matches);
+  // The recommended group follows RECOMMENDED_MODEL_IDS rather than whatever
+  // order the API happened to return, so the app's own default comes first.
+  const rec = hits.filter(m => isRecommendedModel(m.id))
+    .sort((a, b) => RECOMMENDED_MODEL_IDS.indexOf(a.id) - RECOMMENDED_MODEL_IDS.indexOf(b.id));
+  const unfit = hits.filter(m => !isRecommendedModel(m.id) && _isUnfitModel(m));
+  const rest  = hits.filter(m => !isRecommendedModel(m.id) && !_isUnfitModel(m));
+
+  const cnt = document.getElementById('mdlCount');
+  if (cnt) cnt.textContent = f || _mdlFilter !== 'all'
+    ? tf('mdl_shown', { n: hits.length })
+    : tf('mdl_count', { n: ALL_MODELS.length });
+  const x = document.getElementById('mdlSearchX');
+  if (x) x.hidden = !f;
+
+  if (!hits.length) {
+    _lastModelSig = 'empty';
+    list.classList.remove('no-anim');
     list.innerHTML = `<div class="mdl-empty">
       <div class="mdl-empty-ico" aria-hidden="true">🔍</div>
       <div class="mdl-empty-t">${esc(t('mdl_none'))}</div>
@@ -187,58 +272,93 @@ function _renderModelList(filter){
     </div>`;
     return;
   }
-  const group = (key, items) => items.length
-    ? `<div class="mdl-grp">${esc(t(key))}<span>${items.length}</span></div>` + items.map(_modelRowHtml).join('')
+
+  let i = 0;
+  const group = (key, items, note) => items.length
+    ? `<div class="mdl-grp" role="presentation">${esc(t(key))}<span>${items.length}</span></div>`
+      + (note ? `<div class="mdl-grp-note" role="presentation">${esc(t(note))}</div>` : '')
+      + items.map(m => _modelRowHtml(m, i++)).join('')
     : '';
-  // Replaying the entrance animation on every keystroke makes the list flicker,
-  // so it only plays for the unfiltered list the sheet opens with.
-  list.classList.toggle('no-anim', !!f);
-  list.innerHTML = group('mdl_grp_recommended', rec) + group('mdl_grp_rest', rest);
-  const x = document.getElementById('mdlSearchX');
-  if (x) x.hidden = !f;
+
+  const html = group('mdl_grp_recommended', rec)
+             + group('mdl_grp_other', rest)
+             + group('mdl_grp_unfit', unfit, 'mdl_unfit_note');
+
+  // Typing a character that changes nothing must not replay the stagger.
+  const sig = _mdlFilter + '|' + html;
+  list.classList.toggle('no-anim', sig === _lastModelSig && !opts?.animate);
+  if (sig === _lastModelSig) return;
+  _lastModelSig = sig;
+  list.innerHTML = html;
+}
+
+function onModelSearch(v){
+  _mdlQuery = v || '';
+  _renderModelList();
 }
 
 function clearModelSearch(){
   const box = document.getElementById('mdlSearch');
   if (box) { box.value = ''; box.focus(); }
   HFX.light(); SFX.play('btn_tap');
-  _renderModelList('');
+  onModelSearch('');
 }
 
 function openModelPicker(){
-  const ov=document.getElementById('mdlOv');
-  const cnt=document.getElementById('mdlCount');
-  if(cnt) cnt.textContent=tf('mdl_count',{n:ALL_MODELS.length});
-  const searchBox = document.getElementById('mdlSearch');
-  if(searchBox){
-    searchBox.value='';
-    searchBox.oninput = (e) => _renderModelList(e.target.value);
-  }
-  _renderModelList('');
-  ov.style.display='flex';
-  ov.style.animation='ovIn .18s ease';
+  const ov = document.getElementById('mdlOv');
+  if (!ov) return;
+  _mdlQuery = '';
+  _mdlFilter = 'all';
+  _lastModelSig = '';
+  const box = document.getElementById('mdlSearch');
+  if (box) { box.value = ''; box.oninput = (e) => onModelSearch(e.target.value); }
+  _renderModelNow();
+  _renderModelChips();
+  _renderModelList({ animate: true });
+  ov.classList.add('on');
   lockScroll(true);
   // The selected row is usually below the fold once the list is this long.
   requestAnimationFrame(() => {
     document.querySelector('#mdlList .mdl-row.on')?.scrollIntoView({ block: 'nearest' });
   });
 }
-function closeModelPicker(){
-  const ov=document.getElementById('mdlOv');
-  if(!ov || ov.style.display==='none') return;
-  HFX.light(); SFX.play('sheet_close');
-  ov.style.display='none';
+
+// `silent` is for the close that follows a selection — the pick already made its
+// own sound, and stacking a second one on top reads as a glitch.
+function closeModelPicker(opts){
+  const ov = document.getElementById('mdlOv');
+  if (!ov || !ov.classList.contains('on')) return;
+  if (!opts?.silent) { HFX.light(); SFX.play('sheet_close'); }
+  ov.classList.remove('on');
   lockScroll(false);
 }
 
+// Picking is confirmed on screen before the sheet leaves: the row fills in, the
+// card at the top updates, and only then does the sheet close. Closing instantly
+// left you wondering whether the tap registered.
 function selectModel(id){
-  selModel=id;
-  S('model',id);
-  document.getElementById('smodel').textContent=ALL_MODELS.find(m=>m.id===id)?.name||id;
-  closeModelPicker();
-  // Keep the list in step for the next time it opens.
-  _renderModelList(document.getElementById('mdlSearch')?.value || '');
+  if (!id) return;
+  const already = id === selModel;
+  selModel = id;
+  S('model', id);
+  const label = document.getElementById('smodel');
+  if (label) label.textContent = ALL_MODELS.find(m => m.id === id)?.name || id;
+  HFX.success(); SFX.play('select');
+
+  const row = document.querySelector(`#mdlList .mdl-row[onclick*="${id}"]`);
+  document.querySelectorAll('#mdlList .mdl-row.on').forEach(el => {
+    el.classList.remove('on'); el.setAttribute('aria-checked', 'false');
+  });
+  if (row) {
+    row.classList.add('on', 'just-picked');
+    row.setAttribute('aria-checked', 'true');
+  }
+  _renderModelNow();
+  _lastModelSig = '';                       // the checked row moved
+  if (already) { closeModelPicker({ silent: true }); return; }
+  setTimeout(() => closeModelPicker({ silent: true }), 260);
 }
+
 // Fatal errors must not be retried with the same key — that only fires more
 // doomed requests and delays the message the user needs.
 class GemFatalError extends Error {}

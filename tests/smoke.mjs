@@ -166,7 +166,8 @@ async function boot({ lang = 'ru', quota = Infinity, seed = {}, fetchImpl = null
                    '_drumDay', '_drumMonth', '_drumYear', '_syncDrumDays', '_drumMaxDays',
                    'MEAL_KEYS', 'MEAL_WINDOW_DEFAULTS', 'hmToMins', 'minsToHm',
                    'getMealWindows', 'saveMealWindows', 'mealWindowsSummary', 'encodeImage',
-                   '_sniffMime', '_b64Head', 'dataUrlMime', '_jpegPayload', 'IMG_RAW_OK'];
+                   '_sniffMime', '_b64Head', 'dataUrlMime', '_jpegPayload', 'IMG_RAW_OK',
+                   'MDL_FILTERS', '_mdlFilter'];
   const expose = doc.createElement('script');
   expose.textContent = `for (const n of ${JSON.stringify(LEXICAL)}) {
     try { window[n] = eval(n); } catch(e) {}
@@ -663,8 +664,37 @@ console.log('CalSnap smoke tests\n');
 
   // Grouped, and searchable — fifty ids are unusable as one flat list.
   const groups = [...window.document.querySelectorAll('#mdlList .mdl-grp')].map(g => g.textContent);
-  eq('two groups', groups.length, 2);
+  eq('three groups', groups.length, 3);
   ok('recommended come first', /recommended/i.test(groups[0]), groups.join(' | '));
+  // The recommended group is ordered on purpose: the app's own default leads.
+  const recRows = [...window.document.querySelectorAll('#mdlList .mdl-row')].slice(0, 3)
+    .map(r => (r.getAttribute('onclick') || '').match(/selectModel\('([^']+)'/)?.[1]);
+  eq('the default model leads the list', recRows[0], window.__read('DEFAULT_MODEL'));
+  eq('in the declared recommendation order', recRows.join(','), window.__read('RECOMMENDED_MODEL_IDS').join(','));
+  ok('the list is a radio group', window.document.getElementById('mdlList').getAttribute('role') === 'radiogroup');
+  ok('so are the filters', window.document.getElementById('mdlChips').getAttribute('role') === 'radiogroup');
+  ok('models unfit for food are quarantined last', /not for food/i.test(groups.at(-1)), groups.join(' | '));
+  ok('and that group explains itself', !!window.document.querySelector('#mdlList .mdl-grp-note'));
+
+  // The current model is stated up front rather than being a scroll away.
+  const now = window.document.querySelector('#mdlNow .mdl-now-card');
+  ok('the selected model is shown at the top', !!now);
+  ok('with its id', now.textContent.includes(window.__read('selModel')), now.textContent);
+
+  // Kind filters, driven by the same tags the rows display.
+  const chips = [...window.document.querySelectorAll('#mdlChips .mdl-chip')];
+  ok('there are kind filters', chips.length >= 4, String(chips.length));
+  ok('All is selected by default', chips[0].classList.contains('on'));
+  window.setModelFilter('accurate');
+  const accurate = [...window.document.querySelectorAll('#mdlList .mdl-row')];
+  ok('the accurate filter narrows the list', accurate.length && accurate.length < rows.length, String(accurate.length));
+  ok('and every row in it is tagged accurate', accurate.every(r => /accurate/i.test(r.textContent)));
+  window.setModelFilter('legacy');
+  ok('the legacy filter finds the old models',
+     [...window.document.querySelectorAll('#mdlList .mdl-row')].every(r => /legacy|older/i.test(r.textContent)));
+  window.setModelFilter('all');
+  eq('All restores every row', window.document.querySelectorAll('#mdlList .mdl-row').length, rows.length);
+
   const search = window.document.getElementById('mdlSearch');
   ok('there is a search box', !!search);
   search.value = 'flash-lite';
@@ -673,12 +703,27 @@ console.log('CalSnap smoke tests\n');
   ok('search narrows the list', hits.length > 0 && hits.length < rows.length, String(hits.length));
   ok('and every hit matches', hits.every(r => /lite/i.test(r.textContent)));
   ok('the clear button appears', !window.document.getElementById('mdlSearchX').hidden);
+  ok('the count reports what is shown', /shown/i.test(window.document.getElementById('mdlCount').textContent),
+     window.document.getElementById('mdlCount').textContent);
   search.value = 'zzzz-no-such-model';
   search.oninput({ target: search });
   ok('an empty result explains itself', !!window.document.querySelector('#mdlList .mdl-empty'));
   window.clearModelSearch();
   eq('clearing restores every row', window.document.querySelectorAll('#mdlList .mdl-row').length, rows.length);
-  window.closeModelPicker();
+
+  // Picking confirms on the row, updates the card, and leaves the sheet open
+  // just long enough to be seen.
+  window.selectModel('gemini-2.5-flash');
+  eq('the choice is stored', window.__read('selModel'), 'gemini-2.5-flash');
+  const picked = window.document.querySelector('#mdlList .mdl-row.on');
+  ok('the picked row is marked', !!picked && /2\.5 Flash/i.test(picked.textContent), picked?.textContent);
+  ok('and marked for assistive tech', picked.getAttribute('aria-checked') === 'true');
+  ok('the row confirms the tap before closing', picked.classList.contains('just-picked'));
+  ok('only one row is checked', window.document.querySelectorAll('#mdlList .mdl-row.on').length === 1);
+  ok('the card at the top followed', /2\.5 Flash/i.test(window.document.querySelector('#mdlNow').textContent));
+  ok('the sheet is still open for that beat', window.document.getElementById('mdlOv').classList.contains('on'));
+  await new Promise(r => setTimeout(r, 320));
+  ok('then it closes on its own', !window.document.getElementById('mdlOv').classList.contains('on'));
   window.close();
 }
 

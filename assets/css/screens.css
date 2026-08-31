@@ -281,24 +281,107 @@ body.modal-open { overflow: hidden !important; touch-action: none; }
 .ai-list-x:active{transform:scale(.86);background:var(--err2);color:var(--err-ink);}
 .ai-list-note{font-size:11.5px;color:var(--t3);line-height:1.5;padding:6px 2px 0;}
 
-/* ── Model picker rows ───────────────────────────────────────────── */
-#mdlList.no-anim .mdl-row,#mdlList.no-anim .mdl-grp{animation:none;}
-.mdl-row{width:100%;display:flex;align-items:center;gap:12px;text-align:left;font-family:var(--ff);background:var(--bg1);border:1.5px solid var(--b1);border-radius:16px;padding:13px 14px;cursor:pointer;box-shadow:var(--s1);transition:transform .18s cubic-bezier(.22,1,.36,1),background .18s,border-color .18s;animation:rowIn .28s cubic-bezier(.22,1,.36,1) both;}
+/* ══════════════════════════════════════════════════════════════════
+   MODEL PICKER
+   ══════════════════════════════════════════════════════════════════
+   A standard bottom sheet (handle, header, scrim) like every other sheet in the
+   app — it used to be a one-off overlay with its own radius, scrim and close
+   button, which is why it stood out. */
+.mdl-sheet{max-height:92vh;padding-bottom:0;}
+
+/* ── Current model ─────────────────────────────────────────────── */
+.mdl-now{padding:14px 16px 4px;}
+.mdl-now-card{position:relative;overflow:hidden;border-radius:18px;padding:13px 15px 12px;
+  background:linear-gradient(145deg,color-mix(in srgb,var(--acc) 16%,var(--bg1)),var(--bg1));
+  border:1.5px solid color-mix(in srgb,var(--acc) 42%,transparent);box-shadow:var(--s1);
+  animation:popIn .3s cubic-bezier(.22,1,.36,1) both;}
+.mdl-now-card.warn{background:linear-gradient(145deg,var(--err2),var(--bg1));
+  border-color:color-mix(in srgb,var(--err-ink) 34%,transparent);}
+.mdl-now-lbl{font-size:9.5px;font-weight:800;letter-spacing:.7px;text-transform:uppercase;color:var(--t2);}
+.mdl-now-name{font-size:17px;font-weight:900;letter-spacing:-.4px;color:var(--t0);margin-top:3px;line-height:1.2;}
+.mdl-now-tier{font-size:11px;font-weight:600;color:var(--t2);margin-top:3px;}
+.mdl-now-tier code{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:10.5px;}
+.mdl-now-card .mdl-tags{margin-top:9px;}
+
+/* ── Search + kind filters ─────────────────────────────────────── */
+/* Sticky as one block: the search and the filters are how you get through the
+   list, so they stay reachable while it scrolls under them. */
+.mdl-tools{position:sticky;top:0;z-index:2;padding:10px 16px 8px;background:var(--bg1);
+  border-bottom:.5px solid var(--b1);box-shadow:0 6px 12px -10px rgba(0,0,0,.35);}
+.mdl-search-wrap{display:flex;align-items:center;gap:8px;padding:0 10px;background:var(--f1);
+  border:1px solid var(--b1);border-radius:14px;transition:border-color .2s,background .2s;}
+/* The ring goes on the pill, not on the bare <input> inside it. */
+.mdl-search-wrap:focus-within{border-color:var(--acc);background:var(--bg1);
+  outline:2px solid color-mix(in srgb,var(--acc) 42%,transparent);outline-offset:1px;}
+.mdl-search-ico{flex-shrink:0;font-size:13px;opacity:.65;}
+.mdl-search{flex:1;min-width:0;border:none;background:transparent;font-family:var(--ff);
+  font-size:14px;font-weight:600;color:var(--t0);padding:11px 0;-webkit-appearance:none;}
+.mdl-search:focus,.mdl-search:focus-visible{outline:none;}
+.mdl-search::-webkit-search-cancel-button{display:none;}
+.mdl-search::placeholder{color:var(--t3);font-weight:500;}
+.mdl-search-x{flex-shrink:0;width:24px;height:24px;border:none;border-radius:50%;background:var(--b1);
+  color:var(--t1);font-size:11px;font-family:var(--ff);cursor:pointer;transition:transform .16s;}
+.mdl-search-x:active{transform:scale(.85);}
+
+.mdl-chips{display:flex;gap:7px;overflow-x:auto;scrollbar-width:none;-webkit-overflow-scrolling:touch;
+  padding:9px 16px 2px;margin:0 -16px;}
+.mdl-chips::-webkit-scrollbar{display:none;}
+.mdl-chip{flex-shrink:0;display:inline-flex;align-items:center;gap:5px;border:1px solid var(--b1);
+  border-radius:11px;background:var(--bg1);color:var(--t1);font-family:var(--ff);font-size:12px;
+  font-weight:700;padding:7px 11px;cursor:pointer;white-space:nowrap;
+  transition:transform .18s cubic-bezier(.22,1,.36,1),background .2s,color .2s,border-color .2s;}
+.mdl-chip span{padding:0 5px;border-radius:6px;background:var(--f1);color:var(--t2);font-size:10px;font-weight:800;}
+.mdl-chip:active{transform:scale(.94);}
+.mdl-chip.on{background:var(--acc);border-color:var(--acc);color:var(--on-acc);}
+.mdl-chip.on span{background:color-mix(in srgb,var(--on-acc) 20%,transparent);color:var(--on-acc);}
+.mdl-count{font-size:10.5px;font-weight:700;color:var(--t2);letter-spacing:.2px;padding:8px 2px 0;}
+
+/* ── Groups + rows ─────────────────────────────────────────────── */
+.mdl-list{display:flex;flex-direction:column;gap:7px;padding:10px 16px 14px;}
+.mdl-grp{display:flex;align-items:center;gap:7px;font-size:10.5px;font-weight:800;letter-spacing:.6px;
+  text-transform:uppercase;color:var(--t2);padding:10px 4px 0;}
+.mdl-grp:first-child{padding-top:2px;}
+.mdl-grp span{padding:1px 6px;border-radius:7px;background:var(--f1);color:var(--t2);font-size:10px;letter-spacing:0;}
+.mdl-grp-note{font-size:11.5px;color:var(--t2);line-height:1.45;padding:0 4px 2px;}
+
+.mdl-row{width:100%;display:flex;align-items:flex-start;gap:11px;text-align:left;font-family:var(--ff);
+  background:var(--bg1);border:1.5px solid var(--b1);border-radius:16px;padding:12px 14px;cursor:pointer;
+  box-shadow:var(--s1);transition:transform .18s cubic-bezier(.22,1,.36,1),background .2s,border-color .2s;
+  animation:rowIn .3s cubic-bezier(.22,1,.36,1) both;}
+.mdl-list.no-anim .mdl-row,.mdl-list.no-anim .mdl-grp{animation:none;}
 .mdl-row:active{transform:scale(.98);background:var(--f1);}
-.mdl-row.on{background:var(--acc);border-color:var(--acc);}
-.mdl-main{flex:1;min-width:0;}
-.mdl-name{font-size:14.5px;font-weight:800;color:var(--t0);letter-spacing:-.2px;}
+.mdl-row.on{background:var(--acc);border-color:var(--acc);box-shadow:var(--s2);}
+/* A tap is confirmed on the row before the sheet closes. */
+.mdl-row.just-picked{animation:mdlPick .3s cubic-bezier(.22,1,.36,1);}
+@keyframes mdlPick{0%{transform:scale(1)}45%{transform:scale(1.025)}100%{transform:scale(1)}}
+
+/* A ring that fills and grows a tick, rather than a bare ✓ appearing. */
+.mdl-radio{position:relative;flex-shrink:0;width:19px;height:19px;margin-top:1px;border-radius:50%;
+  border:2px solid var(--b0);transition:border-color .2s,background .2s;}
+.mdl-row.on .mdl-radio{border-color:var(--on-acc);background:var(--on-acc);}
+.mdl-radio::after{content:'';position:absolute;left:50%;top:50%;width:5px;height:9px;
+  margin:-6px 0 0 -4px;border:2px solid var(--acc);border-top:0;border-left:0;
+  transform:rotate(45deg) scale(0);transform-origin:center;
+  transition:transform .22s cubic-bezier(.34,1.56,.64,1);}
+.mdl-row.on .mdl-radio::after{transform:rotate(45deg) scale(1);}
+
+.mdl-main{flex:1;min-width:0;display:block;}
+.mdl-name{display:block;font-size:14.5px;font-weight:800;color:var(--t0);letter-spacing:-.2px;line-height:1.3;}
 .mdl-row.on .mdl-name{color:var(--on-acc);}
-.mdl-tier{font-size:11.5px;font-weight:600;color:var(--t2);margin-top:1px;}
-.mdl-row.on .mdl-tier{color:color-mix(in srgb,var(--on-acc) 72%,transparent);}
 .mdl-tags{display:flex;flex-wrap:wrap;gap:5px;margin-top:7px;}
-.mdl-tag{font-size:10px;font-weight:800;letter-spacing:.2px;padding:3px 7px;border-radius:7px;white-space:nowrap;background:var(--f1);color:var(--t1);border:1px solid var(--b2);}
+.mdl-tag{font-size:10px;font-weight:800;letter-spacing:.2px;padding:3px 7px;border-radius:7px;
+  white-space:nowrap;background:var(--f1);color:var(--t1);border:1px solid var(--b2);}
 .mdl-tag.good{background:var(--ok2);color:var(--ok-ink);border-color:color-mix(in srgb,var(--ok-ink) 22%,transparent);}
 .mdl-tag.warn{background:var(--warn2);color:var(--warn-ink);border-color:color-mix(in srgb,var(--warn-ink) 22%,transparent);}
 .mdl-tag.bad{background:var(--err2);color:var(--err-ink);border-color:color-mix(in srgb,var(--err-ink) 22%,transparent);}
-.mdl-row.on .mdl-tag{background:color-mix(in srgb,var(--on-acc) 14%,transparent);color:var(--on-acc);border-color:color-mix(in srgb,var(--on-acc) 26%,transparent);}
-.mdl-check{flex-shrink:0;width:20px;font-size:17px;font-weight:800;color:var(--on-acc);text-align:center;}
-.mdl-legend{font-size:11.5px;color:var(--t3);line-height:1.5;padding:2px 18px 20px;}
+.mdl-row.on .mdl-tag{background:color-mix(in srgb,var(--on-acc) 14%,transparent);color:var(--on-acc);
+  border-color:color-mix(in srgb,var(--on-acc) 26%,transparent);}
+
+.mdl-empty{text-align:center;padding:34px 20px 30px;animation:emptyIn .3s cubic-bezier(.22,1,.36,1) both;}
+.mdl-empty-ico{font-size:30px;opacity:.5;}
+.mdl-empty-t{font-size:15px;font-weight:800;color:var(--t0);margin-top:8px;}
+.mdl-empty-s{font-size:12.5px;color:var(--t2);margin-top:4px;line-height:1.45;}
+.mdl-legend{font-size:11.5px;color:var(--t3);line-height:1.5;padding:0 18px calc(20px + env(safe-area-inset-bottom));}
 
 /* ── Meal windows sheet ──────────────────────────────────────────── */
 .ml-card{background:var(--bg1);border:1px solid var(--b1);border-radius:16px;overflow:hidden;margin:8px 0 10px;box-shadow:var(--s1);}
@@ -316,25 +399,3 @@ body.modal-open { overflow: hidden !important; touch-action: none; }
 .ml-warn.on{display:flex;animation:attachIn .26s cubic-bezier(.22,1,.36,1) both;}
 .ml-note{font-size:12px;color:var(--t2);line-height:1.55;margin:0 2px 14px;}
 
-/* ── Model picker: search + groups ───────────────────────────────── */
-/* Header and search stick together, so the search stays reachable while
-   scrolling a list of fifty models. */
-.mdl-top{position:sticky;top:0;z-index:2;background:var(--bg1);border-bottom:1px solid var(--b1);padding:18px 20px 12px;}
-.mdl-search-wrap{display:flex;align-items:center;gap:8px;margin:12px 0 0;padding:0 10px;background:var(--f1);border:1px solid var(--b1);border-radius:14px;transition:border-color .2s,background .2s;}
-.mdl-search-wrap:focus-within{border-color:var(--acc);background:var(--bg1);outline:2px solid color-mix(in srgb,var(--acc) 42%,transparent);outline-offset:1px;}
-.mdl-search-ico{flex-shrink:0;font-size:13px;opacity:.65;}
-.mdl-search{flex:1;min-width:0;border:none;background:transparent;font-family:var(--ff);font-size:14px;font-weight:600;color:var(--t0);padding:11px 0;-webkit-appearance:none;}
-/* The input is a bare text line inside a decorated pill, so the focus ring
-   belongs on the pill — on the input itself it floated in the middle of it. */
-.mdl-search:focus,.mdl-search:focus-visible{outline:none;}
-.mdl-search::-webkit-search-cancel-button{display:none;}
-.mdl-search::placeholder{color:var(--t3);font-weight:500;}
-.mdl-search-x{flex-shrink:0;width:24px;height:24px;border:none;border-radius:50%;background:var(--b1);color:var(--t1);font-size:11px;font-family:var(--ff);cursor:pointer;transition:transform .16s;}
-.mdl-search-x:active{transform:scale(.85);}
-.mdl-grp{display:flex;align-items:center;gap:7px;font-size:10.5px;font-weight:800;letter-spacing:.6px;text-transform:uppercase;color:var(--t2);padding:10px 4px 2px;}
-.mdl-grp:first-child{padding-top:2px;}
-.mdl-grp span{padding:1px 6px;border-radius:7px;background:var(--f1);color:var(--t2);font-size:10px;letter-spacing:0;}
-.mdl-empty{text-align:center;padding:34px 20px 30px;animation:emptyIn .3s cubic-bezier(.22,1,.36,1) both;}
-.mdl-empty-ico{font-size:30px;opacity:.5;}
-.mdl-empty-t{font-size:15px;font-weight:800;color:var(--t0);margin-top:8px;}
-.mdl-empty-s{font-size:12.5px;color:var(--t2);margin-top:4px;line-height:1.45;}

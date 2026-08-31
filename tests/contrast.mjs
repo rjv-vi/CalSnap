@@ -189,7 +189,7 @@ const FIXED_SELECTORS = [
   { test: /^\.about-ava-box/, backdrop: '#26221E', name: 'author avatar' },
   { test: /^\.prev-change/, backdrop: 'rgb(56,54,52)', name: 'photo preview' },
   // Tag pills inside the *selected* model row sit on the accent surface.
-  { test: /^\.mdl-row\.on /, backdrop: 'var(--acc)', name: 'model row (selected)' },
+  { test: /^\.mdl-row\.on |^\.mdl-chip\.on /, backdrop: 'var(--acc)', name: 'accent surface' },
   // The favourite toggle renders the ⭐ / ☆ glyph, which the font colours
   // itself; `color` only tints the hollow outline character.
   { test: /^\.li-star/, backdrop: 'var(--bg1)', name: 'star glyph', skip: true },

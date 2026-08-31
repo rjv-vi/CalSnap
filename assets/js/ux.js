@@ -90,7 +90,7 @@ const OVERLAYS = [
   { sel: '#devOv',         open: el => el.style.display === 'flex',            close: () => closeDevPanel() },
   { sel: '#drumOv',        open: el => el.classList.contains('on'),            close: () => closeDrum() },
   { sel: '#wlogOv',        open: el => el.classList.contains('on'),            close: () => closeWlog() },
-  { sel: '#mdlOv',         open: el => el.style.display === 'flex',            close: () => closeModelPicker() },
+  { sel: '#mdlOv',         open: el => el.classList.contains('on'),            close: () => closeModelPicker() },
   { sel: '#aboutOv',       open: el => el.classList.contains('on'),            close: () => closeAbout() },
   { sel: '#notifOv',       open: el => el.classList.contains('on'),            close: () => closeNotifSettings() },
   { sel: '#mealOv',        open: el => el.classList.contains('on'),            close: () => closeMealTimes() },
