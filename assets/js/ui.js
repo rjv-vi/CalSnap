@@ -198,13 +198,6 @@ function edPickGender(g){
   if(m)m.classList.toggle('on',g==='m');
   if(f)f.classList.toggle('on',g==='f');
 }
-function edDobHint(){
-  const dob=document.getElementById('ed_dob')?.value;
-  const hint=document.getElementById('ed_dob_hint');
-  if(!hint)return;
-  const age=calcAgeFromDob(dob);
-  hint.textContent=age&&age>0?tf('age_label',{age:age,years:fmtYears(age)}):t('check_date');
-}
 function rcalc(){
   let bmr=U.gen==='m'?10*U.w+6.25*U.h-5*U.age+5:10*U.w+6.25*U.h-5*U.age-161;
   let k=Math.round(bmr*(U.act||1.375));

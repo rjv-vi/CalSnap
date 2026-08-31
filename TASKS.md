@@ -91,3 +91,31 @@ Updated as work progresses. `[ ]` — queued, `[~]` — in progress, `[x]` — d
 - [x] Goal-reached state on the card, count-up on the total, softer press (0.94,
       was a 0.78 squash), and the count badge only pops when a count changed
 - [x] Reduced-motion coverage for every new animation, count-up included
+
+## Round 4 — layout regression + app-wide sweep
+- [x] **The reported bug**: a single stray `</div>` after the water card closed
+      `#prog` early, so the 28-day heat map, the daily summary, the weight trend,
+      the pace card and the weekly analysis all sat *outside* every `.screen` —
+      `.screen` elements are hidden unless `.active`, but these had no screen to
+      belong to, so they rendered on all four tabs at once, over the real content.
+      Introduced by my own water-card markup edit in the previous round.
+- [x] Regression test: every card is asserted to be inside its owning screen, no
+      card may float outside one, no screen may nest inside another, and exactly
+      one screen is active at a time. Re-inserting the stray tag fails 6 checks.
+- [x] Whole-UI interaction sweep test: opens and closes all 11 sheets in both
+      languages (including switching language while each is open), walks every
+      tab, runs every renderer, and asserts nothing throws, no page error is
+      logged, no overlay is left open and the scroll lock is released.
+- [x] `edDobHint()` was unreachable dead code reading `#ed_dob`, an element the
+      drum picker replaced — removed.
+- [x] A language switch reverted the composer's "N photos attached" line, because
+      `setLang` rebuilt every other JS-written string but not that one.
+- [x] `.dob-picker-btn.filled` was added by JS and never styled, so a satisfied
+      date field looked identical to an empty one.
+- [x] Removed a dead `#bmiFill` element (nothing styled or wrote it) and the seven
+      i18n keys left unreferenced by this session's rewrites. Pre-existing spare
+      keys were left alone rather than swept up opportunistically.
+- [x] Verified: no duplicate element ids, markup tags balance (670/670 divs), all
+      19 overlays sit at body level, every inline handler resolves to a real
+      function, every `getElementById` target exists, RU/EN dictionaries are at
+      parity, and index.html is served network-first so the fix needs no cache bump.

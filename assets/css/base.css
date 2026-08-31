@@ -217,6 +217,9 @@ input,textarea,select{font-family:var(--ff);}
 .dob-picker-btn{width:100%;background:var(--bg1);border:1.5px solid var(--b0);border-radius:var(--r3);padding:15px 18px;color:var(--t0);font-size:16px;font-weight:500;font-family:var(--ff);text-align:left;cursor:pointer;display:flex;align-items:center;justify-content:space-between;transition:border-color .2s;margin-bottom:8px;box-shadow:var(--s1),var(--si);}
 .dob-picker-btn .dob-placeholder{color:var(--t3);}
 .dob-picker-btn .dob-value{color:var(--t0);font-weight:700;}
+/* JS adds `.filled` once a date is chosen; without a rule for it a satisfied
+   field looked exactly like an empty one. */
+.dob-picker-btn.filled{border-color:color-mix(in srgb,var(--acc) 45%,transparent);background:color-mix(in srgb,var(--acc) 5%,var(--bg1));}
 .dob-age-hint{font-size:13px;color:var(--ok);font-weight:600;margin-bottom:14px;min-height:20px;}
 
 /* NAV */

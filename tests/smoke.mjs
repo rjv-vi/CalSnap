@@ -2282,6 +2282,126 @@ console.log('CalSnap smoke tests\n');
   ok('the segmented pill already did', /\.tabs-pill\{[^}]*transition:\s*transform/.test(css));
 }
 
+// ── 75. Every screen's cards actually live inside that screen ─────
+// A single stray `</div>` closed #prog early once, which pushed the heat map,
+// the weight trend and the weekly analysis outside every `.screen` — so they
+// rendered on top of all four tabs at once with the real content behind them.
+// jsdom reparents exactly the way a browser does, so the parsed tree tells the
+// truth about the nesting whatever the source looks like.
+{
+  const PROFILE = JSON.stringify({ name: 'A', kcal: 2000, goal: 'maintain', w: 70, h: 180, age: 30, gen: 'm', pr: 100, ft: 60, cb: 200 });
+  const { window } = await boot({ lang: 'en', seed: { u: PROFILE, wts: '[]', water_enabled: '1' } });
+  const doc = window.document;
+  const OWNERS = {
+    prog: ['hgrid', 'dailyAiCard', 'wc', 'paceCard', 'weekAiCard', 'waterCard', 'wkd', 'pavg', 'pstr'],
+    home: ['hlog', 'pendingCard', 'miniWaterRow', 'greet', 'cals'],
+    sett: ['sname', 'smodel', 'smeals', 'sapi'],
+    ob:   ['obh', 'obw', 'ob_dob_btn'],
+  };
+  for (const [screen, ids] of Object.entries(OWNERS)) {
+    for (const id of ids) {
+      const el = doc.getElementById(id);
+      if (!el) { ok(`#${id} exists`, false, 'missing from the markup'); continue; }
+      const owner = el.closest('.screen');
+      eq(`#${id} sits inside #${screen}`, owner?.id, screen);
+    }
+  }
+
+  // Nothing that is meant to be part of a screen may float outside one: a card
+  // with no `.screen` ancestor is visible on every tab.
+  const strays = [...doc.querySelectorAll('.card-enter, .water-card, .heat-card, .wt-card, .week-ai-card, .pace-card')]
+    .filter(el => !el.closest('.screen'))
+    .map(el => el.id || el.className);
+  ok('no card floats outside a screen', strays.length === 0, strays.join(', '));
+
+  // And the screens themselves stay siblings — one nested inside another would
+  // make it impossible to show on its own.
+  const screens = [...doc.querySelectorAll('.screen')];
+  eq('four screens', screens.length, 4);
+  ok('none is nested in another', screens.every(s2 => !s2.parentElement.closest('.screen')),
+     screens.filter(s2 => s2.parentElement.closest('.screen')).map(s2 => s2.id).join(', '));
+
+  // Only the active screen is shown, so switching tabs really swaps content.
+  window.goS('prog', doc.querySelectorAll('.nb')[1]);
+  eq('exactly one screen is active', doc.querySelectorAll('.screen.active').length, 1);
+  eq('and it is the one asked for', doc.querySelector('.screen.active').id, 'prog');
+  window.close();
+}
+
+// ── 76. Exercising the whole UI throws nothing ─────────────────────
+// A broad interaction sweep: open every overlay, switch every tab, flip the
+// language with state on screen, and close everything again. Static analysis
+// cannot see a handler that references a renamed element; actually pressing the
+// buttons can.
+{
+  const PROFILE = JSON.stringify({ name: 'A', kcal: 2000, goal: 'maintain', w: 70, h: 180, age: 30, gen: 'm',
+                                   pr: 100, ft: 60, cb: 200, dob: '1996-04-12', prefs: ['vegan'], allerg: 'peanuts' });
+  const LOGGED = JSON.stringify([
+    { food: 'Oatmeal', kcal: 320, prot: 10, fat: 6, carb: 54, time: '08:10', date: new Date().toDateString() },
+    { food: 'Salad',   kcal: 210, prot: 6,  fat: 9, carb: 22, time: '13:20', date: new Date().toDateString() },
+  ]);
+  const { window, errors } = await boot({
+    lang: 'ru', idb: true,
+    seed: { u: PROFILE, log: LOGGED, wts: JSON.stringify([{ d: new Date().toDateString(), v: 70 }]),
+            water_enabled: '1', api_keys: JSON.stringify([{ k: 'K1', added: 1, strikes: 0, cooldownUntil: 0, invalid: false, uses: 0 }]) },
+  });
+  const doc = window.document;
+  const thrown = [];
+  const run = (label, fn) => { try { fn(); } catch (e) { thrown.push(`${label}: ${e.message}`); } };
+
+  ok('booting a populated profile logs no error', errors.length === 0, errors.join(' | '));
+
+  // Every tab.
+  const nbs = [...doc.querySelectorAll('.nb')];
+  ['home', 'prog', 'sett'].forEach((scr, i) => run('goS ' + scr, () => window.goS(scr, nbs[i])));
+
+  // Every renderer, directly.
+  ['rH', 'rCal', 'rP', 'rSet', 'rWater', 'rBMI', 'rWChart', 'renderQueue', 'renderFavs']
+    .forEach(fn => run(fn, () => typeof window[fn] === 'function' && window[fn]()));
+
+  // Every overlay open → close, in both languages.
+  const SHEETS = [
+    ['openMealTimes', 'closeMealTimes'],
+    ['openWaterCustom', 'closeWaterCustom'],
+    ['openModelPicker', 'closeModelPicker'],
+    ['openNotifSettings', 'closeNotifSettings'],
+    ['openApi', 'closeApi'],
+    ['openUsage', 'closeUsage'],
+    ['openAbout', 'closeAbout'],
+    ['openAiList', 'closeAiList'],
+    ['aiPickPhoto', 'closePicSrc'],
+    ['showOfflineModal', 'hideOfflineModal'],
+    ['logW', 'closeWlog'],
+  ];
+  for (const lang of ['ru', 'en']) {
+    run('setLang ' + lang, () => window.setLang(lang));
+    for (const [open, close] of SHEETS) {
+      if (typeof window[open] !== 'function') { thrown.push(`${open} is not defined`); continue; }
+      run(open, () => window[open]());
+      run('setLang while ' + open + ' is up', () => window.setLang(lang));
+      if (typeof window[close] === 'function') run(close, () => window[close]());
+    }
+  }
+  run('openDrum', () => window.openDrum('ed'));
+  run('confirmDrum', () => window.confirmDrum());
+  run('cycleTheme', () => window.cycleTheme());
+  run('cycleTheme x2', () => window.cycleTheme());
+  run('toggleWaterTracking', () => window.toggleWaterTracking());
+  run('toggleWaterTracking back', () => window.toggleWaterTracking());
+  run('openFd', () => window.openFd(0));
+  run('closeFd', () => window.closeFd());
+  run('openAdd', () => window.openAdd && window.openAdd());
+  run('closeAdd', () => window.closeAdd && window.closeAdd());
+
+  ok('nothing threw across the sweep', thrown.length === 0, thrown.join(' | '));
+  ok('and still no page errors', errors.length === 0, errors.join(' | '));
+  // Everything must be shut again, or the scroll lock leaks.
+  eq('no overlay is left open', doc.querySelectorAll('.ov.on, .ed-ov.on, .offl-ov.on, .about-ov.on').length, 0);
+  ok('and the scroll lock was released', !doc.body.classList.contains('modal-open'),
+     doc.body.className);
+  window.close();
+}
+
 // ── 74. Every t()/tf() key in the source exists in both languages ─
 {
   const { window } = await boot({ lang: 'en' });

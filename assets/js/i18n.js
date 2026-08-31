@@ -76,7 +76,6 @@ const I18N = {
     ai_input_placeholder: 'Спроси что-нибудь…',
     // Misc
     confirm: 'Подтвердить',
-    cancel: 'Отмена',
     save: 'Сохранить',
     delete: 'Удалить',
     close: 'Закрыть',
@@ -150,7 +149,6 @@ const I18N = {
     meal_from: 'с',
     meal_saved: 'Время приёмов пищи обновлено',
     set_meal_times: 'Время приёмов пищи',
-    set_meal_times_sub: 'Границы завтрака, обеда, перекуса и ужина',
     meal_title: '🍽️ Время приёмов пищи',
     meal_note: 'Записи группируются по этим границам. Каждое время — <b>начало</b> приёма пищи: он длится до начала следующего. Съеденное до завтрака попадает в перекус.',
     meal_warn_order: 'Времена должны идти по возрастанию: завтрак → обед → перекус → ужин.',
@@ -172,7 +170,6 @@ const I18N = {
     // Water
     water_salt_hint: '🧂 Солёная еда — норма воды +20%',
     water_empty: '💧 Добавь первый стакан воды',
-    water_history: 'История',
     water_undo: 'Отменить',
     water_added_toast: '💧 Добавлено в водный баланс: {ml} мл',
     // Weekdays (Mon..Sun for stats; Sun..Sat for calendar)
@@ -249,7 +246,6 @@ const I18N = {
     water_pick_preset: 'Быстрый выбор',
     water_label: 'Водный баланс',
     water_of: 'из',
-    water_goal_word: 'цель',
     water_history_today: 'История сегодня',
     streak_days: 'дней',
     api_bar_title: 'Нужен API ключ Gemini',
@@ -379,7 +375,6 @@ const I18N = {
     // Misc
     not_set: 'Не указаны',
     age_label: 'Возраст: {years}',
-    check_date: 'Проверь дату',
     allergies: 'Аллергии',
     allerg_ph: 'Арахис, морепродукты...',
     api_set: 'Установлен ✓',
@@ -632,11 +627,9 @@ const I18N = {
     mdl_grp_other: 'Прочие модели',
     mdl_grp_unfit: 'Не для анализа еды',
     mdl_unfit_note: 'Эти модели заточены под другое — аудио, синтез речи, генерацию картинок. Для фото еды они не подойдут.',
-    mdl_picked: 'Модель выбрана',
     mdl_shown: 'Показано: {n}',
     mdl_search: 'Поиск модели…',
     mdl_grp_recommended: 'Рекомендуем',
-    mdl_grp_rest: 'Остальные модели',
     mdl_none: 'Ничего не найдено',
     mdl_none_sub: 'Попробуй другое название — например «flash» или «pro».',
     api_desc: 'Получи бесплатный ключ на',
@@ -771,7 +764,6 @@ const I18N = {
     bc_manual_ph: 'Enter code manually (EAN-13)',
     ai_input_placeholder: 'Ask anything…',
     confirm: 'Confirm',
-    cancel: 'Cancel',
     save: 'Save',
     delete: 'Delete',
     close: 'Close',
@@ -837,7 +829,6 @@ const I18N = {
     meal_from: 'from',
     meal_saved: 'Meal times updated',
     set_meal_times: 'Meal times',
-    set_meal_times_sub: 'Where breakfast, lunch, snack and dinner begin',
     meal_title: '🍽️ Meal times',
     meal_note: 'Entries are grouped by these boundaries. Each time is the <b>start</b> of a meal, which runs until the next one begins. Anything eaten before breakfast counts as a snack.',
     meal_warn_order: 'Times must increase: breakfast → lunch → snack → dinner.',
@@ -859,7 +850,6 @@ const I18N = {
     // Water
     water_salt_hint: '🧂 Salty food — water target +20%',
     water_empty: '💧 Add your first glass of water',
-    water_history: 'History',
     water_undo: 'Undo',
     water_added_toast: '💧 Added to water balance: {ml} ml',
     // Weekdays
@@ -936,7 +926,6 @@ const I18N = {
     water_pick_preset: 'Quick pick',
     water_label: 'Water balance',
     water_of: 'of',
-    water_goal_word: 'goal',
     water_history_today: "Today's history",
     api_bar_title: 'Gemini API key needed',
     api_bar_sub: 'Tap → get a free key in 1 min',
@@ -1065,7 +1054,6 @@ const I18N = {
     // Misc
     not_set: 'Not set',
     age_label: 'Age: {years}',
-    check_date: 'Check the date',
     allergies: 'Allergies',
     allerg_ph: 'Peanuts, seafood...',
     api_set: 'Set ✓',
@@ -1318,11 +1306,9 @@ const I18N = {
     mdl_grp_other: 'Other models',
     mdl_grp_unfit: 'Not for food analysis',
     mdl_unfit_note: 'These are built for something else — audio, speech synthesis, image generation. They will not do for a food photo.',
-    mdl_picked: 'Model selected',
     mdl_shown: '{n} shown',
     mdl_search: 'Search models…',
     mdl_grp_recommended: 'Recommended',
-    mdl_grp_rest: 'All other models',
     mdl_none: 'Nothing found',
     mdl_none_sub: 'Try another name — "flash" or "pro", for example.',
     api_desc: 'Get a free key at',
@@ -1477,6 +1463,9 @@ function setLang(lang){
   try { typeof refreshDrumLabels==='function' && refreshDrumLabels(); } catch(e) {}
   try { typeof renderKeyList==='function' && renderKeyList(); } catch(e) {}
   try { typeof renderQueue==='function' && renderQueue(); } catch(e) {}
+  // The composer's "N photos attached" line is built in JS and survives a tab
+  // switch, so it is still on screen when the language changes.
+  try { typeof _aiRenderAttach==='function' && _aiRenderAttach(); } catch(e) {}
   // AI screen: welcome card + suggestion chips are built in JS.
   try { if (typeof initAi==='function' && document.getElementById('ai')?.style.display==='flex') initAi(); } catch(e) {}
   // Reminder status row and the schedule the Service Worker uses for
