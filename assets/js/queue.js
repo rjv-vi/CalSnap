@@ -42,15 +42,22 @@ async function storeQueueImage(dataUrl){
   return { img: await shrinkDataUrl(dataUrl, 768, 0.7) };
 }
 
-// Park a photo for later analysis. Returns the new queue length, or -1 on
-// failure (storage full).
-async function enqueuePhoto(dataUrl, desc){
+// Park an entry for later analysis. `kind` is 'photo' | 'text' | 'barcode';
+// photo/barcode carry an image (`src` data URL), barcode may instead carry a
+// typed `code`, text carries `text`. Returns the new queue length, or -1.
+async function enqueueEntry(entry){
   const q = getQueue();
   if (q.length >= QUEUE_MAX) { showToast(t('queue_full')); return -1; }
-  const ref = await storeQueueImage(dataUrl);
+  let ref = {};
+  if (entry.src) ref = await storeQueueImage(entry.src);
   const rec = {
-    id: _queueId(), ...ref,
-    desc: (desc || '').slice(0, 400),
+    id: _queueId(),
+    kind: entry.kind || 'photo',
+    ...ref,
+    mime: entry.mime || 'image/jpeg',
+    text: (entry.text || '').slice(0, 500),
+    code: entry.code || '',
+    desc: (entry.desc || '').slice(0, 400),
     date: ds(), time: tnow(), createdAt: Date.now(),
     attempts: 0, lastErr: '', failed: false,
   };
@@ -62,6 +69,9 @@ async function enqueuePhoto(dataUrl, desc){
   renderQueue();
   return q.length;
 }
+
+// Back-compat wrapper for the photo path.
+const enqueuePhoto = (dataUrl, desc) => enqueueEntry({ kind: 'photo', src: dataUrl, desc });
 
 function _dropQueueItem(id){
   const q = getQueue();
@@ -119,8 +129,10 @@ async function processQueue(opts){
     for (const rec of getQueue().slice().sort((a, b) => a.createdAt - b.createdAt)) {
       if (rec.failed) continue;
       if (queueBlockedReason()) break;
-      const src = rec.img || (rec.imgId ? await IMG.get(rec.imgId) : null);
-      if (!src) {
+      const kind = rec.kind || 'photo';
+      const needsImage = kind === 'photo' || (kind === 'barcode' && !rec.code);
+      const src = needsImage ? (rec.img || (rec.imgId ? await IMG.get(rec.imgId) : null)) : null;
+      if (needsImage && !src) {
         // The image is unreadable. Flag it so the row explains itself instead
         // of the photo quietly disappearing from the queue.
         const cur = getQueue();
@@ -129,8 +141,12 @@ async function processQueue(opts){
         continue;
       }
       try {
-        const r = await analyzePhotoData(src, rec.desc);
-        const imgRef = await storeFoodImage(src);
+        let r;
+        if (kind === 'text')          r = await analyzeTextData(rec.text);
+        else if (kind === 'barcode')  r = rec.code ? await _offLookup(rec.code) : await analyzeBarcodeData(src, rec.mime);
+        else                          r = await analyzePhotoData(src, rec.desc, rec.mime);
+        if (!r) throw new Error(t('bc_not_found'));
+        const imgRef = src ? await storeFoodImage(src) : {};
         const entry = {
           food: r.food, portion: r.portion,
           kcal: r.calories || 0, prot: r.protein || 0, fat: r.fat || 0, carb: r.carbs || 0,
@@ -192,9 +208,15 @@ function renderQueue(){
     ? `<button class="pq-btn" disabled>${esc(t('queue_working'))}</button>`
     : `<button class="pq-btn" onclick="HFX.light();SFX.play('btn_tap');processQueue({manual:true})">${esc(t('queue_analyze_now'))}</button>`;
   const rows = q.map(rec => {
+    const kind = rec.kind || 'photo';
+    const KIND_ICON = { photo: '📷', text: '✍️', barcode: '📦' };
     const thumb = rec.imgId
       ? `<img class="pq-thumb" data-img-id="${esc(rec.imgId)}" alt="">`
-      : (rec.img ? `<img class="pq-thumb" src="${esc(rec.img)}" alt="">` : `<div class="pq-thumb">📷</div>`);
+      : (rec.img ? `<img class="pq-thumb" src="${esc(rec.img)}" alt="">`
+                 : `<div class="pq-thumb">${KIND_ICON[kind] || '📷'}</div>`);
+    // What the entry actually is: the typed meal, the barcode digits, or the
+    // optional photo hint.
+    const label = kind === 'text' ? rec.text : kind === 'barcode' ? (rec.code || t('tab_barcode')) : rec.desc;
     const when = rec.date === ds() ? rec.time : fmtDate(rec.date, { day: 'numeric', month: 'short' }) + ' · ' + rec.time;
     const state = rec.failed
       ? `<span class="pq-state bad">${esc(t('queue_state_failed'))}</span>`
@@ -205,7 +227,7 @@ function renderQueue(){
       ${thumb}
       <div class="pq-info">
         <div class="pq-when">${esc(when)}</div>
-        ${rec.desc ? `<div class="pq-desc">${esc(rec.desc)}</div>` : ''}
+        ${label ? `<div class="pq-desc">${esc(label)}</div>` : ''}
         ${state}
       </div>
       ${rec.failed ? `<button class="pq-mini" onclick="retryQueueItem('${esc(rec.id)}')" title="${esc(t('retry'))}">↻</button>` : ''}

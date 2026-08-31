@@ -520,6 +520,9 @@
       <div class="ai-name" data-i18n="ai_title">AI Нутрициолог</div>
       <div class="ai-status" id="aiStatus"><span class="ai-status-dot" aria-hidden="true"></span><span id="aiStatusText" data-i18n="ai_online">Онлайн</span></div>
     </div>
+    <button class="ai-reset" onclick="openAiList()" aria-label="Conversations" data-i18n-aria="ai_chat_list" title="Чаты" data-i18n-title="ai_chat_list">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>
+    </button>
     <button class="ai-reset" onclick="HFX.light();SFX.play('btn_tap');clearAiChat()" aria-label="Clear chat" data-i18n-aria="confirm_clear_chat_title">
       <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6M14 11v6"/></svg>
     </button>
@@ -535,14 +538,14 @@
 
   <!-- Composer -->
   <div class="ai-bar">
-    <!-- Attached photo, if any -->
-    <div class="ai-attach" id="aiAttach" hidden>
-      <img id="aiAttachImg" alt="">
+    <!-- Attached photos, if any -->
+    <div class="ai-attach" id="aiAttach">
+      <div class="ai-attach-strip" id="aiAttachStrip"></div>
       <div class="ai-attach-meta">
-        <div class="ai-attach-t" data-i18n="ai_photo_attached">Фото прикреплено</div>
-        <div class="ai-attach-s" data-i18n="ai_photo_hint">Спроси о нём или отправь без текста</div>
+        <div class="ai-attach-t" id="aiAttachTitle" data-i18n="ai_photo_attached">Фото прикреплено</div>
+        <div class="ai-attach-s" data-i18n="ai_photo_hint">Спроси о них или отправь без текста</div>
       </div>
-      <button class="ai-attach-x" onclick="aiClearPhoto()" aria-label="Remove photo" data-i18n-aria="btn_delete">✕</button>
+      <button class="ai-attach-x" onclick="aiClearPhoto()" aria-label="Remove photos" data-i18n-aria="btn_delete">✕</button>
     </div>
     <!-- Shown while offline: the transcript stays readable, the composer does not. -->
     <div class="ai-offline-note"><span aria-hidden="true">📶</span><span data-i18n="ai_offline_note">Нет соединения — можно читать переписку, новые вопросы отправятся позже</span></div>
@@ -550,7 +553,8 @@
       <button class="ai-act" onclick="aiPickPhoto()" aria-label="Attach photo" data-i18n-aria="ai_attach_photo" data-i18n-title="ai_attach_photo" title="Прикрепить фото">
         <svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3z"/><circle cx="12" cy="13" r="3.4"/></svg>
       </button>
-      <input type="file" id="aiPhotoInput" accept="image/*" hidden onchange="aiOnPhoto(event)">
+      <input type="file" id="aiPhotoInput" accept="image/*" multiple hidden onchange="aiOnPhoto(event)">
+      <input type="file" id="aiCamInput" accept="image/*" capture="environment" hidden onchange="aiOnPhoto(event)">
       <textarea class="ai-inp" id="aiinp" rows="1" enterkeyhint="send" placeholder="Спроси что-нибудь…" data-i18n-placeholder="ai_input_placeholder"
         oninput="aiGrowInput(this)"
         onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();aiSend();}"></textarea>
@@ -619,6 +623,11 @@
     <div class="st-card">
       <div class="st-row" onclick="HFX.light();SFX.play('sheet_open');openApi()"><div class="sr-ico-wrap indigo" style="filter:drop-shadow(0 1px 1px rgba(0,0,0,.3))">🔑</div><div class="sr-txt"><div class="sr-t" data-i18n="set_api_key">Gemini API ключ</div><div class="sr-s" id="sapi" data-i18n="set_api_unset">Не установлен</div></div><span class="sr-arr">›</span></div>
       <div class="st-row" onclick="HFX.light();SFX.play('sheet_open');openModelPicker()"><div class="sr-ico-wrap purple" style="filter:drop-shadow(0 1px 1px rgba(0,0,0,.25))">🧠</div><div class="sr-txt"><div class="sr-t" data-i18n="set_model">Модель Gemini</div><div class="sr-s" id="smodel">gemini-2.0-flash-lite</div></div><span class="sr-arr">›</span></div>
+      <div class="st-row" onclick="openUsage()">
+        <div class="sr-ico-wrap" style="background:linear-gradient(135deg,#22c55e,#0f7a38)">📈</div>
+        <div class="sr-txt"><div class="sr-t" data-i18n="set_usage">Расход AI</div><div class="sr-s" id="susage" data-i18n="usage_empty_short">Запросов пока не было</div></div>
+        <span class="sr-arr">›</span>
+      </div>
       <div class="st-row" onclick="HFX.tick();SFX.play('toggle');toggleChatMemory()"><div class="sr-ico-wrap" style="background:linear-gradient(135deg,#f472b6,#db2777)">🧠</div><div class="sr-txt"><div class="sr-t" data-i18n="set_chat_memory">Запоминать контекст переписки</div><div class="sr-s" data-i18n="set_chat_memory_sub">ИИ учитывает прошлые сообщения (тратит больше лимита)</div></div><div class="toggle" id="chatMemoryToggle"></div></div>
     </div>
   </div>
@@ -1141,6 +1150,7 @@
 <script src="assets/js/store.js"></script>
 <script src="assets/js/state.js"></script>
 <script src="assets/js/keys.js"></script>
+<script src="assets/js/usage.js"></script>
 <script src="assets/js/ux.js"></script>
 <script src="assets/js/app.js"></script>
 <script src="assets/js/gemini.js"></script>
@@ -1256,6 +1266,54 @@
     <button id="updateBtn" data-i18n="update_btn" data-i18n-aria="update_btn">Обновить</button>
     <button class="banner-x" onclick="dismissUpdateBanner()" data-i18n-aria="btn_close" aria-label="Закрыть">✕</button>
   </div>
+
+<!-- AI CONVERSATIONS -->
+<div class="ov" id="aiListOv" role="dialog" aria-modal="true" aria-label="Conversations" data-i18n-aria="ai_chat_list" onclick="if(event.target===this)closeAiList()">
+  <div class="sheet" style="max-height:82vh">
+    <div class="sh-handle"></div>
+    <div class="sh-hdr">
+      <h3 data-i18n="ai_chat_list">💬 Чаты</h3>
+      <button class="sh-close" onclick="HFX.light();SFX.play('sheet_close');closeAiList()">✕</button>
+    </div>
+    <div style="padding:0 16px 8px">
+      <button class="btn" onclick="aiNewChat()" data-i18n="ai_chat_new">+ Новый чат</button>
+    </div>
+    <div id="aiListBody" class="ai-list"></div>
+  </div>
+</div>
+
+<!-- AI USAGE STATS -->
+<div class="ov" id="usageOv" role="dialog" aria-modal="true" aria-label="AI usage" data-i18n-aria="set_usage" onclick="if(event.target===this)closeUsage()">
+  <div class="sheet" style="max-height:88vh">
+    <div class="sh-handle"></div>
+    <div class="sh-hdr">
+      <h3 data-i18n="set_usage">📈 Расход AI</h3>
+      <button class="sh-close" onclick="closeUsage()">✕</button>
+    </div>
+    <div id="usageBody" class="usage-body"></div>
+    <div style="padding:0 16px 20px">
+      <button class="btn2" onclick="resetUsage()" data-i18n="usage_reset">Сбросить статистику</button>
+    </div>
+  </div>
+</div>
+
+<!-- PHOTO SOURCE PICKER (AI chat) -->
+<div class="ov" id="picSrcOv" role="dialog" aria-modal="true" aria-label="Photo source" data-i18n-aria="ai_attach_photo" onclick="if(event.target===this)closePicSrc()">
+  <div class="sheet">
+    <div class="sh-handle"></div>
+    <div class="sh-hdr"><h3 data-i18n="ai_attach_photo">Прикрепить фото</h3><button class="sh-close" onclick="closePicSrc()">✕</button></div>
+    <div class="pic-src">
+      <button class="pic-src-btn" onclick="aiUseSource('cam')">
+        <span class="pic-src-ico">📷</span>
+        <span data-i18n="photo_camera">📷 Камера</span>
+      </button>
+      <button class="pic-src-btn" onclick="aiUseSource('gal')">
+        <span class="pic-src-ico">🖼</span>
+        <span data-i18n="photo_gallery">🖼 Галерея</span>
+      </button>
+    </div>
+  </div>
+</div>
 
 <!-- WEIGHT LOG MODAL -->
 <div class="wlog-ov" id="wlogOv" role="dialog" aria-modal="true" aria-label="Записать вес" data-i18n-aria="wlog_title" onclick="if(event.target===this){HFX.light();closeWlog();}">

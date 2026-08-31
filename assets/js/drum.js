@@ -22,7 +22,9 @@ function openDrum(ctx){
     const d=new Date(existingDob);
     _drumDay=d.getDate();_drumMonth=d.getMonth()+1;_drumYear=d.getFullYear();
   } else {
-    _drumDay=n.getDate();_drumMonth=n.getMonth()+1;_drumYear=n.getFullYear()-20;
+    // Start on today's date: the year wheel is the one people scroll anyway,
+    // and a pre-set day/month means two fewer wheels to touch.
+    _drumDay=n.getDate();_drumMonth=n.getMonth()+1;_drumYear=n.getFullYear();
   }
   buildDrumCols();
   SFX.play('sheet_open');

@@ -36,6 +36,7 @@ function _reclaimStorage(){
       const k = localStorage.key(i);
       if (!k) continue;
       if (k.startsWith('week_') || k.startsWith('tip_') ||
+          (k.startsWith('goal_hit_') && k !== 'goal_hit_' + ds()) ||
           (k.startsWith('daily_ai_') && k !== 'daily_ai_' + ds())) doomed.push(k);
     }
     doomed.forEach(k => { try { localStorage.removeItem(k); } catch(e) {} delete _lsCache[k]; });

@@ -2,28 +2,23 @@
 
 Updated as work progresses. `[ ]` — queued, `[~]` — in progress, `[x]` — done.
 
-## Critical
-- [x] Offline photos in the queue: IndexedDB writes now settle on commit and are read back
-- [x] "Delete all data" also wipes the IndexedDB backup
+## Bugs
+- [x] Goal-reached sound replays after a restart, and when switching days back to today
+- [x] AI chat showed "Photo attached" before any photo was attached
+- [x] Some photos could not be added at all (format / decode failures)
+
+## Onboarding & settings
+- [x] Date-of-birth drum opens on today's date
+- [x] Theme is recorded as "system" on a fresh install
+- [x] New settings section: AI usage stats (requests, tokens, per-day, per-model)
+
+## Offline
+- [x] Text and barcode entries are queued offline too, not just photos
 
 ## AI chat
-- [x] Full UI / UX / animation rework
-- [x] Photo attachments
+- [x] Camera as a source for chat photos, not only the gallery
+- [x] Multiple conversations: switch between them, auto-expire after 30 days, delete manually
+- [x] Several photos in one message (up to 4)
 
-## Offline mode
-- [x] Improved UI / UX / animations
-
-## Small bugs
-- [x] "Install to home screen" hint shown to users who already installed (manifest fullscreen ≠ standalone)
-- [x] Goal-reached ring redesigned — the state lives in the label, not a glow
-- [x] "Rizan" removed from the credits
-
-## Legal
-- [x] Licence: copying and misattribution forbidden, reviews and recordings explicitly allowed
-
-## Polish
-- [x] Remaining UI / UX / animation gaps
-- [x] Test + contrast run — 421 checks, contrast ≥ 3:1 in both themes
-
-## Docs
-- [x] README, CONTRIBUTING, SECURITY, LICENSE and this file are English-only
+## Wrap-up
+- [x] Tests + contrast audit — 496 checks, contrast ≥ 3:1 in both themes

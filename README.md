@@ -18,14 +18,16 @@
 - **AI food analysis from a photo, text or barcode** — Gemini API + OpenFoodFacts
 - **API key pool** — store up to 10 keys; a key that hits its rate limit (429)
   goes on an escalating cooldown while the request rotates to the next one
-- **Deferred analysis** — a photo taken offline is queued and analysed
-  automatically the moment connectivity returns
+- **Deferred analysis** — a photo, a typed meal or a barcode captured offline is
+  queued and resolved automatically the moment connectivity returns
 - **Food diary** grouped by meal (breakfast / lunch / snack / dinner)
 - **Goals and calorie targets** — BMR (Mifflin-St Jeor) adjusted for activity
 - **Progress** — streak with an automatic freeze, BMI, 28-day heat map, weight trend
 - **Water balance** with reminders every 1–3 hours
-- **AI nutritionist** — chat with persistent history, photo attachments, copyable
-  answers, request cancellation and rich formatting (lists, emphasis)
+- **AI nutritionist** — multiple conversations (switch, auto-expire after 30 days,
+  delete by hand), up to 4 photos per message from the camera or the gallery,
+  copyable answers, request cancellation and rich formatting (lists, emphasis)
+- **AI usage stats** — requests and token counts, per day and per model, in Settings
 - **Local notifications** via Service Worker + Periodic Background Sync
 - **"Calories today" widget** ([widget.html](./widget.html))
 - **Import / export** as JSON and CSV (Excel)
@@ -46,7 +48,7 @@
 ## Tech stack
 
 - **Plain HTML / CSS / vanilla JS** — no bundlers, no frameworks
-- **Service Worker v14** — caching + offline + push + periodic sync
+- **Service Worker v15** — caching + offline + push + periodic sync
 - **localStorage** for state, behind a small in-memory cache for the hot render
   path, with quota-exhaustion handling
 - **IndexedDB** for food photos and the state mirror — `localStorage` only holds
@@ -98,6 +100,7 @@ entered in Settings → API.
 │   └── js/               # 24 modules: state, store, keys, queue, ui, ...
 │       ├── store.js      # IndexedDB photo store + quota safety
 │       ├── keys.js       # Gemini key pool with rotation and cooldowns
+│       ├── usage.js      # Local token / request accounting
 │       ├── queue.js      # Offline photo queue for deferred analysis
 │       └── fullscreen.js # Fullscreen mode (Fullscreen API + manifest)
 ├── icons/                # PWA icons, 72…512
@@ -134,7 +137,7 @@ hard-coded `color:#fff` on top of it disappears in one of them.
 npm install           # the only dependency is jsdom
 npm run lint          # syntax-check every module
 npm run test:contrast # theme contrast audit
-npm test              # audit + 421 smoke checks
+npm test              # audit + 496 smoke checks
 ```
 
 ## Author

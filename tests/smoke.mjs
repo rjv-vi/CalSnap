@@ -160,7 +160,9 @@ async function boot({ lang = 'ru', quota = Infinity, seed = {}, fetchImpl = null
                    'RESET_KEEP_KEYS', 'EMO_RULES', 'isWaterOn', 'isChatMemoryOn', 'isFullscreenPref',
                    'selDay', 'aiConvo', 'selModel', 'DEFAULT_MODEL', 'THEME_ORDER',
                    'themePref', 'resolvedTheme', 'systemPrefersDark',
-                   'aiChat', 'AI_CHAT_MAX', '_aiPhoto'];
+                   'aiChat', 'AI_CHAT_MAX', '_aiPhotos', 'AI_PHOTOS_MAX', 'enqueuePhoto', 'IMG_MAX_EDGE',
+                   'aiChats', 'aiChatId', 'AI_CHAT_TTL_DAYS', 'USAGE_KEY',
+                   '_drumDay', '_drumMonth', '_drumYear'];
   const expose = doc.createElement('script');
   expose.textContent = `for (const n of ${JSON.stringify(LEXICAL)}) {
     try { window[n] = eval(n); } catch(e) {}
@@ -1455,23 +1457,28 @@ console.log('CalSnap smoke tests\n');
   ok('each message has a timestamp', doc.querySelectorAll('#aimsg .msg-meta').length >= 2);
   ok('AI messages offer copy', !!doc.querySelector('#aimsg .msg-ai .msg-copy'));
 
-  // Persistence across a reopen.
-  eq('transcript persisted', JSON.parse(storage.getItem('ai_chat') || '[]').length, 2);
+  // Persistence across a reopen. The transcript lives inside `ai_chats` now.
+  const msgsOf = () => (JSON.parse(storage.getItem('ai_chats') || '[]')[0]?.msgs) || [];
+  eq('transcript persisted', msgsOf().length, 2);
+  ok('the conversation got a title from the first question',
+     /Что съесть/.test(JSON.parse(storage.getItem('ai_chats'))[0].title),
+     JSON.parse(storage.getItem('ai_chats'))[0].title);
   window.goS('home', nbs[0]);
   window.goS('ai', nbs.find(b => (b.getAttribute('onclick') || '').includes("'ai'")));
   eq('transcript survives reopening', doc.querySelectorAll('#aimsg .msg').length, 2);
 
   // Attach a photo and send it.
-  window.__read("_aiPhoto = { dataUrl: 'data:image/jpeg;base64,QUJD' };");
+  window.__read("_aiPhotos = [{ dataUrl: 'data:image/jpeg;base64,QUJD', mime: 'image/jpeg' }]; _aiRenderAttach();");
   doc.getElementById('aiinp').value = '';
   await window.aiSend();
   const userMsgs = [...doc.querySelectorAll('#aimsg .msg-user')];
   const last = userMsgs[userMsgs.length - 1];
   ok('the photo appears in the bubble', !!last.querySelector('.bbl-img, img'), last.innerHTML.slice(0, 160));
-  const saved = JSON.parse(storage.getItem('ai_chat') || '[]');
-  ok('the photo is stored by reference', !!saved[saved.length - 2].imgId,
-     JSON.stringify(saved[saved.length - 2]));
-  ok('the attachment chip is cleared', doc.getElementById('aiAttach').hidden);
+  const saved = msgsOf();
+  ok('the photo is stored by reference',
+     saved.some(m => m.role === 'user' && (m.imgId || (m.imgIds || []).length)),
+     JSON.stringify(saved.map(m => ({ r: m.role, i: m.imgId || m.imgIds }))));
+  ok('the attachment chip is cleared', !doc.getElementById('aiAttach').classList.contains('on'));
 
   // Error bubble offers a retry.
   reply = '';
@@ -1484,7 +1491,7 @@ console.log('CalSnap smoke tests\n');
   // Clearing wipes the transcript and brings the hero back.
   window.clearAiChat();
   window.cfrmConfirm();
-  eq('transcript cleared', JSON.parse(storage.getItem('ai_chat') || '[]').length, 0);
+  eq('transcript cleared', msgsOf().length, 0);
   ok('hero is back', !!doc.querySelector('#aimsg .ai-hero'));
   window.close();
 }
@@ -1550,6 +1557,293 @@ console.log('CalSnap smoke tests\n');
   await window.retryConnection(true);
   ok('offline flag cleared', !doc.documentElement.classList.contains('is-offline'));
   ok('bar hidden', !doc.getElementById('offlBar').classList.contains('on'));
+  window.close();
+}
+
+// ── 56. Goal chime fires once per day, not on every visit ──────────
+{
+  const PROFILE = JSON.stringify({ name: 'A', kcal: 500, goal: 'maintain', w: 80, h: 180, age: 30, gen: 'm', pr: 100, ft: 60, cb: 200 });
+  const today = new Date().toDateString();
+  const yday = new Date(Date.now() - 86400000).toDateString();
+  const log = JSON.stringify([
+    { food: 'x', kcal: 600, prot: 0, fat: 0, carb: 0, time: '12:00', date: today },
+    { food: 'y', kcal: 100, prot: 0, fat: 0, carb: 0, time: '12:00', date: yday },
+  ]);
+  const { window, storage } = await boot({ seed: { u: PROFILE, wts: '[]', log } });
+  let plays = [];
+  window.__read('SFX').play = (n) => plays.push(n);
+  // init() already rendered once and marked the day; undo that to model the
+  // moment the goal is actually crossed.
+  storage.removeItem('goal_hit_' + today);
+  window.Ginvalidate('goal_hit_' + today);
+
+  window.rH();
+  ok('chime plays on the crossing', plays.includes('goal_reached'), plays.join(','));
+  ok('the day is marked', storage.getItem('goal_hit_' + today) === '1');
+
+  // Re-render, switch days and come back: silence.
+  plays = [];
+  window.rH();
+  window.selectDay(yday);
+  window.selectDay(today);
+  window.rH();
+  ok('no repeat on re-render or day switching', !plays.includes('goal_reached'), plays.join(','));
+  window.close();
+
+  // A fresh launch (sessionStorage empty, localStorage kept) must also stay quiet.
+  const again = await boot({ seed: { u: PROFILE, wts: '[]', log, ['goal_hit_' + today]: '1' } });
+  const plays2 = [];
+  again.window.__read('SFX').play = (n) => plays2.push(n);
+  again.window.rH();
+  ok('no repeat after a restart', !plays2.includes('goal_reached'), plays2.join(','));
+  again.window.close();
+}
+
+// ── 57. Onboarding date picker opens on today ──────────────────────
+{
+  const { window } = await boot({});
+  window.openDrum('ob');
+  const now = new Date();
+  eq('day is today', window.__read('_drumDay'), now.getDate());
+  eq('month is this month', window.__read('_drumMonth'), now.getMonth() + 1);
+  eq('year is this year', window.__read('_drumYear'), now.getFullYear());
+  window.close();
+}
+
+// ── 58. Fresh install records the system theme explicitly ──────────
+{
+  const { window, storage } = await boot({});
+  eq('nothing stored before it is asked for', storage.getItem('theme'), null);
+  eq('preference resolves to system', window.themePref(), 'system');
+  eq('and is now recorded', storage.getItem('theme'), 'system');
+  window.close();
+}
+
+// ── 59. Text and barcode can be queued offline too ─────────────────
+{
+  const PROFILE = JSON.stringify({ name: 'A', kcal: 2000, goal: 'maintain', w: 80, h: 180, age: 30, gen: 'm', pr: 100, ft: 60, cb: 200 });
+  const KEYS = JSON.stringify([{ k: 'K1', added: 1, strikes: 0, cooldownUntil: 0, invalid: false, uses: 0 }]);
+  let serve = false;
+  const fetchImpl = (url) => {
+    if (!serve) return Promise.reject(new Error('Failed to fetch'));
+    if (String(url).includes('openfoodfacts')) {
+      return Promise.resolve({ ok: true, status: 200, json: () => Promise.resolve({
+        status: 1, product: { product_name: 'Chips', product_name_en: 'Chips', brands: 'Lay\'s',
+          nutriments: { 'energy-kcal_100g': 530, proteins_100g: 6, fat_100g: 30, carbohydrates_100g: 53 } } }) });
+    }
+    return Promise.resolve({ ok: true, status: 200, json: () => Promise.resolve({ candidates: [{ content: { parts: [{
+      text: '{"food":"Oatmeal","portion":"200 g","calories":180,"protein":6,"fat":3,"carbs":32,"description":"Oats"}' }] } }] }) });
+  };
+  const { window, storage } = await boot({ lang: 'en', online: false, idb: true, fetchImpl, seed: { u: PROFILE, wts: '[]', api_keys: KEYS } });
+  const doc = window.document;
+
+  // Text tab, offline.
+  doc.getElementById('txinp').value = 'a bowl of oatmeal';
+  await window.doText();
+  eq('text entry queued', window.queueCount(), 1);
+  eq('nothing in the diary yet', window.__read('log').length, 0);
+  eq('kind recorded', window.getQueue()[0].kind, 'text');
+
+  // Barcode by hand, offline.
+  doc.getElementById('bc_manual').value = '4600000000001';
+  await window.doBarcodeManual();
+  eq('barcode queued too', window.queueCount(), 2);
+  ok('code recorded', window.getQueue().some(r => r.kind === 'barcode' && r.code === '4600000000001'),
+     JSON.stringify(window.getQueue().map(r => [r.kind, r.code])));
+
+  window.rH();
+  const card = doc.getElementById('pendingCard');
+  ok('both show in the pending card', /oatmeal/i.test(card.textContent) && /4600000000001/.test(card.textContent),
+     card.textContent.replace(/\s+/g, ' ').slice(0, 200));
+
+  // Back online: both resolve into diary entries.
+  window.navigator.onLine = true;
+  serve = true;
+  await window.processQueue({ manual: true });
+  eq('queue drained', window.queueCount(), 0);
+  const names = window.__read('log').map(e => e.food);
+  ok('the text entry landed', names.some(n => /Oatmeal/.test(n)), names.join(', '));
+  ok('the barcode entry landed', names.some(n => /Chips/.test(n)), names.join(', '));
+  window.close();
+}
+
+// ── 60. AI usage is recorded and summarised ────────────────────────
+{
+  const PROFILE = JSON.stringify({ name: 'A', kcal: 2000, goal: 'maintain', w: 80, h: 180, age: 30, gen: 'm', pr: 100, ft: 60, cb: 200 });
+  const KEYS = JSON.stringify([{ k: 'K1', added: 1, strikes: 0, cooldownUntil: 0, invalid: false, uses: 0 }]);
+  const fetchImpl = () => Promise.resolve({ ok: true, status: 200, json: () => Promise.resolve({
+    candidates: [{ content: { parts: [{ text: 'ok' }] } }],
+    usageMetadata: { promptTokenCount: 1200, candidatesTokenCount: 300, totalTokenCount: 1500 },
+  }) });
+  const { window, storage } = await boot({ lang: 'en', fetchImpl, seed: { u: PROFILE, wts: '[]', api_keys: KEYS } });
+  eq('nothing recorded yet', window.getUsage().req, 0);
+
+  await window.gem([{ text: 'hi' }]);
+  const u = window.getUsage();
+  eq('one request', u.req, 1);
+  eq('prompt tokens', u.in, 1200);
+  eq('response tokens', u.out, 300);
+  eq('today is broken out', u.days[window.ds()].req, 1);
+  ok('per-model breakdown', Object.keys(u.models).length === 1, JSON.stringify(u.models));
+  eq('persisted', JSON.parse(storage.getItem('ai_usage')).req, 1);
+
+  window.rSet();
+  ok('settings row summarises it', /1 req · 1\.5k tokens/.test(window.document.getElementById('susage').textContent),
+     window.document.getElementById('susage').textContent);
+
+  window.openUsage();
+  const body = window.document.getElementById('usageBody').textContent;
+  ok('sheet shows the totals', /1500|1\.5k/.test(body), body.slice(0, 200));
+  ok('and a 7-day chart', window.document.querySelectorAll('#usageBody .usage-bar').length === 7);
+  eq('compact formatting', window.fmtCount(12345), '12k');
+  eq('compact formatting, small', window.fmtCount(1500), '1.5k');
+
+  window.resetUsage();
+  window.cfrmConfirm();
+  eq('reset clears the counters', window.getUsage().req, 0);
+  window.closeUsage();
+  window.close();
+}
+
+// ── 61. Multiple conversations: switch, delete, expire ─────────────
+{
+  const PROFILE = JSON.stringify({ name: 'A', kcal: 2000, goal: 'maintain', w: 80, h: 180, age: 30, gen: 'm', pr: 100, ft: 60, cb: 200 });
+  const old = Date.now() - 40 * 86400000;      // older than the 30-day TTL
+  const chats = JSON.stringify([
+    { id: 'c1', title: 'Recent one', at: Date.now() - 3600e3, msgs: [{ role: 'user', text: 'Recent one', at: '10:00' }, { role: 'ai', text: 'sure', at: '10:00' }] },
+    { id: 'c2', title: 'Older one',  at: Date.now() - 5 * 86400e3, msgs: [{ role: 'user', text: 'Older one', at: '09:00' }] },
+    { id: 'c3', title: 'Ancient',    at: old, msgs: [{ role: 'user', text: 'Ancient', at: '08:00' }] },
+  ]);
+  const { window, storage } = await boot({ lang: 'en', idb: true, seed: { u: PROFILE, wts: '[]', ai_chats: chats, ai_chat_cur: 'c1' } });
+  const doc = window.document;
+  const nbs = [...doc.querySelectorAll('.nb')];
+  window.goS('ai', nbs.find(b => (b.getAttribute('onclick') || '').includes("'ai'")));
+
+  eq('stale conversation expired', window.__read('aiChats').length, 2);
+  ok('the expiry was persisted', !/Ancient/.test(storage.getItem('ai_chats')));
+  eq('the stored current chat is open', window.__read('aiChatId'), 'c1');
+  ok('its messages are rendered', /Recent one/.test(doc.getElementById('aimsg').textContent));
+
+  window.openAiList();
+  eq('two rows listed', doc.querySelectorAll('#aiListBody .ai-list-row').length, 2);
+  ok('the open one is marked', !!doc.querySelector('#aiListBody .ai-list-row.on'));
+  ok('a TTL note is shown', /30 days/.test(doc.getElementById('aiListBody').textContent));
+
+  window.aiOpenChat('c2');
+  eq('switched', window.__read('aiChatId'), 'c2');
+  ok('the other transcript is shown', /Older one/.test(doc.getElementById('aimsg').textContent));
+  eq('the choice is remembered', storage.getItem('ai_chat_cur'), 'c2');
+
+  window.aiNewChat();
+  eq('a new empty draft', window.__read('aiChat').length, 0);
+  ok('hero shown for the empty draft', !!doc.querySelector('#aimsg .ai-hero'));
+  // A blank draft is not stored until it has a message.
+  eq('list still has two', JSON.parse(storage.getItem('ai_chats')).length, 2);
+
+  window.openAiList();
+  window.aiDeleteChat('c1');
+  window.cfrmConfirm();
+  eq('deleted by hand', JSON.parse(storage.getItem('ai_chats')).length, 1);
+  ok('the survivor is the other one', /Older one/.test(storage.getItem('ai_chats')));
+  window.closeAiList();
+  window.close();
+}
+
+// ── 62. Legacy single transcript migrates into a conversation ──────
+{
+  const PROFILE = JSON.stringify({ name: 'A', kcal: 2000, goal: 'maintain', w: 80, h: 180, age: 30, gen: 'm', pr: 100, ft: 60, cb: 200 });
+  const legacy = JSON.stringify([{ role: 'user', text: 'Old question', at: '12:00' }, { role: 'ai', text: 'Old answer', at: '12:01' }]);
+  const { window, storage } = await boot({ lang: 'en', idb: true, seed: { u: PROFILE, wts: '[]', ai_chat: legacy } });
+  const nbs = [...window.document.querySelectorAll('.nb')];
+  window.goS('ai', nbs.find(b => (b.getAttribute('onclick') || '').includes("'ai'")));
+  eq('one conversation created', window.__read('aiChats').length, 1);
+  eq('messages carried over', window.__read('aiChat').length, 2);
+  ok('rendered', /Old question/.test(window.document.getElementById('aimsg').textContent));
+  eq('the legacy key is emptied', storage.getItem('ai_chat'), '[]');
+  window.close();
+}
+
+// ── 63. Image decoding falls back instead of refusing the photo ────
+{
+  const src = readFileSync(path.join(ROOT, 'assets/js/gemini.js'), 'utf8');
+  ok('createImageBitmap is tried first', /_decodeViaBitmap/.test(src));
+  ok('the <img> decoder is the fallback', /_decodeViaImage/.test(src));
+  ok('undecodable but valid bytes pass through', /IMG_RAW_MAX_BYTES/.test(src));
+  ok('heic/heif are accepted', /heic\|heif/.test(src));
+  ok('the declared MIME type follows the file', /function b64Mime/.test(src));
+  const html = readFileSync(path.join(ROOT, 'index.html'), 'utf8');
+  ok('the chat offers a camera input', /id="aiCamInput"[^>]*capture="environment"/.test(html));
+  ok('and a source picker', /id="picSrcOv"/.test(html));
+}
+
+// ── 64. Several photos in one message ──────────────────────────────
+{
+  const PROFILE = JSON.stringify({ name: 'A', kcal: 2000, goal: 'maintain', w: 80, h: 180, age: 30, gen: 'm', pr: 100, ft: 60, cb: 200 });
+  const KEYS = JSON.stringify([{ k: 'K1', added: 1, strikes: 0, cooldownUntil: 0, invalid: false, uses: 0 }]);
+  let sentParts = null;
+  const fetchImpl = (url, opts) => {
+    sentParts = JSON.parse(opts.body).contents.at(-1).parts;
+    return Promise.resolve({ ok: true, status: 200, json: () => Promise.resolve({ candidates: [{ content: { parts: [{ text: 'three plates' }] } }] }) });
+  };
+  const { window } = await boot({ lang: 'en', idb: true, fetchImpl, seed: { u: PROFILE, wts: '[]', api_keys: KEYS } });
+  const doc = window.document;
+  const nbs = [...doc.querySelectorAll('.nb')];
+  window.goS('ai', nbs.find(b => (b.getAttribute('onclick') || '').includes("'ai'")));
+
+  ok('the gallery input accepts several files',
+     doc.getElementById('aiPhotoInput').hasAttribute('multiple'));
+
+  // Attach three.
+  window.__read(`_aiPhotos = [
+    { dataUrl: 'data:image/jpeg;base64,QQ==', mime: 'image/jpeg' },
+    { dataUrl: 'data:image/jpeg;base64,Qg==', mime: 'image/jpeg' },
+    { dataUrl: 'data:image/png;base64,Qw==',  mime: 'image/png'  }];
+    _aiRenderAttach();`);
+  eq('three thumbnails in the strip', doc.querySelectorAll('#aiAttachStrip .ai-attach-thumb').length, 3);
+  ok('the chip is visible', doc.getElementById('aiAttach').classList.contains('on'));
+  eq('the count is spelled out', doc.getElementById('aiAttachTitle').textContent, '3 photos attached');
+
+  // Removing one leaves the rest.
+  window.aiRemovePhoto(1);
+  eq('two left', window.__read('_aiPhotos').length, 2);
+  eq('strip redrawn', doc.querySelectorAll('#aiAttachStrip .ai-attach-thumb').length, 2);
+
+  // Send without text: one inline_data part per photo, plus the fallback question.
+  await window.aiSend();
+  const imgParts = sentParts.filter(p2 => p2.inline_data);
+  eq('both images were sent', imgParts.length, 2);
+  eq('the second keeps its own MIME type', imgParts[1].inline_data.mime_type, 'image/png');
+  ok('a question was added for a text-less send', /these photos/i.test(sentParts.at(-1).text), sentParts.at(-1).text);
+
+  // The bubble shows a grid, and both ids are persisted.
+  const userMsg = [...doc.querySelectorAll('#aimsg .msg-user')].at(-1);
+  eq('two images in the bubble', userMsg.querySelectorAll('.bbl-imgs .bbl-img').length, 2);
+  const msgs = window.__read('aiChat');
+  eq('both references stored', msgs.find(m => m.role === 'user').imgIds.length, 2);
+  ok('the composer is empty again', !window.__read('_aiPhotos').length);
+  ok('chip hidden again', !doc.getElementById('aiAttach').classList.contains('on'));
+
+  // The cap is enforced.
+  const max = window.__read('AI_PHOTOS_MAX');
+  window.__read(`_aiPhotos = Array.from({length: ${max}}, () => ({ dataUrl: 'data:image/jpeg;base64,QQ==', mime: 'image/jpeg' })); _aiRenderAttach();`);
+  await window.aiOnPhoto({ target: { files: [new window.File(['x'], 'a.jpg', { type: 'image/jpeg' })], value: '' } });
+  eq('cannot exceed the cap', window.__read('_aiPhotos').length, max);
+  window.close();
+}
+
+// ── 65. A legacy single-image message still renders ────────────────
+{
+  const PROFILE = JSON.stringify({ name: 'A', kcal: 2000, goal: 'maintain', w: 80, h: 180, age: 30, gen: 'm', pr: 100, ft: 60, cb: 200 });
+  const chats = JSON.stringify([{ id: 'c1', title: 'Old', at: Date.now(), msgs: [
+    { role: 'user', text: 'look', at: '10:00', imgId: 'legacy-1' },
+    { role: 'ai', text: 'ok', at: '10:00' },
+  ] }]);
+  const { window } = await boot({ lang: 'en', idb: true, seed: { u: PROFILE, wts: '[]', ai_chats: chats, ai_chat_cur: 'c1' } });
+  const nbs = [...window.document.querySelectorAll('.nb')];
+  window.goS('ai', nbs.find(b => (b.getAttribute('onclick') || '').includes("'ai'")));
+  const userMsg = window.document.querySelector('#aimsg .msg-user');
+  eq('single image renders without the grid', userMsg.querySelectorAll('.bbl-imgs').length, 0);
+  eq('and still shows one image', userMsg.querySelectorAll('.bbl-img').length, 1);
   window.close();
 }
 

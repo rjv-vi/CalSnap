@@ -70,9 +70,13 @@ function rH(){
       lbl.textContent=_isYest?t('label_yesterday'):_sd.toLocaleDateString(_localeTag(),{weekday:'short',day:'numeric',month:'long'});
     } else lbl.textContent=t('label_today');
   }
-  const _pe=parseFloat(sessionStorage.getItem('_le')||'0');
-  if(tt.k>=g&&_pe<g&&g>0){SFX.play('goal_reached');}
-  sessionStorage.setItem('_le',tt.k);
+  // The goal chime must fire once per day, on the crossing — not on every
+  // restart (sessionStorage starts empty) and not when you browse to another
+  // day and come back (that day's total is a different number).
+  if(!selDay && g>0 && tt.k>=g && !G('goal_hit_'+activeDayStr)){
+    S('goal_hit_'+activeDayStr,'1');
+    SFX.play('goal_reached'); HFX.success();
+  }
   const pct=Math.min(tt.k/g,1);
   const ring=document.getElementById('hring');
   const C=2*Math.PI*33;
@@ -780,26 +784,201 @@ function rWChart(){
 // conversation the user was in the middle of.
 let aiConvo = []; // {role:'user'|'model', text}
 
-const AI_CHAT_KEY = 'ai_chat';
-const AI_CHAT_MAX = 40;          // rendered + persisted turns
-let aiChat = [];                 // {role:'user'|'ai'|'err', text, at, imgId?}
+// ── Conversations ────────────────────────────────────────────────
+// Several chats, not one endless transcript: `ai_chats` holds
+// [{id, title, at, msgs}] newest-first, `ai_chat_cur` points at the open one.
+// Anything untouched for AI_CHAT_TTL_DAYS is dropped on load so the list does
+// not grow forever; the user can also delete a chat by hand.
+const AI_CHATS_KEY = 'ai_chats';
+const AI_CUR_KEY   = 'ai_chat_cur';
+const AI_CHAT_KEY  = 'ai_chat';   // legacy single transcript, migrated once
+const AI_CHAT_MAX  = 40;          // rendered + persisted turns per chat
+const AI_CHATS_MAX = 20;          // conversations kept
+const AI_CHAT_TTL_DAYS = 30;
+
+let aiChats = [];                // [{id, title, at, msgs}]
+let aiChatId = '';               // id of the open conversation
+let aiChat = [];                 // msgs of the open conversation (live reference)
 let _aiBusy = false;
 let _aiToken = 0;                // bumped to abandon an in-flight reply
-let _aiPhoto = null;             // {dataUrl} pending attachment
+// Pending attachments: up to AI_PHOTOS_MAX images per message. Gemini accepts
+// several inline_data parts in one turn, and "three plates on the table" is a
+// perfectly ordinary question to ask.
+const AI_PHOTOS_MAX = 4;
+let _aiPhotos = [];              // [{dataUrl, mime}]
+
+function _aiNewId(){ return 'c' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6); }
+
+function _aiChatTitle(chat){
+  const first = (chat.msgs || []).find(m => m.role === 'user' && m.text);
+  if (first) return first.text.replace(/\s+/g, ' ').trim().slice(0, 48);
+  if ((chat.msgs || []).some(m => _aiMsgImgIds(m).length)) return t('ai_chat_photo_title');
+  return t('ai_chat_untitled');
+}
 
 function _aiLoadChat(){
   try {
-    const raw = JSON.parse(G(AI_CHAT_KEY, '[]'));
-    aiChat = Array.isArray(raw) ? raw.slice(-AI_CHAT_MAX) : [];
-  } catch(e) { aiChat = []; }
-  // Rebuild the model-facing history from the transcript so turning memory on
-  // mid-conversation immediately has something to work with.
+    const raw = JSON.parse(G(AI_CHATS_KEY, 'null'));
+    aiChats = Array.isArray(raw) ? raw.filter(c => c && Array.isArray(c.msgs)) : [];
+  } catch(e) { aiChats = []; }
+
+  // One-time migration from the single-transcript format.
+  if (!aiChats.length) {
+    try {
+      const legacy = JSON.parse(G(AI_CHAT_KEY, '[]'));
+      if (Array.isArray(legacy) && legacy.length) {
+        aiChats = [{ id: _aiNewId(), title: '', at: Date.now(), msgs: legacy.slice(-AI_CHAT_MAX) }];
+        S(AI_CHAT_KEY, '[]');
+      }
+    } catch(e) {}
+  }
+
+  // Expire stale conversations, then cap the list.
+  const cutoff = Date.now() - AI_CHAT_TTL_DAYS * 86400000;
+  const before = aiChats.length;
+  aiChats = aiChats.filter(c => (c.at || 0) >= cutoff);
+  aiChats.sort((a, b) => (b.at || 0) - (a.at || 0));
+  if (aiChats.length > AI_CHATS_MAX) {
+    aiChats.slice(AI_CHATS_MAX).forEach(_aiReleaseChatImages);
+    aiChats = aiChats.slice(0, AI_CHATS_MAX);
+  }
+  if (before !== aiChats.length) _aiSaveChats();
+
+  const wanted = G(AI_CUR_KEY, '');
+  const cur = aiChats.find(c => c.id === wanted) || aiChats[0];
+  if (cur) { aiChatId = cur.id; aiChat = cur.msgs; }
+  else { aiChatId = ''; aiChat = []; }
+
+  // Rebuild the model-facing history so turning memory on mid-conversation
+  // immediately has something to work with.
   aiConvo = aiChat.filter(m => m.role === 'user' || m.role === 'ai')
     .map(m => ({ role: m.role === 'user' ? 'user' : 'model', text: m.text }));
 }
+
+function _aiReleaseChatImages(chat){
+  (chat?.msgs || []).forEach(m => _aiMsgImgIds(m).forEach(id => IMG.del(id)));
+}
+
+function _aiSaveChats(){
+  S(AI_CHATS_KEY, JSON.stringify(aiChats));
+  S(AI_CUR_KEY, aiChatId || '');
+}
+
+// Persist the open conversation, creating it on the first message.
 function _aiSaveChat(){
-  if (aiChat.length > AI_CHAT_MAX) aiChat = aiChat.slice(-AI_CHAT_MAX);
-  S(AI_CHAT_KEY, JSON.stringify(aiChat));
+  if (aiChat.length > AI_CHAT_MAX) aiChat.splice(0, aiChat.length - AI_CHAT_MAX);
+  if (!aiChat.length) {
+    // An emptied conversation is not worth keeping in the list.
+    aiChats = aiChats.filter(c => c.id !== aiChatId);
+    aiChatId = '';
+    _aiSaveChats();
+    return;
+  }
+  let chat = aiChats.find(c => c.id === aiChatId);
+  if (!chat) {
+    chat = { id: aiChatId || (aiChatId = _aiNewId()), title: '', at: Date.now(), msgs: aiChat };
+    aiChats.unshift(chat);
+  }
+  chat.msgs = aiChat;
+  chat.at = Date.now();
+  chat.title = _aiChatTitle(chat);
+  // Newest first, and never more than the cap.
+  aiChats.sort((a, b) => (b.at || 0) - (a.at || 0));
+  if (aiChats.length > AI_CHATS_MAX) {
+    aiChats.slice(AI_CHATS_MAX).forEach(_aiReleaseChatImages);
+    aiChats = aiChats.slice(0, AI_CHATS_MAX);
+  }
+  _aiSaveChats();
+}
+
+// ── Conversation switching ───────────────────────────────────────
+function aiNewChat(){
+  // Reusing an already-empty draft avoids piling up blank conversations.
+  if (!aiChat.length && !aiChatId) { closeAiList(); aiRender(); return; }
+  aiChatId = _aiNewId();
+  aiChat = [];
+  aiConvo.length = 0;
+  S(AI_CUR_KEY, aiChatId);
+  HFX.medium(); SFX.play('sheet_close');
+  closeAiList();
+  aiClearPhoto();
+  aiRender();
+}
+
+function aiOpenChat(id){
+  const chat = aiChats.find(c => c.id === id);
+  if (!chat) return;
+  aiChatId = chat.id;
+  aiChat = chat.msgs;
+  aiConvo = aiChat.filter(m => m.role === 'user' || m.role === 'ai')
+    .map(m => ({ role: m.role === 'user' ? 'user' : 'model', text: m.text }));
+  S(AI_CUR_KEY, aiChatId);
+  HFX.light(); SFX.play('card_tap');
+  closeAiList();
+  aiClearPhoto();
+  aiRender();
+}
+
+function aiDeleteChat(id, ev){
+  ev?.stopPropagation?.();
+  const chat = aiChats.find(c => c.id === id);
+  if (!chat) return;
+  showConfirm('💬', t('ai_chat_delete_title'), chat.title || t('ai_chat_untitled'), t('btn_delete'), () => {
+    _aiReleaseChatImages(chat);
+    aiChats = aiChats.filter(c => c.id !== id);
+    if (aiChatId === id) {
+      const next = aiChats[0];
+      aiChatId = next ? next.id : '';
+      aiChat = next ? next.msgs : [];
+      aiConvo.length = 0;
+    }
+    _aiSaveChats();
+    renderAiList();
+    aiRender();
+  });
+}
+
+function openAiList(){
+  HFX.light(); SFX.play('sheet_open');
+  renderAiList();
+  document.getElementById('aiListOv')?.classList.add('on');
+  lockScroll(true);
+}
+function closeAiList(){
+  const ov = document.getElementById('aiListOv');
+  if (!ov || !ov.classList.contains('on')) return;
+  ov.classList.remove('on');
+  lockScroll(false);
+}
+
+// "5 min ago" / "3 days ago", coarse on purpose.
+function _aiWhen(ts){
+  const diff = Date.now() - (ts || 0);
+  if (diff < 60e3) return t('ago_now');
+  if (diff < 3600e3) return tf('ago_min', { n: Math.round(diff / 60e3) });
+  if (diff < 86400e3) return tf('ago_hour', { n: Math.round(diff / 3600e3) });
+  const d = Math.round(diff / 86400e3);
+  return d <= 1 ? t('label_yesterday') : tf('ago_day', { n: d });
+}
+
+function renderAiList(){
+  const el = document.getElementById('aiListBody');
+  if (!el) return;
+  if (!aiChats.length) {
+    el.innerHTML = `<div class="ai-list-empty">${esc(t('ai_chat_list_empty'))}</div>`;
+    return;
+  }
+  el.innerHTML = aiChats.map(c => {
+    const n = (c.msgs || []).filter(m => m.role !== 'err').length;
+    return `<div class="ai-list-row${c.id === aiChatId ? ' on' : ''}" onclick="aiOpenChat('${esc(c.id)}')">
+      <div class="ai-list-ico">💬</div>
+      <div class="ai-list-info">
+        <div class="ai-list-t">${esc(c.title || _aiChatTitle(c))}</div>
+        <div class="ai-list-s">${esc(_aiWhen(c.at))} · ${esc(tf('ai_chat_msgs', { n }))}</div>
+      </div>
+      <button class="ai-list-x" onclick="aiDeleteChat('${esc(c.id)}',event)" aria-label="${esc(t('btn_delete'))}">✕</button>
+    </div>`;
+  }).join('') + `<div class="ai-list-note">${esc(tf('ai_chat_ttl_note', { n: AI_CHAT_TTL_DAYS }))}</div>`;
 }
 
 const AI_SUGGESTIONS = ['ai_sug_norm','ai_sug_eat','ai_sug_diet','ai_sug_bulk','ai_sug_snack','ai_sug_cut'];
@@ -817,7 +996,8 @@ function aiSetStatus(state, text){
 // ── Rendering ────────────────────────────────────────────────────
 function initAi(){
   aiReady = true;
-  if (!aiChat.length) _aiLoadChat();
+  // Always reload: a chat may have expired, or been deleted from the list.
+  if (!aiChatId) _aiLoadChat();
   aiRender();
   aiSetStatus(navigator.onLine ? (_aiBusy ? 'busy' : 'on') : 'off');
   _aiSyncSendBtn();
@@ -850,12 +1030,22 @@ function _aiHeroHtml(){
     </div>`;
 }
 
+// A message may carry one image (legacy `imgId`) or several (`imgIds`).
+function _aiMsgImgIds(m){
+  if (Array.isArray(m?.imgIds)) return m.imgIds.filter(Boolean);
+  return m?.imgId ? [m.imgId] : [];
+}
+
 function _aiMsgHtml(m, i, prev){
   const time = m.at || '';
   if (m.role === 'user') {
-    const img = m.imgId ? `<img class="bbl-img" data-img-id="${esc(m.imgId)}" alt="">` : '';
+    const ids = _aiMsgImgIds(m);
+    const imgs = !ids.length ? ''
+      : ids.length === 1
+        ? `<img class="bbl-img" data-img-id="${esc(ids[0])}" alt="">`
+        : `<div class="bbl-imgs n${Math.min(ids.length, 4)}">${ids.map(id => `<img class="bbl-img" data-img-id="${esc(id)}" alt="">`).join('')}</div>`;
     return `<div class="msg msg-user" data-i="${i}">
-      <div class="bbl">${img}${m.text ? fmt(m.text) : ''}</div>
+      <div class="bbl">${imgs}${m.text ? fmt(m.text) : ''}</div>
       <div class="msg-meta"><span>${esc(time)}</span></div>
     </div>`;
   }
@@ -944,10 +1134,11 @@ function clearAiChat(){
   if (!aiChat.length) { HFX.light(); return; }
   showConfirm('💬', t('confirm_clear_chat_title'), t('confirm_clear_chat_body'), t('confirm_clear_chat_btn'), () => {
     // Drop the attached images too, so they do not linger in IndexedDB.
-    aiChat.forEach(m => { if (m.imgId) IMG.del(m.imgId); });
-    aiChat = [];
+    aiChat.forEach(m => _aiMsgImgIds(m).forEach(id => IMG.del(id)));
+    aiChat.length = 0;
     aiConvo.length = 0;
-    _aiSaveChat();
+    _aiSaveChat();          // an emptied conversation drops out of the list
+    aiChatId = aiChatId || '';
     aiClearPhoto();
     aiRender();
   });
@@ -983,41 +1174,79 @@ function _aiSyncSendBtn(){
   const inp = document.getElementById('aiinp');
   const hasText = !!(inp && inp.value.trim());
   btn.classList.toggle('busy', _aiBusy);
-  btn.disabled = !_aiBusy && !hasText && !_aiPhoto;
+  btn.disabled = !_aiBusy && !hasText && !_aiPhotos.length;
 }
 
+// Redraw the attachment strip from `_aiPhotos`.
+function _aiRenderAttach(){
+  const wrap = document.getElementById('aiAttach');
+  const strip = document.getElementById('aiAttachStrip');
+  const title = document.getElementById('aiAttachTitle');
+  if (!wrap || !strip) return;
+  wrap.classList.toggle('on', _aiPhotos.length > 0);
+  strip.innerHTML = _aiPhotos.map((p2, i) => `<div class="ai-attach-thumb">
+      <img src="${esc(p2.dataUrl)}" alt="">
+      <button onclick="aiRemovePhoto(${i})" aria-label="${esc(t('btn_delete'))}">✕</button>
+    </div>`).join('');
+  if (title) {
+    title.textContent = _aiPhotos.length > 1
+      ? tf('ai_photos_attached', { n: _aiPhotos.length })
+      : t('ai_photo_attached');
+  }
+  _aiSyncSendBtn();
+}
+
+function aiRemovePhoto(i){
+  if (i < 0 || i >= _aiPhotos.length) return;
+  _aiPhotos.splice(i, 1);
+  HFX.light(); SFX.play('sheet_close');
+  _aiRenderAttach();
+}
+
+// Camera or gallery. A single <input capture> would force the camera on mobile
+// and a bare one only ever offers the gallery, so the choice is explicit.
 function aiPickPhoto(){
+  HFX.light(); SFX.play('sheet_open');
+  document.getElementById('picSrcOv')?.classList.add('on');
+  lockScroll(true);
+}
+function closePicSrc(){
+  const ov = document.getElementById('picSrcOv');
+  if (!ov || !ov.classList.contains('on')) return;
+  HFX.light(); SFX.play('sheet_close');
+  ov.classList.remove('on');
+  lockScroll(false);
+}
+function aiUseSource(which){
   HFX.light(); SFX.play('btn_tap');
-  document.getElementById('aiPhotoInput')?.click();
+  closePicSrc();
+  document.getElementById(which === 'cam' ? 'aiCamInput' : 'aiPhotoInput')?.click();
 }
 async function aiOnPhoto(ev){
-  const file = ev.target.files?.[0];
+  const files = [...(ev.target.files || [])];
   ev.target.value = '';
-  if (!file) return;
+  if (!files.length) return;
+  const room = AI_PHOTOS_MAX - _aiPhotos.length;
+  if (room <= 0) { HFX.error(); showToast(tf('ai_photos_max', { n: AI_PHOTOS_MAX })); return; }
   SFX.play('photo_snap'); HFX.light();
-  try {
-    const b = await b64(file);                      // resized to 1024px
-    _aiPhoto = { dataUrl: 'data:image/jpeg;base64,' + b };
-    const wrap = document.getElementById('aiAttach');
-    const img = document.getElementById('aiAttachImg');
-    if (img) img.src = _aiPhoto.dataUrl;
-    if (wrap) wrap.hidden = false;
-    _aiSyncSendBtn();
-    document.getElementById('aiinp')?.focus();
-  } catch(e) {
-    HFX.error(); SFX.play('error');
-    showToast(t('err_file_open'));
+  let failed = 0;
+  for (const file of files.slice(0, room)) {
+    try {
+      const b = await b64(file);                    // decoded + resized
+      const mime = b64Mime(file);
+      _aiPhotos.push({ dataUrl: 'data:' + mime + ';base64,' + b, mime });
+    } catch(e) { failed++; }
   }
+  _aiRenderAttach();
+  if (files.length > room) showToast(tf('ai_photos_max', { n: AI_PHOTOS_MAX }));
+  if (failed) { HFX.error(); SFX.play('error'); showToast(t('err_photo_unsupported')); }
+  else document.getElementById('aiinp')?.focus();
 }
 function aiClearPhoto(){
-  const had = !!_aiPhoto;
-  _aiPhoto = null;
-  const wrap = document.getElementById('aiAttach');
-  if (wrap) wrap.hidden = true;
-  const img = document.getElementById('aiAttachImg');
-  if (img) img.removeAttribute('src');
+  const had = _aiPhotos.length > 0;
+  _aiPhotos = [];
+  _aiRenderAttach();
   if (had) { HFX.light(); SFX.play('sheet_close'); }
-  _aiSyncSendBtn();
 }
 
 // Re-send the last user turn after a failure.
@@ -1030,15 +1259,11 @@ function aiRetry(){
       _aiSaveChat();
       const inp = document.getElementById('aiinp');
       if (inp) { inp.value = m.text; aiGrowInput(inp); }
-      if (m.imgId) {
-        IMG.get(m.imgId).then(src => {
-          if (src) {
-            _aiPhoto = { dataUrl: src };
-            const img = document.getElementById('aiAttachImg');
-            if (img) img.src = src;
-            const wrap = document.getElementById('aiAttach');
-            if (wrap) wrap.hidden = false;
-          }
+      const ids = _aiMsgImgIds(m);
+      if (ids.length) {
+        Promise.all(ids.map(id => IMG.get(id))).then(srcs => {
+          _aiPhotos = srcs.filter(Boolean).map(src => ({ dataUrl: src, mime: 'image/jpeg' }));
+          _aiRenderAttach();
           aiRender(); aiSend();
         });
         return;
@@ -1243,23 +1468,23 @@ async function aiSend(){
   if (_aiBusy) { aiCancel(); return; }
   const inp = document.getElementById('aiinp');
   const txt = (inp?.value || '').trim();
-  const photo = _aiPhoto;
-  if (!txt && !photo) return;
+  const photos = _aiPhotos.slice();
+  if (!txt && !photos.length) return;
   if (!hasApiKey()) { openApi(); return; }
 
   if (inp) { inp.value = ''; aiGrowInput(inp); }
   HFX.medium(); SFX.play('ai_send');
 
-  // Persist the attached photo so the transcript survives a reload.
-  let imgId = null;
-  if (photo) {
+  // Persist the attachments so the transcript survives a reload.
+  const imgIds = [];
+  for (const ph of photos) {
     try {
-      const ref = await storeFoodImage(photo.dataUrl);
-      imgId = ref.imgId || null;
+      const ref = await storeFoodImage(ph.dataUrl);
+      if (ref.imgId) imgIds.push(ref.imgId);
     } catch(e) {}
   }
   aiClearPhoto();
-  aiPush('user', txt, imgId ? { imgId } : undefined);
+  aiPush('user', txt, imgIds.length ? { imgIds } : undefined);
 
   const sys = _aiBuildSystemPrompt();
   // Conversation memory — only include prior turns when the user has opted in,
@@ -1269,10 +1494,12 @@ async function aiSend(){
     : [];
 
   const parts = [];
-  if (photo) {
-    parts.push({ inline_data: { mime_type: 'image/jpeg', data: photo.dataUrl.split(',')[1] } });
-    // With an image but no question, ask the obvious thing.
-    parts.push({ text: txt || t('ai_photo_default_q') });
+  if (photos.length) {
+    for (const ph of photos) {
+      parts.push({ inline_data: { mime_type: ph.mime || 'image/jpeg', data: ph.dataUrl.split(',')[1] } });
+    }
+    // With images but no question, ask the obvious thing.
+    parts.push({ text: txt || (photos.length > 1 ? t('ai_photos_default_q') : t('ai_photo_default_q')) });
   } else {
     parts.push({ text: txt });
   }
@@ -1289,7 +1516,7 @@ async function aiSend(){
     if (token !== _aiToken) return;            // cancelled or superseded
     HFX.double(); SFX.play('ai_reply');
     aiPush('ai', r);
-    aiConvo.push({ role: 'user', text: txt || t('ai_photo_default_q') });
+    aiConvo.push({ role: 'user', text: txt || (photos.length > 1 ? t('ai_photos_default_q') : t('ai_photo_default_q')) });
     aiConvo.push({ role: 'model', text: r });
     if (aiConvo.length > AI_CHAT_MAX) aiConvo.splice(0, aiConvo.length - AI_CHAT_MAX);
   } catch(e) {
@@ -1453,7 +1680,7 @@ window.addEventListener('offline',()=>{ try{_updatePhotoButtons();}catch(e){} })
 // Shared photo-analysis call. Extracted from doPhoto() so the offline queue
 // can replay the exact same prompt later without duplicating it.
 // Accepts a data URL or bare base64 and returns the parsed result object.
-async function analyzePhotoData(imgOrDataUrl, userDesc){
+async function analyzePhotoData(imgOrDataUrl, userDesc, mime){
   const imgData = String(imgOrDataUrl || '').startsWith('data:')
     ? String(imgOrDataUrl).split(',')[1]
     : String(imgOrDataUrl || '');
@@ -1463,7 +1690,7 @@ async function analyzePhotoData(imgOrDataUrl, userDesc){
   // English user gets Russian dish names in their diary.
   const outLang = LANG === 'en' ? 'English' : 'Russian';
   const p = `Analyze this food photo.${descHint}\nAll human-readable text in your answer (food, portion, description, ingredient names) MUST be written in ${outLang}.\nReturn ONLY JSON, no other text:\n{"food":"name in ${outLang}","portion":"amount","calories":200,"protein":10,"fat":8,"carbs":20,"description":"brief description in ${outLang}","ingredients":[{"name":"ingredient in ${outLang}","calories":50}]}`;
-  const part = { inline_data: { mime_type: 'image/jpeg', data: imgData } };
+  const part = { inline_data: { mime_type: mime || 'image/jpeg', data: imgData } };
   let raw = await gem([{ text: p }, part], '', { json: true, maxOutputTokens: 2048 });
   try { return pj(raw); }
   catch(e) {
@@ -1557,6 +1784,21 @@ async function doPhoto(){
 // Text
 function fillTx(el){document.getElementById('txinp').value=el.textContent;}
 function rstText(){document.getElementById('txinp').value='';document.getElementById('txres').classList.remove('on');document.getElementById('txAddbtn').style.display='none';document.getElementById('txAbtn').style.display='block';}
+// Shared text-analysis call, so the offline queue replays exactly what the
+// Text tab sends.
+async function analyzeTextData(txt){
+  const outLang=LANG==='en'?'English':'Russian';
+  const sample=LANG==='en'
+    ? '{"food":"Buckwheat with chicken","portion":"250 g","calories":320,"protein":28,"fat":8,"carbs":35,"description":"Buckwheat porridge with chicken breast. A balanced, high-protein meal."}'
+    : '{"food":"Гречка с курицей","portion":"250г","calories":320,"protein":28,"fat":8,"carbs":35,"description":"Гречневая каша с куриной грудкой. Сбалансированное блюдо с высоким содержанием белка."}';
+  const p=`You are a nutrition expert. The user ate: "${txt}". Calculate calories and macros.
+All human-readable text in your answer (food, portion, description) MUST be written in ${outLang}.
+Respond with ONLY a valid JSON object. No text before or after. No markdown. Example format:
+${sample}
+Now calculate for what the user ate and return JSON in same format:`;
+  return pj(await gem([{text:p}],'',{json:true,maxOutputTokens:2048}));
+}
+
 async function doText(){
   const inp=document.getElementById('txinp');
   const txt=inp?.value.trim()||'';
@@ -1570,21 +1812,21 @@ async function doText(){
     showToast(t('text_required'));
     return;
   }
+  // Offline, or every key exhausted: park it instead of failing.
+  if(photoMustWait()){
+    if(await enqueueEntry({kind:'text', text:txt}) >= 0){
+      HFX.success(); SFX.play('save');
+      showToast(t('queue_added_text'));
+      rstText(); closeAdd();
+      try{ rH(); }catch(e){}
+    }
+    return;
+  }
   document.getElementById('txAbtn').style.display='none';
   document.getElementById('txerr').classList.remove('on');
   document.getElementById('txldr').classList.add('on');
   try{
-    const outLang=LANG==='en'?'English':'Russian';
-    const sample=LANG==='en'
-      ? '{"food":"Buckwheat with chicken","portion":"250 g","calories":320,"protein":28,"fat":8,"carbs":35,"description":"Buckwheat porridge with chicken breast. A balanced, high-protein meal."}'
-      : '{"food":"Гречка с курицей","portion":"250г","calories":320,"protein":28,"fat":8,"carbs":35,"description":"Гречневая каша с куриной грудкой. Сбалансированное блюдо с высоким содержанием белка."}';
-    const p=`You are a nutrition expert. The user ate: "${txt}". Calculate calories and macros.
-All human-readable text in your answer (food, portion, description) MUST be written in ${outLang}.
-Respond with ONLY a valid JSON object. No text before or after. No markdown. Example format:
-${sample}
-Now calculate for what the user ate and return JSON in same format:`;
-    const raw=await gem([{text:p}],'',{json:true,maxOutputTokens:2048});
-    const r=pj(raw);
+    const r=await analyzeTextData(txt);
     const _g=t('unit_g');
     cur.text={food:r.food,portion:r.portion,kcal:r.calories||0,prot:r.protein||0,fat:r.fat||0,carb:r.carbs||0,time:tnow(),date:ds(),desc:r.description||'',ingr:r.ingredients||[]};
     document.getElementById('trn').textContent=r.food||txt;
@@ -1656,6 +1898,28 @@ async function _ocrBarcode(b, mime){
   return null;
 }
 
+// Resolve a barcode to nutrition data: OCR the digits, look them up, and fall
+// back to a full vision analysis. Shared with the offline queue.
+async function analyzeBarcodeData(src, mime){
+  const data = String(src||'').startsWith('data:') ? String(src).split(',')[1] : String(src||'');
+  const m = mime || 'image/jpeg';
+  const code = await _ocrBarcode(data, m);
+  if (code) {
+    const found = await _offLookup(code);
+    if (found) return found;
+  }
+  const outLang = LANG === 'en' ? 'English' : 'Russian';
+  const sample = LANG === 'en'
+    ? `{"food":"Lay's Sour Cream chips","portion":"30 g","calories":165,"protein":2,"fat":11,"carbs":15,"description":"Potato chips. A calorie-dense snack."}`
+    : `{"food":"Чипсы Lay's Сметана","portion":"30г","calories":165,"protein":2,"fat":11,"carbs":15,"description":"Картофельные чипсы. Высококалорийный снек."}`;
+  const p = `You are a nutrition expert. This photo shows a product barcode or packaging. Identify the product and its nutrition info per serving or per 100g.
+All human-readable text in your answer MUST be written in ${outLang}.
+Respond with ONLY a valid JSON object. No text before or after. No markdown. Example:
+${sample}
+Return JSON for the product in this photo:`;
+  return pj(await gem([{ text: p }, { inline_data: { mime_type: m, data } }], '', { json: true, maxOutputTokens: 2048 }));
+}
+
 function _renderBarcodeResult(r){
   cur.barcode = { food: r.food, portion: r.portion, kcal: r.calories||0, prot: r.protein||0, fat: r.fat||0, carb: r.carbs||0, time: tnow(), date: ds() };
   const _g = t('unit_g');
@@ -1683,6 +1947,16 @@ async function doBarcodeManual(){
     showToast(t('bc_ean_hint'));
     return;
   }
+  if (!navigator.onLine) {
+    if (await enqueueEntry({ kind: 'barcode', code }) >= 0) {
+      HFX.success(); SFX.play('save');
+      showToast(t('queue_added_barcode'));
+      if (inp) inp.value = '';
+      closeAdd();
+      try { rH(); } catch(e) {}
+    }
+    return;
+  }
   HFX.light(); SFX.play('barcode_scan');
   document.getElementById('bcerr').classList.remove('on');
   document.getElementById('bcldr').classList.add('on');
@@ -1700,11 +1974,24 @@ async function doBarcodeManual(){
 
 async function doBarcode(e){
   const file=e.target.files[0];if(!file)return;
+  if(photoMustWait()){
+    try{
+      const b=await b64(file);
+      if(await enqueueEntry({kind:'barcode', src:'data:'+b64Mime(file)+';base64,'+b}) >= 0){
+        HFX.success(); SFX.play('save');
+        showToast(t('queue_added_barcode'));
+        closeAdd();
+        try{ rH(); }catch(err){}
+      }
+    }catch(err){ HFX.error(); SFX.play('error'); showErr('bcerr', String(err?.message||err)); }
+    finally{ try{ e.target.value=''; }catch(err){} }
+    return;
+  }
   HFX.light(); SFX.play('barcode_scan');
   document.getElementById('bcerr').classList.remove('on');
   document.getElementById('bcldr').classList.add('on');
   try{
-    const b=await b64(file),mime=file.type||'image/jpeg';
+    const b=await b64(file),mime=b64Mime(file);
     // 1) Try fast path: OCR digits → OpenFoodFacts
     const code = await _ocrBarcode(b, mime);
     if (code) {

@@ -230,6 +230,9 @@ async function gem(parts,sys='',opts={},history=[]){
           const tx=d.candidates?.[0]?.content?.parts?.[0]?.text||'';
           if(!tx) throw new Error(t('err_analyze'));
           markKeyOk(k);
+          // Token accounting lives in usage.js: it is the only way to see how
+          // much of the free quota this app actually spends.
+          try { recordUsage(m, d.usageMetadata); } catch(e) {}
           return tx;
         }
         const er=await r.json().catch(()=>({}));
@@ -282,39 +285,105 @@ async function gem(parts,sys='',opts={},history=[]){
   if(sawQuota && !lastErr) lastErr=t('ai_err_quota');
   throw new Error(lastErr||t('ai_err_generic'));
 }
-async function b64(file){
-  // Reuse the dataURL only when called with the exact same File the photo
-  // tab already read (phDataUrl belongs to phFile). Without this guard a
-  // barcode scan after picking a photo would analyse the stale photo
-  // instead of the barcode image.
-  const _canReuse = (typeof phFile !== 'undefined') && file && file === phFile && (typeof phDataUrl !== 'undefined') && phDataUrl;
-  const dataUrl = _canReuse ? phDataUrl : await new Promise((res,rej)=>{
-    const fr=new FileReader();
-    fr.onload=()=>res(fr.result);
-    fr.onerror=()=>rej(new Error(t('err_file_open')));
+// Decode + downscale any picked image to base64 JPEG for the API.
+//
+// The old implementation went File → FileReader → `new Image()` → canvas, which
+// silently failed for anything the <img> decoder does not accept — HEIC/HEIF
+// from iPhones being the common case, plus very large images where the canvas
+// allocation fails. Now the decode is attempted three ways before giving up, and
+// as a last resort the original bytes are sent through untouched.
+const IMG_MAX_EDGE = 1024;
+const IMG_QUALITY = 0.85;
+// Hard ceiling for the pass-through path: Gemini takes inline data up to ~20 MB
+// base64, and base64 inflates by ~4/3.
+const IMG_RAW_MAX_BYTES = 12 * 1024 * 1024;
+
+function _fileToDataUrl(file){
+  return new Promise((res, rej) => {
+    const fr = new FileReader();
+    fr.onload = () => res(fr.result);
+    fr.onerror = () => rej(new Error(t('err_file_open')));
     fr.readAsDataURL(file);
   });
-  // Resize via canvas and return pure base64
-  return new Promise((resolve,reject)=>{
-    const img=new Image();
-    img.onload=()=>{
-      try{
-        const MAX=1024;
-        let w=img.naturalWidth,h=img.naturalHeight;
-        if(w>MAX||h>MAX){
-          if(w>h){h=Math.round(h*MAX/w);w=MAX;}
-          else{w=Math.round(w*MAX/h);h=MAX;}
-        }
-        const cv=document.createElement('canvas');
-        cv.width=w;cv.height=h;
-        cv.getContext('2d').drawImage(img,0,0,w,h);
-        resolve(cv.toDataURL('image/jpeg',0.85).split(',')[1]);
-      }catch(e){reject(new Error('Canvas: '+e.message));}
+}
+
+function _fitted(w, h){
+  if (w <= IMG_MAX_EDGE && h <= IMG_MAX_EDGE) return [w, h];
+  return w >= h
+    ? [IMG_MAX_EDGE, Math.max(1, Math.round(h * IMG_MAX_EDGE / w))]
+    : [Math.max(1, Math.round(w * IMG_MAX_EDGE / h)), IMG_MAX_EDGE];
+}
+
+// Draw whatever was decoded onto a canvas and return bare base64.
+function _drawToBase64(src, w, h){
+  const [dw, dh] = _fitted(w, h);
+  const cv = document.createElement('canvas');
+  cv.width = dw; cv.height = dh;
+  const ctx = cv.getContext('2d');
+  if (!ctx) throw new Error('no-2d-context');
+  ctx.drawImage(src, 0, 0, dw, dh);
+  const out = cv.toDataURL('image/jpeg', IMG_QUALITY);
+  if (!out || out.length < 32) throw new Error('canvas-empty');
+  return out.split(',')[1];
+}
+
+// 1) createImageBitmap: widest format coverage (HEIC where the platform
+//    supports it, AVIF, WebP) and it never needs a data URL round-trip.
+async function _decodeViaBitmap(file){
+  if (typeof createImageBitmap !== 'function') throw new Error('no-createImageBitmap');
+  const bmp = await createImageBitmap(file);
+  try { return _drawToBase64(bmp, bmp.width, bmp.height); }
+  finally { if (bmp.close) bmp.close(); }
+}
+
+// 2) The classic <img> decoder, from a data URL.
+function _decodeViaImage(dataUrl){
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    const bail = setTimeout(() => reject(new Error('decode-timeout')), 12000);
+    img.onload = () => {
+      clearTimeout(bail);
+      try { resolve(_drawToBase64(img, img.naturalWidth || IMG_MAX_EDGE, img.naturalHeight || IMG_MAX_EDGE)); }
+      catch(e) { reject(e); }
     };
-    img.onerror=()=>reject(new Error(t('err_file_open')));
-    img.src=dataUrl;
+    img.onerror = () => { clearTimeout(bail); reject(new Error('decode-failed')); };
+    img.src = dataUrl;
   });
 }
+
+async function b64(file){
+  // Reuse the dataURL only when called with the exact same File the photo tab
+  // already read (phDataUrl belongs to phFile). Without this guard a barcode
+  // scan after picking a photo would analyse the stale photo instead.
+  const canReuse = (typeof phFile !== 'undefined') && file && file === phFile
+                && (typeof phDataUrl !== 'undefined') && phDataUrl;
+
+  if (!canReuse) {
+    try { return await _decodeViaBitmap(file); } catch(e) { /* try the next path */ }
+  }
+
+  let dataUrl;
+  try { dataUrl = canReuse ? phDataUrl : await _fileToDataUrl(file); }
+  catch(e) { throw new Error(t('err_file_open')); }
+
+  try { return await _decodeViaImage(dataUrl); } catch(e) { /* last resort below */ }
+
+  // Nothing could decode it. If the bytes are already a format the API accepts,
+  // hand them over untouched rather than refusing the photo outright.
+  const head = String(dataUrl).slice(0, 40);
+  const raw = String(dataUrl).split(',')[1] || '';
+  const okType = /^data:image\/(jpeg|jpg|png|webp|heic|heif)/i.test(head);
+  if (okType && raw && raw.length <= IMG_RAW_MAX_BYTES) return raw;
+  throw new Error(t('err_photo_unsupported'));
+}
+
+// MIME type to declare for a payload produced by b64(). Anything that went
+// through the canvas is JPEG; a pass-through keeps its original type.
+function b64Mime(file){
+  const t2 = (file && file.type || '').toLowerCase();
+  return /^image\/(png|webp|heic|heif)$/.test(t2) ? t2 : 'image/jpeg';
+}
+
 function pj(raw){
   if(!raw||!raw.trim()) throw new Error(t('err_analyze'));
   let c=raw.trim();

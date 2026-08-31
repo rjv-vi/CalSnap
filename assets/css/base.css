@@ -508,6 +508,11 @@ canvas{display:block;max-width:100%;}
 .bbl code{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:13px;background:var(--f1);padding:1px 5px;border-radius:6px;}
 /* Photo inside a message */
 .bbl-img{display:block;width:100%;max-width:220px;border-radius:14px;margin-bottom:8px;background:var(--f1);}
+.bbl-imgs{display:grid;gap:4px;margin-bottom:8px;max-width:240px;}
+.bbl-imgs.n2,.bbl-imgs.n4{grid-template-columns:1fr 1fr;}
+.bbl-imgs.n3{grid-template-columns:repeat(3,1fr);}
+.bbl-imgs .bbl-img{margin:0;max-width:none;aspect-ratio:1;object-fit:cover;border-radius:10px;}
+.bbl-imgs:only-child{margin-bottom:0;}
 .msg-user .bbl:has(.bbl-img){padding:8px 8px 10px;}
 .bbl-img:only-child{margin-bottom:0;}
 /* Meta row under a bubble: time + actions */
@@ -571,9 +576,14 @@ canvas{display:block;max-width:100%;}
 .ai-snd:disabled{opacity:.45;}
 
 /* Attached photo chip */
-.ai-attach{display:flex;align-items:center;gap:10px;background:var(--bg1);border:1px solid var(--b1);border-radius:16px;padding:8px 10px;box-shadow:var(--s1);animation:attachIn .28s cubic-bezier(.22,1,.36,1) both;}
+.ai-attach{display:none;align-items:center;gap:10px;background:var(--bg1);border:1px solid var(--b1);border-radius:16px;padding:8px 10px;box-shadow:var(--s1);animation:attachIn .28s cubic-bezier(.22,1,.36,1) both;}
 @keyframes attachIn{from{opacity:0;transform:translateY(8px) scale(.97)}to{opacity:1;transform:none}}
-.ai-attach img{width:42px;height:42px;border-radius:11px;object-fit:cover;flex-shrink:0;background:var(--f1);}
+.ai-attach.on{display:flex;}
+.ai-attach-strip{display:flex;gap:6px;flex-shrink:0;}
+.ai-attach-thumb{position:relative;width:42px;height:42px;flex-shrink:0;}
+.ai-attach-thumb img{width:42px;height:42px;border-radius:11px;object-fit:cover;display:block;background:var(--f1);}
+.ai-attach-thumb button{position:absolute;top:-5px;right:-5px;width:18px;height:18px;border:none;border-radius:50%;background:var(--t0);color:var(--on-acc);font-size:10px;line-height:1;font-family:var(--ff);cursor:pointer;display:flex;align-items:center;justify-content:center;box-shadow:var(--s1);transition:transform .16s;}
+.ai-attach-thumb button:active{transform:scale(.82);}
 .ai-attach-meta{flex:1;min-width:0;}
 .ai-attach-t{font-size:13px;font-weight:700;color:var(--t0);}
 .ai-attach-s{font-size:11px;color:var(--t2);margin-top:1px;}

@@ -102,6 +102,11 @@ function rSet(){
   const sfxTog=document.getElementById('sfxToggle');if(sfxTog)sfxTog.classList.toggle('on',SFX.isEnabled());
   const hfxTog=document.getElementById('hfxToggle');if(hfxTog)hfxTog.classList.toggle('on',HFX.isOn());
   const waterTog=document.getElementById('waterTrackingToggle');if(waterTog)waterTog.classList.toggle('on',isWaterOn());
+  const _su=document.getElementById('susage');
+  if(_su){
+    const _u=getUsage();
+    _su.textContent=_u.req ? tf('usage_summary',{req:fmtCount(_u.req),tok:fmtCount(_u.in+_u.out)}) : t('usage_empty_short');
+  }
   const memTog=document.getElementById('chatMemoryToggle');if(memTog)memTog.classList.toggle('on',isChatMemoryOn());
   const fsTog=document.getElementById('fullscreenToggle');if(fsTog)fsTog.classList.toggle('on',isFullscreenPref());
   const sl=document.getElementById('slang');if(sl)sl.textContent = LANG === 'en' ? 'EN' : 'RU';
@@ -423,7 +428,11 @@ function clrAll(){
 const THEME_ORDER = ['light', 'dark', 'system'];
 const themePref = () => {
   const v = G('theme', '');
-  return THEME_ORDER.includes(v) ? v : 'system';
+  if (THEME_ORDER.includes(v)) return v;
+  // Fresh install: record the default explicitly so the setting reads back the
+  // same way it behaves, and so a backup round-trip preserves it.
+  try { S('theme', 'system'); } catch(e) {}
+  return 'system';
 };
 const systemPrefersDark = () => {
   try { return window.matchMedia('(prefers-color-scheme: dark)').matches; }

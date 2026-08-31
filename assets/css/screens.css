@@ -198,3 +198,40 @@ body.modal-open { overflow: hidden !important; touch-action: none; }
 .pq-mini{width:28px;height:28px;flex-shrink:0;border-radius:9px;border:1px solid var(--b1);background:var(--bg1);color:var(--t1);font-size:13px;font-family:var(--ff);cursor:pointer;display:flex;align-items:center;justify-content:center;}
 .pq-mini:active{transform:scale(.9);}
 .pq-mini.del{color:var(--err);}
+
+/* ── Photo source picker ─────────────────────────────────────────── */
+.pic-src{display:grid;grid-template-columns:1fr 1fr;gap:10px;padding:4px 16px 20px;}
+.pic-src-btn{display:flex;flex-direction:column;align-items:center;gap:8px;background:var(--bg1);border:1px solid var(--b0);border-radius:18px;padding:20px 12px;font-family:var(--ff);font-size:14px;font-weight:700;color:var(--t0);cursor:pointer;box-shadow:var(--s1);transition:transform .18s cubic-bezier(.22,1,.36,1),background .18s;}
+.pic-src-btn:active{transform:scale(.95);background:var(--f1);}
+.pic-src-ico{font-size:28px;line-height:1;}
+
+/* ── AI usage stats ──────────────────────────────────────────────── */
+.usage-body{padding:4px 16px 8px;}
+.usage-empty{text-align:center;color:var(--t2);font-size:14px;line-height:1.6;padding:26px 8px;}
+.usage-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:16px;}
+.usage-tile{background:var(--bg1);border:1px solid var(--b1);border-radius:16px;padding:12px 14px;box-shadow:var(--s1);}
+.usage-v{font-size:20px;font-weight:900;letter-spacing:-.5px;color:var(--t0);font-variant-numeric:tabular-nums;line-height:1.1;}
+.usage-l{font-size:10.5px;font-weight:700;letter-spacing:.4px;text-transform:uppercase;color:var(--t2);margin-top:3px;}
+.usage-sec-lbl{font-size:10px;font-weight:800;letter-spacing:.9px;text-transform:uppercase;color:var(--t2);margin:16px 2px 10px;}
+.usage-bars{display:flex;align-items:flex-end;gap:6px;height:96px;padding:0 2px;}
+.usage-bar{flex:1;display:flex;flex-direction:column;justify-content:flex-end;align-items:center;height:100%;gap:5px;}
+.usage-bar-fill{width:100%;border-radius:7px 7px 3px 3px;background:linear-gradient(180deg,var(--ok) 0%,color-mix(in srgb,var(--ok) 55%,transparent) 100%);transition:height .5s cubic-bezier(.22,1,.36,1);min-height:3px;}
+.usage-bar-l{font-size:9.5px;font-weight:700;color:var(--t3);white-space:nowrap;}
+.usage-row{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:10px 2px;border-top:.5px solid var(--b2);font-size:13.5px;color:var(--t1);}
+.usage-row b{color:var(--t0);font-weight:800;font-variant-numeric:tabular-nums;white-space:nowrap;}
+.usage-model{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.usage-note{font-size:11.5px;color:var(--t3);line-height:1.5;margin:16px 2px 4px;}
+
+/* ── AI conversations list ───────────────────────────────────────── */
+.ai-list{padding:6px 16px 20px;display:flex;flex-direction:column;gap:8px;}
+.ai-list-empty{text-align:center;color:var(--t2);font-size:14px;line-height:1.6;padding:22px 8px;}
+.ai-list-row{display:flex;align-items:center;gap:11px;background:var(--bg1);border:1px solid var(--b1);border-radius:16px;padding:11px 12px;cursor:pointer;box-shadow:var(--s1);transition:transform .18s cubic-bezier(.22,1,.36,1),background .18s,border-color .18s;animation:rowIn .3s cubic-bezier(.22,1,.36,1) both;}
+.ai-list-row:active{transform:scale(.98);background:var(--f1);}
+.ai-list-row.on{border-color:var(--acc);box-shadow:var(--s1),inset 0 0 0 1px var(--acc);}
+.ai-list-ico{width:36px;height:36px;flex-shrink:0;border-radius:12px;background:var(--f1);display:flex;align-items:center;justify-content:center;font-size:17px;}
+.ai-list-info{flex:1;min-width:0;}
+.ai-list-t{font-size:14px;font-weight:700;color:var(--t0);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.ai-list-s{font-size:11.5px;color:var(--t2);margin-top:2px;}
+.ai-list-x{width:28px;height:28px;flex-shrink:0;border:none;border-radius:9px;background:transparent;color:var(--t3);font-size:12px;font-family:var(--ff);cursor:pointer;transition:transform .16s,background .16s,color .16s;}
+.ai-list-x:active{transform:scale(.86);background:var(--err2);color:var(--err-ink);}
+.ai-list-note{font-size:11.5px;color:var(--t3);line-height:1.5;padding:6px 2px 0;}
