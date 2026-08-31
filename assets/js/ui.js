@@ -76,8 +76,10 @@ function reviveKeyRow(i){
 function rSet(){
   if(!U)return;
   document.getElementById('sname').textContent=U.name||'—';
-  if(U.dob){const _a=calcAgeFromDob(U.dob);if(_a&&_a!==U.age){U.age=_a;rcalc();S('u',JSON.stringify(U));}}
+  if(U.dob){const _a=calcAgeFromDob(U.dob);if(_a!=null&&_a>=0&&_a!==U.age){U.age=_a;rcalc();S('u',JSON.stringify(U));}}
   document.getElementById('sgoal').textContent=GL[U.goal]||'—';
+  const _sm=document.getElementById('smeals');
+  if(_sm) _sm.textContent=mealWindowsSummary();
   document.getElementById('skcal').textContent=(U.kcal||0)+' '+t('unit_kcal');
   const _sp=document.getElementById('sprefs');
   if(_sp){
@@ -171,7 +173,7 @@ function saveEd(){
   else if(edType==='params'){
     const dobBtn=document.getElementById('ed_dob_btn');
     const dob=dobBtn?.dataset?.dob||'';
-    if(dob){U.dob=dob;const a=calcAgeFromDob(dob);if(a&&a>0)U.age=a;}
+    if(dob){U.dob=dob;const a=calcAgeFromDob(dob);if(a!=null&&a>=0)U.age=a;}
     const hv=parseFloat(document.getElementById('ed_h')?.value);
     const wv=parseFloat(document.getElementById('ed_w')?.value);
     if(hv>0)U.h=hv;

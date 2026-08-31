@@ -31,7 +31,7 @@ function openDrum(ctx){
   document.getElementById('drumOv').classList.add('on');
   lockScroll(true);
   // After layout is done, snap scroll to selected — requestAnimationFrame x2 ensures paint
-  const minY=n.getFullYear()-120,maxY=n.getFullYear()-5;
+  const minY=n.getFullYear()-120,maxY=n.getFullYear();
   requestAnimationFrame(()=>requestAnimationFrame(()=>{
     const dCol=document.getElementById('drum_d');
     const mCol=document.getElementById('drum_m');
@@ -47,7 +47,7 @@ function closeDrum(){
 }
 function buildDrumCols(){
   const n=new Date();
-  const minY=n.getFullYear()-120, maxY=n.getFullYear()-5;
+  const minY=n.getFullYear()-120, maxY=n.getFullYear();
   function fillCol(col, items, selFn){
     col.innerHTML='';
     const wrap=document.createElement('div');
@@ -76,6 +76,7 @@ function buildDrumCols(){
   attachDrumScroll('drum_d','d',1,31);
   attachDrumScroll('drum_m','m',1,12);
   attachDrumScroll('drum_y','y',minY,maxY);
+  _syncDrumDays();
 }
 // ── DRUM PICKER — native scroll-snap (compositor thread) ──
 const ITEM_H = 44;
@@ -103,19 +104,51 @@ function _updateSelClass(colId, idx) {
   col.querySelectorAll('.drum-item').forEach((el, i) => el.classList.toggle('sel', i === idx));
 }
 
+// Days in the month currently on the wheels — February and the 31-day months
+// are not the same wheel, and the picker used to pretend they were.
+function _drumMaxDays(){
+  return new Date(_drumYear, _drumMonth, 0).getDate();
+}
+
+// Grey out the days this month does not have, and pull the selection back if it
+// is sitting on one of them (31 March → 30 April rather than a silent clamp at
+// confirm time).
+function _syncDrumDays(){
+  const col=document.getElementById('drum_d');
+  if(!col) return;
+  const maxDays=_drumMaxDays();
+  col.querySelectorAll('.drum-item').forEach((el,i)=>el.classList.toggle('off', i+1>maxDays));
+  if(_drumDay>maxDays){
+    _drumDay=maxDays;
+    _updateSelClass('drum_d',maxDays-1);
+    col.scrollTo ? col.scrollTo({top:(maxDays-1)*ITEM_H, behavior:'smooth'})
+                 : (col.scrollTop=(maxDays-1)*ITEM_H);
+    HFX.tick();
+  }
+}
+
 function updateDrumVal(colId,axis,min,max,idx){
   const val=axis==='y'?(max-idx):min+idx;
   if(axis==='d')_drumDay=Math.max(min,Math.min(max,val));
   if(axis==='m')_drumMonth=Math.max(min,Math.min(max,val));
   if(axis==='y')_drumYear=Math.max(min,Math.min(max,val));
+  if(axis!=='d') _syncDrumDays();
+  else if(_drumDay>_drumMaxDays()) _syncDrumDays();
 }
 function confirmDrum(){
   // Clamp day to valid range for month/year
   const maxDays=new Date(_drumYear,_drumMonth,0).getDate();
   _drumDay=Math.min(_drumDay,maxDays);
   const dob=`${_drumYear}-${String(_drumMonth).padStart(2,'0')}-${String(_drumDay).padStart(2,'0')}`;
+  // Only a date in the future (or absurdly far back) is rejected; the year
+  // wheel now runs right up to today, so any real birthday is valid.
   const age=calcAgeFromDob(dob);
-  if(!age||age<5||age>120){closeDrum();return;}
+  if(age==null||age<0||age>120){
+    HFX.error(); SFX.play('error');
+    const sheet=document.querySelector('.drum-sheet');
+    if(sheet){ sheet.style.animation='none'; void sheet.offsetWidth; sheet.style.animation='offlShake .4s ease'; }
+    return;
+  }
   const dispStr=`${String(_drumDay).padStart(2,'0')}.${String(_drumMonth).padStart(2,'0')}.${_drumYear}`;
   if(_drumCtx==='ob'){
     const btn=document.getElementById('ob_dob_btn');

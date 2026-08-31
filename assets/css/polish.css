@@ -232,7 +232,13 @@ html.is-fullscreen .daily-ai-body {
 /* Toast progress bar should not animate when motion is reduced. */
 @media (prefers-reduced-motion: reduce) {
   .hcell, .meal-group, .meal-group-hdr, .wd, .pq-row, .key-row, .pq-card,
-  .empty, .fav-empty, .key-empty, .empty .ei, .streak.celebrate { animation: none !important; }
+  .empty, .fav-empty, .key-empty, .empty .ei, .streak.celebrate,
+  .pq-card.working .pq-ico, .pq-row.active::after, .pq-badge, .pq-dot.work,
+  .ml-row, .mdl-row, .ai-attach-thumb, .offl-ico, .offl-feat,
+  .offl-queue, .offl-bar.checking::after { animation: none !important; }
+  /* The exit animations carry meaning (the row is going away), so keep them —
+     just make them instant. */
+  .pq-row.done, .pq-row.out { animation-duration: .01s !important; }
 }
 
 /* Calendar strip: fade the edges so the row reads as scrollable instead of

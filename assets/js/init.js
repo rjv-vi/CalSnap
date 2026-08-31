@@ -216,7 +216,7 @@ function initDragSelect(container, cardSel, onPick) {
 // ── DEV PANEL ──
 // Single source of truth for the version string (also shown in the About sheet
 // via the `about_ver` translation).
-const APP_VERSION = '1.5';
+const APP_VERSION = '1.6';
 let _devTaps=0,_devTapTimer=null;
 function devTap(){
   _devTaps++;clearTimeout(_devTapTimer);

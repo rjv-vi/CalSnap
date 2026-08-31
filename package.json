@@ -1,6 +1,6 @@
 {
   "name": "calsnap",
-  "version": "1.5.0",
+  "version": "1.6.0",
   "private": true,
   "description": "CalSnap — AI calorie tracker PWA. Static site; this manifest exists only to run the test suite.",
   "scripts": {

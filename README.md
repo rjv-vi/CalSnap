@@ -20,12 +20,14 @@
   goes on an escalating cooldown while the request rotates to the next one
 - **Deferred analysis** — a photo, a typed meal or a barcode captured offline is
   queued and resolved automatically the moment connectivity returns
-- **Food diary** grouped by meal (breakfast / lunch / snack / dinner)
+- **Food diary** grouped by meal (breakfast / lunch / snack / dinner), with the
+  four window start times editable in Settings → Food — nobody eats on the same
+  schedule, and a 21:00 dinner should not be filed as a snack
 - **Goals and calorie targets** — BMR (Mifflin-St Jeor) adjusted for activity
 - **Progress** — streak with an automatic freeze, BMI, 28-day heat map, weight trend
 - **Water balance** with reminders every 1–3 hours
 - **AI nutritionist** — multiple conversations (switch, auto-expire after 30 days,
-  delete by hand), up to 4 photos per message from the camera or the gallery,
+  delete by hand), up to 6 photos per message from the camera or the gallery,
   copyable answers, request cancellation and rich formatting (lists, emphasis)
 - **AI usage stats** — requests and token counts, per day and per model, in Settings
 - **Local notifications** via Service Worker + Periodic Background Sync
@@ -48,7 +50,7 @@
 ## Tech stack
 
 - **Plain HTML / CSS / vanilla JS** — no bundlers, no frameworks
-- **Service Worker v15** — caching + offline + push + periodic sync
+- **Service Worker v16** — caching + offline + push + periodic sync
 - **localStorage** for state, behind a small in-memory cache for the hot render
   path, with quota-exhaustion handling
 - **IndexedDB** for food photos and the state mirror — `localStorage` only holds

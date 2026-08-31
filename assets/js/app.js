@@ -1,13 +1,18 @@
 // ── MEAL TIMELINE ──
+// The window boundaries are user-editable (meals.js) — the four defaults are
+// 6:00 / 11:00 / 14:00 / 18:00. An entry belongs to the last window that has
+// already started; anything before the first one is a snack.
 function getMealType(timeStr) {
   if (!timeStr) return 'snack';
-  const [h, m] = timeStr.split(':').map(Number);
-  const mins = h * 60 + (m || 0);
-  if (mins >= 360 && mins < 660)  return 'breakfast'; // 6:00–11:00
-  if (mins >= 660 && mins < 840)  return 'lunch';     // 11:00–14:00
-  if (mins >= 840 && mins < 1080) return 'snack';     // 14:00–18:00
-  if (mins >= 1080)               return 'dinner';    // 18:00+
-  return 'snack';
+  const mins = hmToMins(timeStr);
+  if (mins == null) return 'snack';
+  const w = getMealWindows();
+  let hit = 'snack';
+  for (const k of MEAL_KEYS) {
+    const start = hmToMins(w[k]);
+    if (start != null && mins >= start) hit = k;
+  }
+  return hit;
 }
 function mealMeta(){
   return {
@@ -130,6 +135,7 @@ function rH(){
   logEl.dataset.empty='0';
 
   // ── Group by meal type ──
+  const _showMealRanges = !isMealWindowsDefault();
   const mealOrder = ['breakfast','lunch','snack','dinner'];
   const groups = {};
   mealOrder.forEach(m => groups[m] = []);
@@ -147,10 +153,14 @@ function rH(){
     const meta = MEAL_META[mealKey];
     const mealKcal = items.reduce((s,i) => s + (i.kcal||0), 0);
     // Stagger the group entrances so the day reads top-to-bottom.
+    // Once the windows have been edited, the header says which hours a group
+    // covers — otherwise "Dinner" starting at 20:30 looks arbitrary.
+    const range = _showMealRanges ? mealWindowRange(mealKey) : '';
     html += `<div class="meal-group" data-meal="${mealKey}" style="animation-delay:${groupIdx++ * 55}ms">
       <div class="meal-group-hdr">
         <span class="meal-group-icon">${meta.icon}</span>
         <span class="meal-group-name">${meta.label}</span>
+        ${range ? `<span class="meal-group-range">${esc(range)}</span>` : ''}
         <span class="meal-group-kcal">${mealKcal} ${t('unit_kcal')}</span>
       </div>`;
     items.forEach(item => {
@@ -803,8 +813,9 @@ let _aiBusy = false;
 let _aiToken = 0;                // bumped to abandon an in-flight reply
 // Pending attachments: up to AI_PHOTOS_MAX images per message. Gemini accepts
 // several inline_data parts in one turn, and "three plates on the table" is a
-// perfectly ordinary question to ask.
-const AI_PHOTOS_MAX = 4;
+// perfectly ordinary question to ask. Six, because picking a handful of photos
+// at once and silently losing the tail reads as "some of them failed to load".
+const AI_PHOTOS_MAX = 6;
 let _aiPhotos = [];              // [{dataUrl, mime}]
 
 function _aiNewId(){ return 'c' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6); }
@@ -1184,7 +1195,7 @@ function _aiRenderAttach(){
   const title = document.getElementById('aiAttachTitle');
   if (!wrap || !strip) return;
   wrap.classList.toggle('on', _aiPhotos.length > 0);
-  strip.innerHTML = _aiPhotos.map((p2, i) => `<div class="ai-attach-thumb">
+  strip.innerHTML = _aiPhotos.map((p2, i) => `<div class="ai-attach-thumb" style="animation-delay:${i * 45}ms">
       <img src="${esc(p2.dataUrl)}" alt="">
       <button onclick="aiRemovePhoto(${i})" aria-label="${esc(t('btn_delete'))}">✕</button>
     </div>`).join('');
@@ -1229,18 +1240,30 @@ async function aiOnPhoto(ev){
   const room = AI_PHOTOS_MAX - _aiPhotos.length;
   if (room <= 0) { HFX.error(); showToast(tf('ai_photos_max', { n: AI_PHOTOS_MAX })); return; }
   SFX.play('photo_snap'); HFX.light();
-  let failed = 0;
-  for (const file of files.slice(0, room)) {
+  const take = files.slice(0, room);
+  let lastErr = '';
+  const failed = [];
+  for (const file of take) {
     try {
-      const b = await b64(file);                    // decoded + resized
-      const mime = b64Mime(file);
-      _aiPhotos.push({ dataUrl: 'data:' + mime + ';base64,' + b, mime });
-    } catch(e) { failed++; }
+      // data and mime always travel together: the API rejects a payload whose
+      // bytes do not match the declared type.
+      const { data, mime } = await encodeImage(file);
+      _aiPhotos.push({ dataUrl: 'data:' + mime + ';base64,' + data, mime });
+    } catch(e) { failed.push(file); lastErr = String(e?.message || e || ''); }
   }
   _aiRenderAttach();
-  if (files.length > room) showToast(tf('ai_photos_max', { n: AI_PHOTOS_MAX }));
-  if (failed) { HFX.error(); SFX.play('error'); showToast(t('err_photo_unsupported')); }
-  else document.getElementById('aiinp')?.focus();
+  // One toast, not two stacked ones — say what was skipped and why.
+  if (files.length > room) {
+    HFX.error();
+    showToast(tf('ai_photos_max', { n: AI_PHOTOS_MAX }));
+  } else if (failed.length) {
+    HFX.error(); SFX.play('error');
+    showToast(failed.length === take.length
+      ? (lastErr || t('err_photo_unsupported'))
+      : tf('err_photo_some_failed', { n: failed.length, total: take.length }));
+  } else {
+    document.getElementById('aiinp')?.focus();
+  }
 }
 function aiClearPhoto(){
   const had = _aiPhotos.length > 0;
@@ -1689,16 +1712,33 @@ async function analyzePhotoData(imgOrDataUrl, userDesc, mime){
   // Names/descriptions must come back in the UI language, otherwise an
   // English user gets Russian dish names in their diary.
   const outLang = LANG === 'en' ? 'English' : 'Russian';
-  const p = `Analyze this food photo.${descHint}\nAll human-readable text in your answer (food, portion, description, ingredient names) MUST be written in ${outLang}.\nReturn ONLY JSON, no other text:\n{"food":"name in ${outLang}","portion":"amount","calories":200,"protein":10,"fat":8,"carbs":20,"description":"brief description in ${outLang}","ingredients":[{"name":"ingredient in ${outLang}","calories":50}]}`;
+  // A picture with no food in it is a normal thing to hand the camera by
+  // accident. Asked for a plain marker, the model answers it reliably; left to
+  // improvise it returns prose, which used to surface as a parse error.
+  const p = `Analyze this food photo.${descHint}\nAll human-readable text in your answer (food, portion, description, ingredient names) MUST be written in ${outLang}.\nIf the image contains no food or drink at all (a screenshot, a person, a landscape, a document), return exactly {"not_food":true} and nothing else.\nOtherwise return ONLY JSON, no other text:\n{"food":"name in ${outLang}","portion":"amount","calories":200,"protein":10,"fat":8,"carbs":20,"description":"brief description in ${outLang}","ingredients":[{"name":"ingredient in ${outLang}","calories":50}]}`;
   const part = { inline_data: { mime_type: mime || 'image/jpeg', data: imgData } };
   let raw = await gem([{ text: p }, part], '', { json: true, maxOutputTokens: 2048 });
-  try { return pj(raw); }
+  let obj;
+  try { obj = pj(raw); }
   catch(e) {
     // One retry without JSON mode in case the model misbehaves with structured output.
     raw = await gem([{ text: p + '\nReturn ONLY raw JSON, no markdown.' }, part], '', { maxOutputTokens: 2048 });
-    try { return pj(raw); }
+    try { obj = pj(raw); }
     catch(e2) { throw new Error(t('photo_parse_error')); }
   }
+  return _requireFood(obj);
+}
+
+// Reject a "there is no food here" answer with a message that says so. The flag
+// is also set on the error so the offline queue can stop retrying an entry that
+// will never succeed.
+function _requireFood(obj){
+  const noFood = obj?.not_food === true || obj?.notFood === true
+    || (String(obj?.food || '').trim() === '' && !obj?.calories);
+  if (!noFood) return obj;
+  const err = new Error(t('err_photo_no_food'));
+  err.noFood = true;
+  throw err;
 }
 
 // True when an immediate analysis cannot succeed, so the photo should be
@@ -1715,8 +1755,9 @@ async function queuePhoto(){
   document.getElementById('pherr').classList.remove('on');
   document.getElementById('phldr').classList.add('on');
   try{
-    const imgData=await b64(phFile);
-    const n=await enqueuePhoto('data:image/jpeg;base64,'+imgData, document.getElementById('phDesc').value.trim());
+    const {data:imgData,mime}=await encodeImage(phFile);
+    const n=await enqueueEntry({kind:'photo', src:'data:'+mime+';base64,'+imgData, mime,
+                                desc:document.getElementById('phDesc').value.trim()});
     if(n<0){ HFX.error(); if(btnWrap) btnWrap.style.display='block'; return; }
     HFX.success(); SFX.play('save');
     showToast(t('queue_added'));
@@ -1740,11 +1781,11 @@ async function doPhoto(){
   document.getElementById('pherr').classList.remove('on');
   document.getElementById('phldr').classList.add('on');
   try{
-    const imgData=await b64(phFile);
-    const _srcUrl='data:image/jpeg;base64,'+imgData;
+    const {data:imgData,mime}=await encodeImage(phFile);
+    const _srcUrl='data:'+mime+';base64,'+imgData;
     document.getElementById('previmg').src=_srcUrl;
     const userDesc=document.getElementById('phDesc').value.trim();
-    const r=await analyzePhotoData(imgData,userDesc);
+    const r=await analyzePhotoData(imgData,userDesc,mime);
     // The full-size analysis image is NOT what gets persisted — a 480px
     // thumbnail goes to IndexedDB instead. Keeping the 1024px base64 blob in
     // localStorage is what used to blow the 5 MB quota after about a week and
@@ -1976,8 +2017,8 @@ async function doBarcode(e){
   const file=e.target.files[0];if(!file)return;
   if(photoMustWait()){
     try{
-      const b=await b64(file);
-      if(await enqueueEntry({kind:'barcode', src:'data:'+b64Mime(file)+';base64,'+b}) >= 0){
+      const {data:b,mime}=await encodeImage(file);
+      if(await enqueueEntry({kind:'barcode', src:'data:'+mime+';base64,'+b, mime}) >= 0){
         HFX.success(); SFX.play('save');
         showToast(t('queue_added_barcode'));
         closeAdd();
@@ -1991,7 +2032,7 @@ async function doBarcode(e){
   document.getElementById('bcerr').classList.remove('on');
   document.getElementById('bcldr').classList.add('on');
   try{
-    const b=await b64(file),mime=b64Mime(file);
+    const {data:b,mime}=await encodeImage(file);
     // 1) Try fast path: OCR digits → OpenFoodFacts
     const code = await _ocrBarcode(b, mime);
     if (code) {

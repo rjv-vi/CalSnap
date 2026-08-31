@@ -29,17 +29,23 @@ function _queueId(){
 // resolution (1024 px) rather than the 480 px display thumbnail.
 async function storeQueueImage(dataUrl){
   const full = await shrinkDataUrl(dataUrl, 1024, 0.82);
+  // shrinkDataUrl hands the original back when it cannot re-encode (HEIC, a
+  // truncated file), so the stored copy is not necessarily a JPEG. Record what
+  // it actually is: the API refuses a payload whose bytes and declared type
+  // disagree.
+  const mime = dataUrlMime(full) || 'image/jpeg';
   try {
     const id = newImgId();
     await IMG.put(id, full);
     // Read it back before calling the photo saved: a record whose blob did not
     // survive looks perfectly fine right up until analysis time, and then the
     // photo is simply gone.
-    if (await IMG.get(id)) return { imgId: id };
+    if (await IMG.get(id)) return { imgId: id, mime };
   } catch(e) { /* fall through to the inline copy */ }
   // No usable IndexedDB (private-mode WebView), or the write did not stick:
   // keep a smaller inline copy so the queue still works.
-  return { img: await shrinkDataUrl(dataUrl, 768, 0.7) };
+  const small = await shrinkDataUrl(dataUrl, 768, 0.7);
+  return { img: small, mime: dataUrlMime(small) || mime };
 }
 
 // Park an entry for later analysis. `kind` is 'photo' | 'text' | 'barcode';
@@ -54,7 +60,7 @@ async function enqueueEntry(entry){
     id: _queueId(),
     kind: entry.kind || 'photo',
     ...ref,
-    mime: entry.mime || 'image/jpeg',
+    mime: ref.mime || entry.mime || 'image/jpeg',
     text: (entry.text || '').slice(0, 500),
     code: entry.code || '',
     desc: (entry.desc || '').slice(0, 400),
@@ -85,8 +91,10 @@ function _dropQueueItem(id){
 
 function deleteQueueItem(id){
   HFX.light(); SFX.play('delete');
+  // The record goes first so the queue is authoritative immediately; the row
+  // left behind plays its exit animation and the list rebuilds after it.
   _dropQueueItem(id);
-  renderQueue();
+  _queueRowOut(id, 'out').then(renderQueue);
 }
 
 function retryQueueItem(id){
@@ -101,6 +109,19 @@ function retryQueueItem(id){
 
 // ── Processing ────────────────────────────────────────────────────
 let _queueRunning = false;
+// The record currently being analysed, and how far the drain has got. Both are
+// only for the UI: a queue that says nothing while it works looks stuck.
+let _queueActiveId = '';
+let _queueProgress = { done: 0, total: 0 };
+
+// Let a row play its exit animation before the list is rebuilt without it.
+function _queueRowOut(id, cls){
+  if (typeof document === 'undefined' || !document) return Promise.resolve();
+  const row = document.querySelector('.pq-row[data-qid="' + id + '"]');
+  if (!row) return Promise.resolve();
+  row.classList.add(cls);
+  return new Promise(res => setTimeout(res, 280));
+}
 
 // Why the queue cannot run right now, or '' when it can.
 function queueBlockedReason(){
@@ -122,13 +143,18 @@ async function processQueue(opts){
     return;
   }
   _queueRunning = true;
+  const pending = getQueue().slice().sort((a, b) => a.createdAt - b.createdAt).filter(r => !r.failed);
+  _queueProgress = { done: 0, total: pending.length };
+  _queueActiveId = '';
   renderQueue();
   let done = 0;
   try {
     // Oldest first, so the diary fills in chronologically.
-    for (const rec of getQueue().slice().sort((a, b) => a.createdAt - b.createdAt)) {
+    for (const rec of pending) {
       if (rec.failed) continue;
       if (queueBlockedReason()) break;
+      _queueActiveId = rec.id;
+      renderQueue();
       const kind = rec.kind || 'photo';
       const needsImage = kind === 'photo' || (kind === 'barcode' && !rec.code);
       const src = needsImage ? (rec.img || (rec.imgId ? await IMG.get(rec.imgId) : null)) : null;
@@ -142,9 +168,12 @@ async function processQueue(opts){
       }
       try {
         let r;
+        // Trust the stored bytes over the stored field: a record written by an
+        // older build may carry a MIME that no longer matches its image.
+        const mime = (src ? dataUrlMime(src) : '') || rec.mime || 'image/jpeg';
         if (kind === 'text')          r = await analyzeTextData(rec.text);
-        else if (kind === 'barcode')  r = rec.code ? await _offLookup(rec.code) : await analyzeBarcodeData(src, rec.mime);
-        else                          r = await analyzePhotoData(src, rec.desc, rec.mime);
+        else if (kind === 'barcode')  r = rec.code ? await _offLookup(rec.code) : await analyzeBarcodeData(src, mime);
+        else                          r = await analyzePhotoData(src, rec.desc, mime);
         if (!r) throw new Error(t('bc_not_found'));
         const imgRef = src ? await storeFoodImage(src) : {};
         const entry = {
@@ -158,8 +187,12 @@ async function processQueue(opts){
         };
         log.unshift(entry);
         if (!saveLog()) { log.shift(); break; }   // storage full — stop, keep the item
+        // Tick the row off on screen before it disappears, so a drain of several
+        // photos reads as progress rather than a list flickering shorter.
+        await _queueRowOut(rec.id, 'done');
         _dropQueueItem(rec.id);
         done++;
+        _queueProgress.done = done;
       } catch(e) {
         const msg = String(e?.message || e || '');
         const cur = getQueue();
@@ -167,7 +200,9 @@ async function processQueue(opts){
         if (live) {
           live.attempts = (live.attempts || 0) + 1;
           live.lastErr = msg.slice(0, 160);
-          if (live.attempts >= QUEUE_MAX_ATTEMPTS) live.failed = true;
+          // "No food in this picture" will not change on a retry — fail it now
+          // and let the row say why, instead of burning five attempts.
+          if (e?.noFood || live.attempts >= QUEUE_MAX_ATTEMPTS) live.failed = true;
           saveQueue(cur);
         }
         // A network drop or an exhausted pool means every remaining item will
@@ -177,6 +212,7 @@ async function processQueue(opts){
     }
   } finally {
     _queueRunning = false;
+    _queueActiveId = '';
   }
   if (done) {
     HFX.success(); SFX.play('scan_success');
@@ -190,26 +226,57 @@ async function processQueue(opts){
 }
 
 // ── Rendering ─────────────────────────────────────────────────────
+// Short, human reason a row is stuck. lastErr holds whatever the API or the
+// network said, which is worth showing — "failed" on its own tells the user
+// nothing they can act on.
+function _queueReason(rec){
+  const raw = String(rec.lastErr || '');
+  if (!raw) return '';
+  if (raw === 'image-missing') return t('queue_err_image');
+  return raw.length > 90 ? raw.slice(0, 88) + '…' : raw;
+}
+
 let _queueSig = '';
 function renderQueue(){
+  // A deferred trigger can land after the document is gone (page teardown, or
+  // a closed test window), and `document` is undefined by then.
+  if (typeof document === 'undefined' || !document) return;
   const card = document.getElementById('pendingCard');
   if (!card) return;
   const q = getQueue().slice().sort((a, b) => b.createdAt - a.createdAt);
+  const blocked = queueBlockedReason();
   // rH() calls this on every render; rebuilding identical markup would replay
   // the row entrance animation for no reason.
-  const sig = JSON.stringify([q.map(r => [r.id, r.failed, r.attempts]), _queueRunning, queueBlockedReason(), LANG]);
+  const sig = JSON.stringify([q.map(r => [r.id, r.failed, r.attempts, r.lastErr]),
+                              _queueRunning, _queueActiveId, _queueProgress.done, blocked, LANG]);
   if (sig === _queueSig && card.dataset.built === '1') return;
   _queueSig = sig;
   card.dataset.built = q.length ? '1' : '';
-  if (!q.length) { card.style.display = 'none'; card.innerHTML = ''; return; }
+  if (!q.length) {
+    card.style.display = 'none'; card.innerHTML = '';
+    try { _updateOfflineBarText(); } catch(e) {}
+    return;
+  }
   card.style.display = '';
-  const blocked = queueBlockedReason();
+  card.classList.toggle('working', _queueRunning);
+  const stuck = q.filter(r => r.failed).length;
+
   const btn = _queueRunning
-    ? `<button class="pq-btn" disabled>${esc(t('queue_working'))}</button>`
-    : `<button class="pq-btn" onclick="HFX.light();SFX.play('btn_tap');processQueue({manual:true})">${esc(t('queue_analyze_now'))}</button>`;
+    ? `<button class="pq-btn work" disabled><span class="pq-spin" aria-hidden="true"></span>${esc(t('queue_working'))}</button>`
+    : `<button class="pq-btn${blocked ? '' : ' go'}" onclick="HFX.light();SFX.play('btn_tap');processQueue({manual:true})">${esc(t('queue_analyze_now'))}</button>`;
+
+  // While draining, the header carries a determinate bar: "2 / 5".
+  const total = _queueProgress.total || q.length;
+  const pct = total ? Math.round(_queueProgress.done / total * 100) : 0;
+  const prog = _queueRunning
+    ? `<div class="pq-prog"><i style="width:${pct}%"></i></div>
+       <div class="pq-prog-lbl">${_queueProgress.done} / ${total}</div>`
+    : '';
+
+  const KIND_ICON = { photo: '📷', text: '✍️', barcode: '📦' };
   const rows = q.map(rec => {
     const kind = rec.kind || 'photo';
-    const KIND_ICON = { photo: '📷', text: '✍️', barcode: '📦' };
+    const active = _queueRunning && rec.id === _queueActiveId;
     const thumb = rec.imgId
       ? `<img class="pq-thumb" data-img-id="${esc(rec.imgId)}" alt="">`
       : (rec.img ? `<img class="pq-thumb" src="${esc(rec.img)}" alt="">`
@@ -218,31 +285,43 @@ function renderQueue(){
     // optional photo hint.
     const label = kind === 'text' ? rec.text : kind === 'barcode' ? (rec.code || t('tab_barcode')) : rec.desc;
     const when = rec.date === ds() ? rec.time : fmtDate(rec.date, { day: 'numeric', month: 'short' }) + ' · ' + rec.time;
+    const reason = _queueReason(rec);
+    const tries = !rec.failed && rec.attempts > 0
+      ? `<span class="pq-tries">${rec.attempts}/${QUEUE_MAX_ATTEMPTS}</span>` : '';
     const state = rec.failed
-      ? `<span class="pq-state bad">${esc(t('queue_state_failed'))}</span>`
-      : (_queueRunning
-          ? `<span class="pq-state work">${esc(t('queue_state_working'))}</span>`
-          : `<span class="pq-state">${esc(blocked || t('queue_state_waiting'))}</span>`);
-    return `<div class="pq-row">
-      ${thumb}
+      ? `<span class="pq-state bad"><span class="pq-dot bad"></span>${esc(reason ? t('queue_state_failed_short') + ' · ' + reason : t('queue_state_failed'))}</span>`
+      : (active
+          ? `<span class="pq-state work"><span class="pq-dot work"></span>${esc(t('queue_state_working'))}</span>`
+          : `<span class="pq-state"><span class="pq-dot"></span>${esc(blocked || t('queue_state_waiting'))}${tries}</span>`);
+    return `<div class="pq-row${rec.failed ? ' bad' : ''}${active ? ' active' : ''}" data-qid="${esc(rec.id)}">
+      <div class="pq-thumb-wrap">${thumb}${active ? '<span class="pq-thumb-spin" aria-hidden="true"></span>' : ''}</div>
       <div class="pq-info">
-        <div class="pq-when">${esc(when)}</div>
+        <div class="pq-when">${esc(when)}${kind !== 'photo' ? ` <span class="pq-kind">${KIND_ICON[kind] || ''}</span>` : ''}</div>
         ${label ? `<div class="pq-desc">${esc(label)}</div>` : ''}
         ${state}
       </div>
-      ${rec.failed ? `<button class="pq-mini" onclick="retryQueueItem('${esc(rec.id)}')" title="${esc(t('retry'))}">↻</button>` : ''}
-      <button class="pq-mini del" onclick="deleteQueueItem('${esc(rec.id)}')" title="${esc(t('btn_delete'))}">✕</button>
+      ${rec.failed ? `<button class="pq-mini retry" onclick="retryQueueItem('${esc(rec.id)}')" aria-label="${esc(t('retry'))}" title="${esc(t('retry'))}">↻</button>` : ''}
+      <button class="pq-mini del" onclick="deleteQueueItem('${esc(rec.id)}')" aria-label="${esc(t('btn_delete'))}" title="${esc(t('btn_delete'))}">✕</button>
     </div>`;
   }).join('');
+
+  const sub = stuck && !_queueRunning
+    ? tf('queue_sub_stuck', { n: stuck })
+    : (blocked || t('queue_sub_ready'));
+
+  // The offline bar counts the same queue — keep the two in step.
+  try { _updateOfflineBarText(); } catch(e) {}
+
   card.innerHTML = `
     <div class="pq-hdr">
-      <div class="pq-ico">📸</div>
+      <div class="pq-ico">📸<span class="pq-badge">${q.length}</span></div>
       <div style="flex:1;min-width:0">
         <div class="pq-title">${esc(tf('queue_title', { n: q.length }))}</div>
-        <div class="pq-sub">${esc(blocked || t('queue_sub_ready'))}</div>
+        <div class="pq-sub${stuck && !_queueRunning ? ' bad' : ''}">${esc(sub)}</div>
       </div>
       ${btn}
     </div>
+    ${prog}
     <div class="pq-list">${rows}</div>`;
   hydrateImages(card);
 }

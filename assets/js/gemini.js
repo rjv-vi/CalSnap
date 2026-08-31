@@ -57,7 +57,7 @@ let ALL_MODELS=[
 // sorted to the top of the picker. Kept as an id allowlist (rather than a
 // per-entry flag) so the recommendation survives ALL_MODELS being replaced
 // wholesale by fetchGeminiModels() once the live API list loads.
-const RECOMMENDED_MODEL_IDS = ['gemini-flash-lite-latest','gemini-flash-latest'];
+const RECOMMENDED_MODEL_IDS = ['gemini-flash-lite-latest','gemini-flash-latest','gemini-pro-latest'];
 const isRecommendedModel = (id) => RECOMMENDED_MODEL_IDS.includes(id);
 
 // The recommended model is only ever written on a *fresh install*. After that
@@ -104,77 +104,121 @@ async function fetchGeminiModels(){
   }catch(e){console.log('Model fetch failed:',e.message);}
 }
 
-// ── Model descriptions ────────────────────────────────────────────
-// Derived from the model id so the picker follows the UI language. Entries
-// fetched from the live API carry their own (English) description and keep it.
-function _modelDescFor(m){
-  if (m.fromApi && m.desc) return m.desc;
-  if (m.desc) return m.desc;
-  const id = m.id || '';
-  const tier =
-    /flash-lite/.test(id) ? '🪶 Flash Lite' :
-    /flash/.test(id)      ? '⚡ Flash' :
-    /\bpro\b|-pro/.test(id) ? '🏆 Pro' :
-    /robotics/.test(id)   ? '🤖 Robotics' : '✨ Gemini';
-  const ver = (id.match(/(\d+\.\d+|\d+)(?=[-.]|$)/) || [])[1] || '';
-  const traits = [];
-  if (/image/.test(id))        traits.push(t('mdl_images'));
-  if (/audio/.test(id))        traits.push(t('mdl_audio'));
-  if (/tts/.test(id))          traits.push(t('mdl_tts'));
-  if (/thinking/.test(id))     traits.push(t('mdl_thinking'));
-  if (/computer-use/.test(id)) traits.push(t('mdl_computer_use'));
-  if (/-8b/.test(id))          traits.push(t('mdl_compact'));
-  if (/\bexp\b|-exp/.test(id))traits.push(t('mdl_experimental'));
-  else if (/preview/.test(id)) traits.push(t('mdl_preview'));
-  else if (/latest/.test(id))  traits.push(t('mdl_latest'));
-  else if (/-\d{3}$/.test(id)) traits.push(t('mdl_stable'));
-  return [tier + (ver ? ' ' + ver : '')].concat(traits).join(' · ');
+// ── Model tags ────────────────────────────────────────────────────
+// The picker lists dozens of ids that mean nothing to anyone who has not read
+// the Gemini docs. Each one gets a few plain-language tags derived from its id,
+// so "which of these should I pick" has an answer at a glance.
+//
+// tone: 'good' | 'warn' | 'bad' | 'info' — drives the pill colour.
+function modelTags(m){
+  const id = (m?.id || '').toLowerCase();
+  const tags = [];
+  const add = (key, tone) => tags.push({ key, tone: tone || 'info' });
+
+  if (isRecommendedModel(id)) add('mdl_tag_recommended', 'good');
+
+  // Speed / quality tier.
+  if (/flash-lite/.test(id))      { add('mdl_tag_fastest', 'good'); add('mdl_tag_cheap', 'good'); }
+  else if (/flash/.test(id))      { add('mdl_tag_fast', 'good'); }
+  else if (/\bpro\b|-pro/.test(id)) { add('mdl_tag_accurate', 'good'); add('mdl_tag_slow', 'warn'); add('mdl_tag_low_quota', 'warn'); }
+
+  // Capabilities that make a model a poor fit for photographing dinner.
+  if (/tts|native-audio|audio/.test(id))       add('mdl_tag_not_for_food', 'bad');
+  else if (/image-generation|flash-image|pro-image/.test(id)) add('mdl_tag_not_for_food', 'bad');
+  else if (/computer-use|robotics|embedding/.test(id))       add('mdl_tag_not_for_food', 'bad');
+
+  if (/thinking/.test(id)) { add('mdl_tag_reasoning', 'info'); add('mdl_tag_slow', 'warn'); }
+  if (/-8b/.test(id))      add('mdl_tag_compact', 'info');
+
+  // Maturity.
+  if (/\bexp\b|-exp/.test(id))  add('mdl_tag_experimental', 'warn');
+  else if (/preview/.test(id))  add('mdl_tag_preview', 'warn');
+  else if (/latest/.test(id))   add('mdl_tag_latest', 'info');
+  else if (/-\d{3}$/.test(id))  add('mdl_tag_pinned', 'info');
+
+  if (/gemini-1\.5|gemini-1\.0|gemini-pro$/.test(id)) add('mdl_tag_legacy', 'bad');
+  else if (/gemini-2\.0/.test(id))                    add('mdl_tag_older', 'warn');
+
+  // De-duplicate (a "thinking exp" model can pick up "slow" twice).
+  const seen = new Set();
+  return tags.filter(x => !seen.has(x.key) && seen.add(x.key)).slice(0, 4);
 }
 
-// Recommended models first, then the rest in their existing order.
-function _sortedModelsForPicker(){
-  const recommended = ALL_MODELS.filter(m => isRecommendedModel(m.id));
-  const rest = ALL_MODELS.filter(m => !isRecommendedModel(m.id));
-  return [...recommended, ...rest];
+// Short tier line shown above the tags.
+function _modelTier(m){
+  const id = (m?.id || '').toLowerCase();
+  const tier =
+    /flash-lite/.test(id)   ? '🪶 Flash Lite' :
+    /flash/.test(id)        ? '⚡ Flash' :
+    /\bpro\b|-pro/.test(id) ? '🏆 Pro' :
+    /robotics/.test(id)     ? '🤖 Robotics' : '✨ Gemini';
+  const ver = (id.match(/(\d+\.\d+|\d+)(?=[-.]|$)/) || [])[1] || '';
+  return tier + (ver ? ' ' + ver : '');
 }
 
 function _modelRowHtml(m){
-  const badge = isRecommendedModel(m.id)
-    ? `<span style="display:inline-block;margin-left:6px;padding:2px 7px;border-radius:8px;font-size:10px;font-weight:800;letter-spacing:.2px;background:${m.id===selModel?'color-mix(in srgb,var(--on-acc) 22%,transparent)':'var(--acc)'};color:var(--on-acc);vertical-align:middle">${t('model_recommended')}</span>`
-    : '';
-  return `
-    <div onclick="HFX.tick();SFX.play('select');selectModel('${m.id}')" style="
-      padding:14px 16px;border-radius:14px;cursor:pointer;
-      background:${m.id===selModel?'var(--acc)':'var(--bg0)'};
-      border:1.5px solid ${m.id===selModel?'var(--acc)':'var(--b0)'};
-      display:flex;justify-content:space-between;align-items:center;transition:all .15s">
-      <div>
-        <div style="font-size:14px;font-weight:700;color:${m.id===selModel?'var(--on-acc)':'var(--t0)'}">${esc(m.name)}${badge}</div>
-        <div style="font-size:11px;margin-top:2px;color:${m.id===selModel?'color-mix(in srgb,var(--on-acc) 78%,transparent)':'var(--t1)'}">${esc(_modelDescFor(m))}</div>
+  const on = m.id === selModel;
+  const tags = modelTags(m).map(x => `<span class="mdl-tag ${x.tone}">${esc(t(x.key))}</span>`).join('');
+  return `<button class="mdl-row${on ? ' on' : ''}" onclick="HFX.tick();SFX.play('select');selectModel('${esc(m.id)}')">
+      <div class="mdl-main">
+        <div class="mdl-name">${esc(m.name)}</div>
+        <div class="mdl-tier">${esc(_modelTier(m))}</div>
+        ${tags ? `<div class="mdl-tags">${tags}</div>` : ''}
       </div>
-      ${m.id===selModel?'<span style="font-size:18px;color:var(--on-acc)">✓</span>':''}
-    </div>
-  `;
+      <span class="mdl-check" aria-hidden="true">${on ? '✓' : ''}</span>
+    </button>`;
+}
+
+// Grouped, searchable list. Fifty-odd ids is far too many to scan, so the ones
+// worth picking come first under their own heading and everything else follows.
+function _renderModelList(filter){
+  const list = document.getElementById('mdlList');
+  if (!list) return;
+  const f = String(filter || '').trim().toLowerCase();
+  const match = (m) => !f || m.name.toLowerCase().includes(f) || m.id.toLowerCase().includes(f)
+                    || modelTags(m).some(x => t(x.key).toLowerCase().includes(f));
+  const rec = ALL_MODELS.filter(m => isRecommendedModel(m.id) && match(m));
+  const rest = ALL_MODELS.filter(m => !isRecommendedModel(m.id) && match(m));
+  if (!rec.length && !rest.length) {
+    list.innerHTML = `<div class="mdl-empty">
+      <div class="mdl-empty-ico" aria-hidden="true">🔍</div>
+      <div class="mdl-empty-t">${esc(t('mdl_none'))}</div>
+      <div class="mdl-empty-s">${esc(t('mdl_none_sub'))}</div>
+    </div>`;
+    return;
+  }
+  const group = (key, items) => items.length
+    ? `<div class="mdl-grp">${esc(t(key))}<span>${items.length}</span></div>` + items.map(_modelRowHtml).join('')
+    : '';
+  list.innerHTML = group('mdl_grp_recommended', rec) + group('mdl_grp_rest', rest);
+  const x = document.getElementById('mdlSearchX');
+  if (x) x.hidden = !f;
+}
+
+function clearModelSearch(){
+  const box = document.getElementById('mdlSearch');
+  if (box) { box.value = ''; box.focus(); }
+  HFX.light(); SFX.play('btn_tap');
+  _renderModelList('');
 }
 
 function openModelPicker(){
   const ov=document.getElementById('mdlOv');
-  const list=document.getElementById('mdlList');
   const cnt=document.getElementById('mdlCount');
   if(cnt) cnt.textContent=tf('mdl_count',{n:ALL_MODELS.length});
-  // Add search box
   const searchBox = document.getElementById('mdlSearch');
-  if(searchBox){ searchBox.value=''; }
-  const renderModels = (filter='') => {
-    const source = _sortedModelsForPicker();
-    const filtered = filter ? source.filter(m=>m.name.toLowerCase().includes(filter.toLowerCase())||m.id.toLowerCase().includes(filter.toLowerCase())) : source;
-    list.innerHTML=filtered.map(_modelRowHtml).join('');
-  };
-  renderModels();
+  if(searchBox){
+    searchBox.value='';
+    searchBox.oninput = (e) => _renderModelList(e.target.value);
+  }
+  _renderModelList('');
   ov.style.display='flex';
   ov.style.animation='ovIn .18s ease';
   lockScroll(true);
-  if(searchBox){ searchBox.oninput=e=>renderModels(e.target.value); }
+  // The selected row is usually below the fold once the list is this long.
+  requestAnimationFrame(() => {
+    document.querySelector('#mdlList .mdl-row.on')?.scrollIntoView({ block: 'nearest' });
+  });
 }
 function closeModelPicker(){
   const ov=document.getElementById('mdlOv');
@@ -189,9 +233,8 @@ function selectModel(id){
   S('model',id);
   document.getElementById('smodel').textContent=ALL_MODELS.find(m=>m.id===id)?.name||id;
   closeModelPicker();
-  // Re-render list
-  const list=document.getElementById('mdlList');
-  if(list) list.innerHTML=_sortedModelsForPicker().map(_modelRowHtml).join('');
+  // Keep the list in step for the next time it opens.
+  _renderModelList(document.getElementById('mdlSearch')?.value || '');
 }
 // Fatal errors must not be retried with the same key — that only fires more
 // doomed requests and delays the message the user needs.
@@ -294,9 +337,49 @@ async function gem(parts,sys='',opts={},history=[]){
 // as a last resort the original bytes are sent through untouched.
 const IMG_MAX_EDGE = 1024;
 const IMG_QUALITY = 0.85;
+// Progressively smaller retries: a 12 000 px screenshot can exceed the platform
+// canvas limit, where toDataURL either throws or hands back an empty string.
+const IMG_FALLBACK_EDGES = [1024, 768, 512, 320];
 // Hard ceiling for the pass-through path: Gemini takes inline data up to ~20 MB
 // base64, and base64 inflates by ~4/3.
 const IMG_RAW_MAX_BYTES = 12 * 1024 * 1024;
+// Types the API will accept as-is when we cannot re-encode them ourselves.
+const IMG_RAW_OK = /^image\/(jpeg|jpg|png|webp|heic|heif|gif|bmp|avif|tiff?)$/i;
+
+// Magic bytes, so a file the picker handed over with an empty or wrong type
+// still gets a truthful MIME. Android document providers routinely report
+// `application/octet-stream` (or nothing at all) for a perfectly ordinary
+// screenshot, and declaring that to the API gets the picture refused.
+const IMG_MAGIC = [
+  ['image/jpeg', [0xFF, 0xD8, 0xFF]],
+  ['image/png',  [0x89, 0x50, 0x4E, 0x47]],
+  ['image/gif',  [0x47, 0x49, 0x46, 0x38]],
+  ['image/bmp',  [0x42, 0x4D]],
+  ['image/tiff', [0x49, 0x49, 0x2A, 0x00]],
+  ['image/tiff', [0x4D, 0x4D, 0x00, 0x2A]],
+];
+function _sniffMime(bytes){
+  for (const [mime, sig] of IMG_MAGIC) {
+    if (sig.every((b, i) => bytes[i] === b)) return mime;
+  }
+  // RIFF....WEBP / ....ftypheic|heif|mif1|avif — both carry the marker at 8.
+  const tag = String.fromCharCode(...bytes.slice(4, 12));
+  if (bytes[0] === 0x52 && bytes[1] === 0x49 && /WEBP/.test(tag)) return 'image/webp';
+  if (/ftyp(heic|heix|hevc|mif1|msf1)/i.test(tag)) return 'image/heic';
+  if (/ftyp(avif|avis)/i.test(tag)) return 'image/avif';
+  return '';
+}
+// First bytes of a base64 payload, for _sniffMime().
+function _b64Head(b64str){
+  try {
+    const bin = atob(String(b64str).slice(0, 32));
+    return Array.from(bin, c => c.charCodeAt(0));
+  } catch(e) { return []; }
+}
+// MIME declared by a data URL, or '' when it carries none.
+function dataUrlMime(u){
+  return (String(u || '').match(/^data:([^;,]+)/) || [, ''])[1].toLowerCase();
+}
 
 function _fileToDataUrl(file){
   return new Promise((res, rej) => {
@@ -307,81 +390,186 @@ function _fileToDataUrl(file){
   });
 }
 
-function _fitted(w, h){
-  if (w <= IMG_MAX_EDGE && h <= IMG_MAX_EDGE) return [w, h];
+function _fitted(w, h, maxEdge){
+  const m = maxEdge || IMG_MAX_EDGE;
+  if (w <= m && h <= m) return [Math.max(1, w), Math.max(1, h)];
   return w >= h
-    ? [IMG_MAX_EDGE, Math.max(1, Math.round(h * IMG_MAX_EDGE / w))]
-    : [Math.max(1, Math.round(w * IMG_MAX_EDGE / h)), IMG_MAX_EDGE];
+    ? [m, Math.max(1, Math.round(h * m / w))]
+    : [Math.max(1, Math.round(w * m / h)), m];
 }
 
-// Draw whatever was decoded onto a canvas and return bare base64.
+// Draw whatever was decoded onto a canvas and return bare base64. It retries at
+// smaller sizes because the failure mode of an oversized canvas is a silent
+// empty result rather than an exception — which is how large screenshots ended
+// up being refused.
+// A JPEG data URL is only trustworthy if it actually says so and carries a
+// payload. The old check demanded 512 characters, which quietly rejected small
+// pictures — an icon, a cropped screenshot, a flat-colour image — even though
+// the encode had succeeded.
+function _jpegPayload(out){
+  const s = String(out || '');
+  if (!/^data:image\/jpe?g;base64,/i.test(s)) return '';
+  const b = s.slice(s.indexOf(',') + 1);
+  return b.length >= 4 ? b : '';
+}
+
 function _drawToBase64(src, w, h){
-  const [dw, dh] = _fitted(w, h);
-  const cv = document.createElement('canvas');
-  cv.width = dw; cv.height = dh;
-  const ctx = cv.getContext('2d');
-  if (!ctx) throw new Error('no-2d-context');
-  ctx.drawImage(src, 0, 0, dw, dh);
-  const out = cv.toDataURL('image/jpeg', IMG_QUALITY);
-  if (!out || out.length < 32) throw new Error('canvas-empty');
-  return out.split(',')[1];
+  let lastErr;
+  for (const edge of IMG_FALLBACK_EDGES) {
+    const [dw, dh] = _fitted(w, h, edge);
+    let cv = null;
+    try {
+      cv = document.createElement('canvas');
+      cv.width = dw; cv.height = dh;
+      const ctx = cv.getContext('2d');
+      if (!ctx) throw new Error('no-2d-context');
+      // PNGs and screenshots with transparency come out black on a JPEG
+      // background unless it is painted first.
+      ctx.fillStyle = '#FFFFFF';
+      ctx.fillRect(0, 0, dw, dh);
+      ctx.drawImage(src, 0, 0, dw, dh);
+      const payload = _jpegPayload(cv.toDataURL('image/jpeg', IMG_QUALITY));
+      if (!payload) throw new Error('canvas-empty');
+      return payload;
+    } catch(e) {
+      lastErr = e;
+    } finally {
+      // Free the backing store right away: several 100 MP attempts in a row is
+      // exactly how a mobile tab gets killed.
+      if (cv) { cv.width = 1; cv.height = 1; }
+    }
+  }
+  throw lastErr || new Error('canvas-failed');
 }
 
-// 1) createImageBitmap: widest format coverage (HEIC where the platform
-//    supports it, AVIF, WebP) and it never needs a data URL round-trip.
+// Same job on an OffscreenCanvas. Some WebViews cap the *element* canvas well
+// below the offscreen one, so this rescues large screenshots that the loop
+// above gives up on. Async because the only way out is a Blob.
+async function _drawToBase64Offscreen(src, w, h){
+  if (typeof OffscreenCanvas !== 'function') throw new Error('no-offscreen');
+  let lastErr;
+  for (const edge of IMG_FALLBACK_EDGES) {
+    const [dw, dh] = _fitted(w, h, edge);
+    try {
+      const cv = new OffscreenCanvas(dw, dh);
+      const ctx = cv.getContext('2d');
+      if (!ctx) throw new Error('no-2d-context');
+      ctx.fillStyle = '#FFFFFF';
+      ctx.fillRect(0, 0, dw, dh);
+      ctx.drawImage(src, 0, 0, dw, dh);
+      if (typeof cv.convertToBlob !== 'function') throw new Error('no-convertToBlob');
+      const blob = await cv.convertToBlob({ type: 'image/jpeg', quality: IMG_QUALITY });
+      const payload = _jpegPayload(await _fileToDataUrl(blob));
+      if (!payload) throw new Error('offscreen-empty');
+      return payload;
+    } catch(e) { lastErr = e; }
+  }
+  throw lastErr || new Error('offscreen-failed');
+}
+
+// Element canvas first, OffscreenCanvas as the backstop — their size limits
+// differ, and only one of them failing is the common case.
+async function _rasterize(src, w, h){
+  try { return _drawToBase64(src, w, h); }
+  catch(e) { return await _drawToBase64Offscreen(src, w, h); }
+}
+
+// 1) createImageBitmap — the widest format coverage (HEIC where the platform
+//    supports it, AVIF, WebP) and no data-URL round-trip.
 async function _decodeViaBitmap(file){
   if (typeof createImageBitmap !== 'function') throw new Error('no-createImageBitmap');
   const bmp = await createImageBitmap(file);
-  try { return _drawToBase64(bmp, bmp.width, bmp.height); }
-  finally { if (bmp.close) bmp.close(); }
+  try { return await _rasterize(bmp, bmp.width, bmp.height); }
+  finally { bmp.close?.(); }
 }
 
-// 2) The classic <img> decoder, from a data URL.
-function _decodeViaImage(dataUrl){
+// 2) The classic <img> decoder, from a data URL or a blob URL.
+function _decodeViaImage(src){
   return new Promise((resolve, reject) => {
     const img = new Image();
-    const bail = setTimeout(() => reject(new Error('decode-timeout')), 12000);
+    // Long enough for a 50 MP PNG on a slow phone, short enough not to hang.
+    const bail = setTimeout(() => reject(new Error('decode-timeout')), 20000);
     img.onload = () => {
       clearTimeout(bail);
-      try { resolve(_drawToBase64(img, img.naturalWidth || IMG_MAX_EDGE, img.naturalHeight || IMG_MAX_EDGE)); }
-      catch(e) { reject(e); }
+      _rasterize(img, img.naturalWidth || IMG_MAX_EDGE, img.naturalHeight || IMG_MAX_EDGE).then(resolve, reject);
     };
     img.onerror = () => { clearTimeout(bail); reject(new Error('decode-failed')); };
-    img.src = dataUrl;
+    img.src = src;
   });
 }
 
-async function b64(file){
+// 3) A blob URL skips the base64 round-trip entirely, which matters once the
+//    data URL alone would be tens of megabytes.
+async function _decodeViaBlobUrl(file){
+  if (!(file instanceof Blob) || typeof URL?.createObjectURL !== 'function') throw new Error('no-blob-url');
+  const url = URL.createObjectURL(file);
+  try { return await _decodeViaImage(url); }
+  finally { URL.revokeObjectURL(url); }
+}
+
+// Decode + downscale any picked image for the API.
+//
+// Four decode paths are attempted before giving up, because "the browser can
+// display it" and "an <img> can decode it into a canvas of that size" are not
+// the same set. Large screenshots, HEIC from iPhones and exotic types all used
+// to land in the same dead end and the picture was refused outright.
+//
+// Returns { data, mime } — the two always belong together. Declaring the wrong
+// MIME is not a cosmetic mistake: the API rejects a payload whose bytes do not
+// match the type it was told to expect, which is exactly how re-encoded PNG
+// screenshots ended up being refused as invalid images.
+const _encMime = new WeakMap();   // File -> MIME actually produced
+
+async function encodeImage(file){
   // Reuse the dataURL only when called with the exact same File the photo tab
   // already read (phDataUrl belongs to phFile). Without this guard a barcode
   // scan after picking a photo would analyse the stale photo instead.
   const canReuse = (typeof phFile !== 'undefined') && file && file === phFile
                 && (typeof phDataUrl !== 'undefined') && phDataUrl;
+  const errs = [];
+  const done = (data, mime) => {
+    try { if (file && typeof file === 'object') _encMime.set(file, mime); } catch(e) {}
+    return { data, mime };
+  };
 
   if (!canReuse) {
-    try { return await _decodeViaBitmap(file); } catch(e) { /* try the next path */ }
+    try { return done(await _decodeViaBitmap(file), 'image/jpeg'); } catch(e) { errs.push('bitmap:' + (e?.message || e)); }
+    try { return done(await _decodeViaBlobUrl(file), 'image/jpeg'); } catch(e) { errs.push('blob:' + (e?.message || e)); }
   }
 
   let dataUrl;
   try { dataUrl = canReuse ? phDataUrl : await _fileToDataUrl(file); }
   catch(e) { throw new Error(t('err_file_open')); }
 
-  try { return await _decodeViaImage(dataUrl); } catch(e) { /* last resort below */ }
+  try { return done(await _decodeViaImage(dataUrl), 'image/jpeg'); } catch(e) { errs.push('img:' + (e?.message || e)); }
 
-  // Nothing could decode it. If the bytes are already a format the API accepts,
-  // hand them over untouched rather than refusing the photo outright.
-  const head = String(dataUrl).slice(0, 40);
+  // Nothing could re-encode it. If the bytes are already a type the API takes,
+  // hand them over untouched rather than refusing the picture — but send the
+  // type the *bytes* say they are, not the one the file picker claimed.
   const raw = String(dataUrl).split(',')[1] || '';
-  const okType = /^data:image\/(jpeg|jpg|png|webp|heic|heif)/i.test(head);
-  if (okType && raw && raw.length <= IMG_RAW_MAX_BYTES) return raw;
-  throw new Error(t('err_photo_unsupported'));
+  const declared = dataUrlMime(dataUrl);
+  const sniffed = _sniffMime(_b64Head(raw));
+  const type = sniffed || declared;
+  if (IMG_RAW_OK.test(type) && raw && raw.length <= IMG_RAW_MAX_BYTES) return done(raw, type);
+
+  try { if (window._devErrors) window._devErrors.push('image decode failed — ' + errs.join(' | ')); } catch(e) {}
+  if (raw.length > IMG_RAW_MAX_BYTES) throw new Error(t('err_photo_too_big'));
+  // Not an image at all (a PDF or a document picked through "All files") is a
+  // different problem from an image we could not read, and saying so saves the
+  // user from retrying the same file.
+  throw new Error(type && !/^image\//.test(type) ? t('err_photo_not_image') : t('err_photo_unsupported'));
 }
 
-// MIME type to declare for a payload produced by b64(). Anything that went
-// through the canvas is JPEG; a pass-through keeps its original type.
+// Bare-base64 form, for the call sites that only need the payload.
+async function b64(file){ return (await encodeImage(file)).data; }
+
+// MIME type to declare for a payload produced by b64(). The value recorded by
+// encodeImage() wins; the heuristic below is only for a file that has not been
+// encoded yet.
 function b64Mime(file){
+  try { if (file && _encMime.has(file)) return _encMime.get(file); } catch(e) {}
   const t2 = (file && file.type || '').toLowerCase();
-  return /^image\/(png|webp|heic|heif)$/.test(t2) ? t2 : 'image/jpeg';
+  return IMG_RAW_OK.test(t2) && !/^image\/(jpeg|jpg)$/.test(t2) ? t2 : 'image/jpeg';
 }
 
 function pj(raw){

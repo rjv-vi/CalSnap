@@ -356,9 +356,12 @@ function pickGender(g){
 }
 function calcAgeFromDob(dob){
   if(!dob)return null;
-  const b=new Date(dob),n=new Date();
+  const b=new Date(dob);
+  if(isNaN(b))return null;
+  const n=new Date();
   let a=n.getFullYear()-b.getFullYear();
   if(n.getMonth()<b.getMonth()||(n.getMonth()===b.getMonth()&&n.getDate()<b.getDate()))a--;
+  // A negative result means the date is in the future; callers check for it.
   return a;
 }
 // onDobChange replaced by drum picker
@@ -367,7 +370,7 @@ function on2(){
   const dob=btn?.dataset?.dob||'';
   const h=document.getElementById('obh').value,w=document.getElementById('obw').value;
   const age=calcAgeFromDob(dob);
-  if(!dob||!age||age<5||age>120){
+  if(!dob||age==null||age<0||age>120){
     // Animate button to highlight
     const b=document.getElementById('ob_dob_btn');
     if(b){b.style.borderColor='var(--err)';setTimeout(()=>{b.style.borderColor='';},1500);}

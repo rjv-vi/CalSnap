@@ -47,9 +47,22 @@ function _offlRetryHtml(labelKey, spinning){
   const spin = spinning ? ' style="animation:spin .7s linear infinite"' : '';
   return `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"${spin}><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-3.5"/></svg> <span>${esc(t(labelKey))}</span>`;
 }
+// The sheet promises "photos are queued" — so it also has to say how many are
+// actually sitting there, otherwise the promise is unverifiable.
+function _updateOfflineQueueChip(){
+  const box = document.getElementById('offlQueue');
+  const txt = document.getElementById('offlQueueTxt');
+  if (!box || !txt) return;
+  let n = 0;
+  try { n = queueCount(); } catch(e) {}
+  box.hidden = !n;
+  if (n) txt.textContent = tf('offl_queue_chip', { n });
+}
+
 function showOfflineModal() {
   const btn = document.getElementById('offlRetryBtn');
   if(btn){ btn.disabled=false; btn.style.opacity='1'; btn.innerHTML=_offlRetryHtml('offl_retry'); }
+  _updateOfflineQueueChip();
   const ov = document.getElementById('offlOv');
   if(!ov || ov.classList.contains('on')) return;
   ov.classList.add('on');
@@ -85,11 +98,17 @@ function offlBarTap(){
 
 function retryConnection(silent) {
   const btn = document.getElementById('offlRetryBtn');
+  // The bar shows it is doing something even when the check was started from
+  // the bar itself (silent), where there is no button to spin.
+  const bar = document.getElementById('offlBar');
+  bar?.classList.add('checking');
+  setTimeout(() => bar?.classList.remove('checking'), 3200);
   if(!silent){
     HFX.light(); SFX.play('btn_tap');
     if(btn){ btn.disabled=true; btn.style.opacity='.6'; btn.innerHTML=_offlRetryHtml('offl_checking', true); }
   }
   return checkConnection().then(online => {
+    bar?.classList.remove('checking');
     if(online) {
       _applyOfflineUI(false);
       hideOfflineModal();
@@ -137,6 +156,8 @@ function _updateOfflineBarText(){
   let n = 0;
   try { n = queueCount(); } catch(e) {}
   el.textContent = n ? tf('offl_bar_queued', { n }) : t('offl_bar');
+  document.getElementById('offlBar')?.classList.toggle('has-queue', n > 0);
+  _updateOfflineQueueChip();
 }
 window.addEventListener('online', () => {
   setTimeout(() => {

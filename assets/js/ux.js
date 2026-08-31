@@ -93,6 +93,7 @@ const OVERLAYS = [
   { sel: '#mdlOv',         open: el => el.style.display === 'flex',            close: () => closeModelPicker() },
   { sel: '#aboutOv',       open: el => el.classList.contains('on'),            close: () => closeAbout() },
   { sel: '#notifOv',       open: el => el.classList.contains('on'),            close: () => closeNotifSettings() },
+  { sel: '#mealOv',        open: el => el.classList.contains('on'),            close: () => closeMealTimes() },
   { sel: '#apiOv',         open: el => el.classList.contains('on'),            close: () => closeApi() },
   { sel: '#edOv',          open: el => el.classList.contains('on'),            close: () => closeEd() },
   { sel: '#addOv',         open: el => el.classList.contains('on'),            close: () => closeAdd() },

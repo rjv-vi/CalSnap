@@ -105,6 +105,7 @@ async function boot({ lang = 'ru', quota = Infinity, seed = {}, fetchImpl = null
   window.HTMLCanvasElement.prototype.getContext = () => ({
     scale(){}, clearRect(){}, beginPath(){}, moveTo(){}, lineTo(){}, closePath(){},
     fill(){}, stroke(){}, arc(){}, fillText(){}, setLineDash(){}, drawImage(){},
+    fillRect(){}, strokeRect(){}, rect(){}, save(){}, restore(){}, translate(){}, rotate(){},
     createLinearGradient(){ return { addColorStop(){} }; },
     set font(v){}, set textAlign(v){}, set fillStyle(v){}, set strokeStyle(v){}, set lineWidth(v){},
     set lineJoin(v){}, set lineCap(v){},
@@ -155,14 +156,17 @@ async function boot({ lang = 'ru', quota = Infinity, seed = {}, fetchImpl = null
   // properties, so surface the ones the tests poke at.
   const LEXICAL = ['I18N', 'S', 'G', 'Ginvalidate', 'LANG', 'U', 'log', 'wts', 'key', 'cur',
                    'IMG', 'SFX', 'HFX', 'DRINKS', 'GL', 'MEAL_META', 'ds', 'tnow', 'tlog', 'dlog', 'tot',
-                   'onIdle', 'ALL_MODELS', 'OVERLAYS', 'SFX', 'RECOMMENDED_MODEL_IDS', 'KEY_COOLDOWNS',
+                   'onIdle', 'ALL_MODELS', 'OVERLAYS', 'SFX', 'RECOMMENDED_MODEL_IDS', 'KEY_COOLDOWNS', 'I18N',
                    'QUEUE_MAX_ATTEMPTS', 'GEM_MAX_ATTEMPTS', 'OVERLAYS',
                    'RESET_KEEP_KEYS', 'EMO_RULES', 'isWaterOn', 'isChatMemoryOn', 'isFullscreenPref',
                    'selDay', 'aiConvo', 'selModel', 'DEFAULT_MODEL', 'THEME_ORDER',
                    'themePref', 'resolvedTheme', 'systemPrefersDark',
                    'aiChat', 'AI_CHAT_MAX', '_aiPhotos', 'AI_PHOTOS_MAX', 'enqueuePhoto', 'IMG_MAX_EDGE',
                    'aiChats', 'aiChatId', 'AI_CHAT_TTL_DAYS', 'USAGE_KEY',
-                   '_drumDay', '_drumMonth', '_drumYear'];
+                   '_drumDay', '_drumMonth', '_drumYear', '_syncDrumDays', '_drumMaxDays',
+                   'MEAL_KEYS', 'MEAL_WINDOW_DEFAULTS', 'hmToMins', 'minsToHm',
+                   'getMealWindows', 'saveMealWindows', 'mealWindowsSummary', 'encodeImage',
+                   '_sniffMime', '_b64Head', 'dataUrlMime', '_jpegPayload', 'IMG_RAW_OK'];
   const expose = doc.createElement('script');
   expose.textContent = `for (const n of ${JSON.stringify(LEXICAL)}) {
     try { window[n] = eval(n); } catch(e) {}
@@ -606,12 +610,56 @@ console.log('CalSnap smoke tests\n');
 // ── 23. Model picker descriptions follow the language ─────────────
 {
   const { window } = await boot({ lang: 'en' });
-  const d = window._modelDescFor({ id: 'gemini-2.0-flash-thinking-exp-01-21' });
-  ok('EN model description', /Reasoning/.test(d) && !/[А-Яа-яЁё]/.test(d), d);
+  const tagKeys = (id) => window.modelTags({ id }).map(x => x.key);
+  ok('a thinking model is tagged as reasoning', tagKeys('gemini-2.0-flash-thinking-exp-01-21').includes('mdl_tag_reasoning'),
+     tagKeys('gemini-2.0-flash-thinking-exp-01-21').join(','));
+  ok('the tier line is language-neutral branding', /Flash/.test(window._modelTier({ id: 'gemini-2.5-flash' })));
   ok('no static Cyrillic descriptions remain',
      !window.__read('ALL_MODELS').some(m => /[А-Яа-яЁё]/.test(m.desc || '')));
-  ok('API descriptions are preserved',
-     window._modelDescFor({ id: 'x', desc: 'From the API', fromApi: true }) === 'From the API');
+
+  // Every tag renders through the dictionary in both languages.
+  const allKeys = new Set();
+  window.__read('ALL_MODELS').forEach(m => window.modelTags(m).forEach(x => allKeys.add(x.key)));
+  ok('every tag key exists in both dictionaries',
+     [...allKeys].every(k => k in window.I18N.ru && k in window.I18N.en),
+     [...allKeys].filter(k => !(k in window.I18N.en)).join(','));
+
+  // Guidance the picker is supposed to give.
+  ok('flash-lite is the fastest', tagKeys('gemini-flash-lite-latest').includes('mdl_tag_fastest'));
+  ok('pro is more accurate but slower', tagKeys('gemini-pro-latest').includes('mdl_tag_accurate')
+     && tagKeys('gemini-pro-latest').includes('mdl_tag_slow'));
+  ok('pro-latest is recommended too', tagKeys('gemini-pro-latest').includes('mdl_tag_recommended'));
+  ok('1.5 is marked legacy', tagKeys('gemini-1.5-flash').includes('mdl_tag_legacy'));
+  ok('a TTS model is flagged as unsuited', tagKeys('gemini-2.5-flash-preview-tts').includes('mdl_tag_not_for_food'));
+  ok('an image-generation model is flagged too', tagKeys('gemini-3-pro-image-preview').includes('mdl_tag_not_for_food'));
+  ok('at most four tags per model',
+     window.__read('ALL_MODELS').every(m => window.modelTags(m).length <= 4));
+
+  window.openModelPicker();
+  const rows = window.document.querySelectorAll('#mdlList .mdl-row');
+  ok('rows render', rows.length > 5, String(rows.length));
+  ok('the first row is a recommended one', /recommended/i.test(rows[0].textContent), rows[0].textContent);
+  ok('tags are rendered as pills', window.document.querySelectorAll('#mdlList .mdl-tag').length > 5);
+  ok('a legend explains them', !!window.document.querySelector('.mdl-legend'));
+
+  // Grouped, and searchable — fifty ids are unusable as one flat list.
+  const groups = [...window.document.querySelectorAll('#mdlList .mdl-grp')].map(g => g.textContent);
+  eq('two groups', groups.length, 2);
+  ok('recommended come first', /recommended/i.test(groups[0]), groups.join(' | '));
+  const search = window.document.getElementById('mdlSearch');
+  ok('there is a search box', !!search);
+  search.value = 'flash-lite';
+  search.oninput({ target: search });
+  const hits = [...window.document.querySelectorAll('#mdlList .mdl-row')];
+  ok('search narrows the list', hits.length > 0 && hits.length < rows.length, String(hits.length));
+  ok('and every hit matches', hits.every(r => /lite/i.test(r.textContent)));
+  ok('the clear button appears', !window.document.getElementById('mdlSearchX').hidden);
+  search.value = 'zzzz-no-such-model';
+  search.oninput({ target: search });
+  ok('an empty result explains itself', !!window.document.querySelector('#mdlList .mdl-empty'));
+  window.clearModelSearch();
+  eq('clearing restores every row', window.document.querySelectorAll('#mdlList .mdl-row').length, rows.length);
+  window.closeModelPicker();
   window.close();
 }
 
@@ -1296,11 +1344,10 @@ console.log('CalSnap smoke tests\n');
   const b = await boot({ seed: { model: 'gemini-2.5-pro' } });
   eq('stored choice is used', b.window.__read('selModel'), 'gemini-2.5-pro');
   eq('and is not overwritten', b.storage.getItem('model'), 'gemini-2.5-pro');
-  const models = b.window.__read('ALL_MODELS');
-  b.window.__read("ALL_MODELS.length = 0; ALL_MODELS.push({id:'gemini-3-flash-preview',name:'Gemini 3 Flash Preview'});");
-  // fetchGeminiModels() keeps the selection visible; emulate its merge step.
-  ok('the picker can still show the stored model',
-     b.window._modelDescFor({ id: 'gemini-2.5-pro' }).length > 0);
+  // fetchGeminiModels() keeps the selection visible; the merge step is asserted
+  // on the source below.
+  ok('the picker can still describe the stored model',
+     b.window._modelTier({ id: 'gemini-2.5-pro' }).length > 0);
   const src = readFileSync(path.join(ROOT, 'assets/js/gemini.js'), 'utf8');
   ok('the fetched list keeps the selected model', /if\(!fresh\.some\(m=>m\.id===selModel\)\)/.test(src));
   b.window.close();
@@ -1607,6 +1654,22 @@ console.log('CalSnap smoke tests\n');
   eq('day is today', window.__read('_drumDay'), now.getDate());
   eq('month is this month', window.__read('_drumMonth'), now.getMonth() + 1);
   eq('year is this year', window.__read('_drumYear'), now.getFullYear());
+
+  // The year wheel reaches the current year — it used to stop five years short,
+  // which made a recent birth date impossible to enter.
+  const years = [...window.document.querySelectorAll('#drum_y .drum-item')].map(e => e.textContent);
+  eq('newest selectable year is this year', years[0], String(now.getFullYear()));
+  ok('and it goes back a lifetime', years.includes(String(now.getFullYear() - 120)), years.at(-1));
+
+  // The day wheel follows the month: February has no 30th.
+  window.__read("_drumYear = 2023; _drumMonth = 3; _drumDay = 31; _syncDrumDays();");
+  const days = [...window.document.querySelectorAll('#drum_d .drum-item')];
+  ok('a 31-day month offers every day', !days.some(d => d.classList.contains('off')));
+  window.__read("_drumMonth = 2; _syncDrumDays();");
+  eq('February dims the 29th in a common year', days[28].classList.contains('off'), true);
+  eq('and pulls the selection back to the 28th', window.__read('_drumDay'), 28);
+  window.__read("_drumYear = 2024; _syncDrumDays();");
+  eq('a leap year offers the 29th', days[28].classList.contains('off'), false);
   window.close();
 }
 
@@ -1844,6 +1907,184 @@ console.log('CalSnap smoke tests\n');
   const userMsg = window.document.querySelector('#aimsg .msg-user');
   eq('single image renders without the grid', userMsg.querySelectorAll('.bbl-imgs').length, 0);
   eq('and still shows one image', userMsg.querySelectorAll('.bbl-img').length, 1);
+  window.close();
+}
+
+
+// ── 66. Meal windows are editable and everything follows them ─────
+{
+  const PROFILE = JSON.stringify({ name: 'A', kcal: 2000, goal: 'maintain', w: 80, h: 180, age: 30, gen: 'm', pr: 100, ft: 60, cb: 200 });
+  const { window, storage } = await boot({ lang: 'en', seed: { u: PROFILE, wts: '[]' } });
+
+  // Defaults reproduce the behaviour the hard-coded version had.
+  eq('default windows', window.mealWindowsSummary(), '06:00 · 11:00 · 14:00 · 18:00');
+  eq('08:00 is breakfast', window.getMealType('08:00'), 'breakfast');
+  eq('03:00 is a snack', window.getMealType('03:00'), 'snack');
+
+  // A night-shift schedule: breakfast at 19:00.
+  ok('saving accepts an ascending set',
+     window.saveMealWindows({ breakfast: '19:00', lunch: '23:00', snack: '02:00', dinner: '05:00' }) === false,
+     'times must ascend within the day');
+  ok('an ascending set is stored',
+     window.saveMealWindows({ breakfast: '09:30', lunch: '13:00', snack: '16:00', dinner: '20:30' }));
+  eq('19:00 is now a snack', window.getMealType('19:00'), 'snack');
+  eq('21:00 is now dinner', window.getMealType('21:00'), 'dinner');
+  eq('10:00 is now breakfast', window.getMealType('10:00'), 'breakfast');
+  eq('08:00 falls before breakfast → snack', window.getMealType('08:00'), 'snack');
+  eq('the settings row summarises them', window.mealWindowsSummary(), '09:30 · 13:00 · 16:00 · 20:30');
+
+  // Out-of-order storage is repaired rather than breaking the timeline.
+  storage.setItem('meal_windows', JSON.stringify({ breakfast: '12:00', lunch: '07:00', snack: 'nonsense', dinner: '18:00' }));
+  const repaired = window.getMealWindows();
+  const mins = window.__read('MEAL_KEYS').map(k => window.hmToMins(repaired[k]));
+  ok('repaired windows still ascend', mins.every((m, i) => i === 0 || m > mins[i - 1]), JSON.stringify(repaired));
+  ok('every key survives', window.__read('MEAL_KEYS').every(k => /^\d\d:\d\d$/.test(repaired[k])), JSON.stringify(repaired));
+
+  // Diary grouping uses them.
+  storage.setItem('meal_windows', JSON.stringify({ breakfast: '09:30', lunch: '13:00', snack: '16:00', dinner: '20:30' }));
+  window.__read(`log.length = 0; log.push({food:'Late plate',kcal:400,prot:10,fat:10,carb:40,time:'21:00',date:ds()}); saveLog();`);
+  window.rH();
+  const groups = [...window.document.querySelectorAll('#hlog .meal-group')].map(g => g.dataset.meal);
+  ok('a 21:00 meal groups under dinner', groups.includes('dinner'), groups.join(','));
+  // With custom windows the header spells out the hours it covers.
+  const range = window.document.querySelector('#hlog .meal-group-range');
+  ok('the group header shows its window', !!range && /20:30/.test(range.textContent), range?.textContent);
+  window.saveMealWindows(window.__read('MEAL_WINDOW_DEFAULTS'));
+  window.rH();
+  ok('and stays out of the way on the defaults',
+     !window.document.querySelector('#hlog .meal-group-range'));
+  window.__read("S('meal_windows', JSON.stringify({breakfast:'09:30',lunch:'13:00',snack:'16:00',dinner:'20:30'}))");
+
+  // The sheet renders, validates live and refuses to save an out-of-order set.
+  window.openMealTimes();
+  eq('four rows', window.document.querySelectorAll('#mealList .ml-row').length, 4);
+  const inp = window.document.getElementById('mlInp_lunch');
+  inp.value = '08:00';                       // earlier than breakfast
+  window.onMealTimeInput('lunch');
+  ok('the warning shows', window.document.getElementById('mealWarn').classList.contains('on'));
+  ok('saving is blocked', window.document.getElementById('mealSaveBtn').disabled);
+  inp.value = '13:00';
+  window.onMealTimeInput('lunch');
+  ok('and clears again', !window.document.getElementById('mealWarn').classList.contains('on'));
+  window.resetMealTimes();
+  eq('reset restores the default', window.document.getElementById('mlInp_breakfast').value, '06:00');
+  window.saveMealTimes();
+  eq('the default set is saved', window.mealWindowsSummary(), '06:00 · 11:00 · 14:00 · 18:00');
+  window.close();
+}
+
+// ── 67. An encoded image and its declared MIME always agree ───────
+{
+  const { window } = await boot({ lang: 'en' });
+
+  // When the canvas path succeeds the result is a JPEG and must say so. The old
+  // code declared the *original* type, which the API refuses as an invalid
+  // image — that is why re-encoded PNG screenshots failed. The canvas stub also
+  // returns a very short data URL, which the old 512-character sanity check
+  // rejected outright.
+  const png = new window.File([new Uint8Array([0x89, 0x50, 0x4E, 0x47, 13, 10, 26, 10])], 's.png', { type: 'image/png' });
+  const enc = await window.encodeImage(png);
+  eq('a re-encoded payload is declared as JPEG', enc.mime, 'image/jpeg');
+  eq('a small image is not rejected as empty', enc.data, 'QUJD');
+  eq('b64Mime agrees with what was produced', window.b64Mime(png), enc.mime);
+  eq('b64() returns the same payload', await window.b64(png), enc.data);
+
+  // The pass-through branch declares what the *bytes* are, not what the picker
+  // claimed — Android document providers routinely report octet-stream (or
+  // nothing) for an ordinary screenshot.
+  const sniff = (bytes) => window._sniffMime(bytes);
+  eq('PNG magic', sniff([0x89, 0x50, 0x4E, 0x47, 13, 10, 26, 10]), 'image/png');
+  eq('JPEG magic', sniff([0xFF, 0xD8, 0xFF, 0xE0]), 'image/jpeg');
+  eq('GIF magic', sniff([0x47, 0x49, 0x46, 0x38, 0x39, 0x61]), 'image/gif');
+  eq('WebP magic', sniff([...'RIFF????WEBPVP8 '].map(c => c.charCodeAt(0))), 'image/webp');
+  eq('HEIC magic', sniff([...'????ftypheic....'].map(c => c.charCodeAt(0))), 'image/heic');
+  eq('AVIF magic', sniff([...'????ftypavif....'].map(c => c.charCodeAt(0))), 'image/avif');
+  eq('a PDF is not an image', sniff([...'%PDF-1.4'].map(c => c.charCodeAt(0))), '');
+  ok('every sniffed type is one the API accepts',
+     ['image/png','image/jpeg','image/gif','image/webp','image/heic','image/avif']
+       .every(m => window.__read('IMG_RAW_OK').test(m)));
+  eq('bytes are read back out of base64', window._sniffMime(window._b64Head('iVBORw0KGgo=')), 'image/png');
+  eq('a data URL reports its own type', window.dataUrlMime('data:image/webp;base64,AA=='), 'image/webp');
+
+  // The canvas sanity check: a real JPEG data URL passes at any size, an empty
+  // canvas does not.
+  ok('a short JPEG data URL is accepted', !!window._jpegPayload('data:image/jpeg;base64,QUJDRA=='));
+  ok('an empty canvas is still rejected', !window._jpegPayload('data:,'));
+  ok('a PNG data URL is not mistaken for JPEG', !window._jpegPayload('data:image/png;base64,QUJDRA=='));
+
+  // Both refusal messages exist in both languages.
+  ok('there is a message for a non-image file',
+     ['err_photo_not_image', 'err_photo_unsupported', 'err_photo_too_big', 'err_photo_no_food']
+       .every(k => k in window.I18N.ru && k in window.I18N.en));
+  window.close();
+}
+
+// ── 68. The pending card reports progress and reasons ─────────────
+{
+  const PROFILE = JSON.stringify({ name: 'A', kcal: 2000, goal: 'maintain', w: 80, h: 180, age: 30, gen: 'm', pr: 100, ft: 60, cb: 200 });
+  const fetchImpl = () => Promise.resolve({ ok: true, status: 200, json: () => Promise.resolve({ candidates: [{ content: { parts: [{ text: 'nope' }] } }] }) });
+  const { window } = await boot({
+    lang: 'en', fetchImpl,
+    seed: { u: PROFILE, wts: '[]', api_keys: JSON.stringify([{ k: 'K1', added: 1, strikes: 0, cooldownUntil: 0, invalid: false, uses: 0 }]) },
+  });
+  await window.enqueuePhoto('data:image/jpeg;base64,QUJD', 'soup');
+  window.rH();
+  const card = window.document.getElementById('pendingCard');
+  ok('the row carries its id for the exit animation', /data-qid="q/.test(card.innerHTML));
+  ok('the header badges the count', /pq-badge/.test(card.innerHTML));
+  ok('each row has a status dot', /pq-dot/.test(card.innerHTML));
+
+  const max = window.__read('QUEUE_MAX_ATTEMPTS');
+  for (let i = 0; i < max; i++) await window.processQueue({});
+  window.rH();
+  const html = window.document.getElementById('pendingCard').innerHTML;
+  ok('a failed row is marked', /pq-row bad/.test(html));
+  ok('and says what went wrong', /pq-state bad[^>]*>[\s\S]{0,400}·/.test(html), html.slice(0, 400));
+  ok('the header counts the failures', /failed/i.test(window.document.querySelector('.pq-sub').textContent),
+     window.document.querySelector('.pq-sub').textContent);
+  window.close();
+}
+
+// ── 69. The offline sheet says how much is waiting ────────────────
+{
+  const PROFILE = JSON.stringify({ name: 'A', kcal: 2000, goal: 'maintain', w: 80, h: 180, age: 30, gen: 'm', pr: 100, ft: 60, cb: 200 });
+  const { window } = await boot({ lang: 'en', online: false, seed: { u: PROFILE, wts: '[]' } });
+  const chip = window.document.getElementById('offlQueue');
+  window.showOfflineModal();
+  ok('no chip with an empty queue', chip.hidden);
+  await window.enqueuePhoto('data:image/jpeg;base64,QUJD', '');
+  window.showOfflineModal();
+  ok('the chip appears once something is queued', !chip.hidden);
+  ok('and states the count', /1/.test(window.document.getElementById('offlQueueTxt').textContent),
+     window.document.getElementById('offlQueueTxt').textContent);
+  ok('the bar advertises the queue', window.document.getElementById('offlBar').classList.contains('has-queue'));
+  window.close();
+}
+
+// ── 70. Every t()/tf() key in the source exists in both languages ─
+{
+  const { window } = await boot({ lang: 'en' });
+  const files = readdirSync(path.join(ROOT, 'assets/js')).filter(f => f.endsWith('.js'));
+  const missing = new Set();
+  const used = new Set();
+  for (const f of files) {
+    const src = readFileSync(path.join(ROOT, 'assets/js', f), 'utf8');
+    // Only whole literals — `t('pref_' + k)` is a family, checked separately.
+    for (const m of src.matchAll(/\bt(?:f)?\(\s*'([a-z0-9_]+)'\s*[),]/g)) used.add(m[1]);
+  }
+  for (const k of used) {
+    if (!(k in window.I18N.ru) || !(k in window.I18N.en)) missing.add(k);
+  }
+  ok('t() keys are all defined', missing.size === 0, [...missing].join(', '));
+  ok('the scan actually found keys', used.size > 150, String(used.size));
+
+  // Keys built by concatenation, one family at a time.
+  const family = (pre, parts) => parts.map(p2 => pre + p2)
+    .filter(k => !(k in window.I18N.ru) || !(k in window.I18N.en));
+  ok('every meal label exists', family('meal_', window.__read('MEAL_KEYS')).length === 0,
+     family('meal_', window.__read('MEAL_KEYS')).join(', '));
+  ok('every theme label exists', family('theme_', ['light', 'dark', 'system']).length === 0,
+     family('theme_', ['light', 'dark', 'system']).join(', '));
   window.close();
 }
 

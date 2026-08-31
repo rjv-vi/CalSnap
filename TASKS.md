@@ -3,22 +3,26 @@
 Updated as work progresses. `[ ]` — queued, `[~]` — in progress, `[x]` — done.
 
 ## Bugs
-- [x] Goal-reached sound replays after a restart, and when switching days back to today
-- [x] AI chat showed "Photo attached" before any photo was attached
-- [x] Some photos could not be added at all (format / decode failures)
+- [x] Some images (screenshots, non-food pictures) still fail to load
+      → re-encoded payloads were declared with the *original* MIME type, which the
+        API refuses; the canvas result was also rejected below 512 chars, and only
+        four of a multi-pick made it in.
+- [x] Date-of-birth year list stops at 2021 instead of the current year
 
-## Onboarding & settings
-- [x] Date-of-birth drum opens on today's date
-- [x] Theme is recorded as "system" on a fresh install
-- [x] New settings section: AI usage stats (requests, tokens, per-day, per-model)
+## Model picker
+- [x] Mark `gemini-pro-latest` as recommended too
+- [x] Badge every model: fast / accurate / slow / paid / legacy …
+
+## Settings
+- [x] Editable meal windows (breakfast / lunch / snack / dinner start times)
 
 ## Offline
-- [x] Text and barcode entries are queued offline too, not just photos
+- [x] Better look, UX and animations for the pending list and offline mode overall
 
-## AI chat
-- [x] Camera as a source for chat photos, not only the gallery
-- [x] Multiple conversations: switch between them, auto-expire after 30 days, delete manually
-- [x] Several photos in one message (up to 4)
-
-## Wrap-up
-- [x] Tests + contrast audit — 496 checks, contrast ≥ 3:1 in both themes
+## Polish
+- [x] Model picker: sticky search field, grouped list, empty state
+- [x] Birthday wheel: day column follows the month (no 30 February)
+- [x] Accessible names for the icon-only close / quantity / dismiss buttons
+- [x] Diary group headers show their window once the meal times are customised
+- [x] Reduced-motion coverage for every new animation
+- [x] Tests + contrast audit — 575 smoke checks, 272 contrast pairs
