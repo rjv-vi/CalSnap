@@ -433,47 +433,97 @@ canvas{display:block;max-width:100%;}
 .week-ai-section-text{font-size:14px;color:var(--t0);line-height:1.6;}
 
 /* WATER */
-.water-card{margin:0 14px 12px;background:var(--bg1);border-radius:var(--r4);overflow:hidden;box-shadow:var(--s2),var(--si);border:.5px solid var(--b0);}
-.water-hero{padding:20px 20px 16px;background:linear-gradient(160deg,rgba(29,78,216,.05) 0%,transparent 70%);position:relative;overflow:hidden;}
-.water-row1{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:14px;}
-.water-label{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--t2);margin-bottom:6px;display:flex;align-items:center;gap:5px;}
-.water-label::before{content:'';width:5px;height:5px;border-radius:50%;background:#1D4ED8;display:inline-block;}
-.water-amount{display:flex;align-items:baseline;gap:4px;}
-.water-num{font-size:44px;font-weight:900;letter-spacing:-3px;color:var(--t0);line-height:1;font-variant-numeric:tabular-nums;transition:transform .28s cubic-bezier(.22,1,.36,1);will-change:transform;}
-.water-unit{font-size:15px;color:var(--t1);font-weight:500;}
-.water-goal-of{font-size:13px;color:var(--t2);margin-top:4px;font-weight:500;}
-.water-ring{position:relative;width:72px;height:72px;flex-shrink:0;}
-.water-ring svg{width:72px;height:72px;transform:rotate(-90deg);}
-.water-ring-bg{fill:none;stroke:rgba(29,78,216,.10);stroke-width:5;}
-.water-ring-fill{fill:none;stroke:var(--blue);stroke-width:5;stroke-linecap:round;transition:stroke-dashoffset .9s cubic-bezier(.22,1,.36,1);will-change:stroke-dashoffset;}
-.water-ring-pct{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;}
-.water-ring-pct span:first-child{font-size:16px;font-weight:900;color:var(--blue-ink);line-height:1;}
-.water-ring-pct span:last-child{font-size:8px;color:var(--t2);font-weight:600;margin-top:1px;}
-.water-wave-wrap{height:6px;background:var(--f1);border-radius:6px;overflow:hidden;margin-bottom:16px;}
-.water-wave-fill{height:100%;border-radius:6px;background:linear-gradient(90deg,#60A5FA 0%,#1D4ED8 100%);transition:width 1s cubic-bezier(.22,1,.36,1);position:relative;overflow:hidden;}
+/* ══════════════════════════════════════════════════════════════════
+   WATER BALANCE
+   ══════════════════════════════════════════════════════════════════
+   One progress reading, shown twice in agreement (the glass and the track),
+   instead of a ring counting hydration-adjusted millilitres beside a number
+   counting raw ones. */
+.water-card{margin:0 14px 12px;background:var(--bg1);border-radius:var(--r4);overflow:hidden;box-shadow:var(--s2),var(--si);border:.5px solid var(--b0);transition:border-color .4s,box-shadow .4s;}
+.water-card.done{border-color:color-mix(in srgb,var(--ok-ink) 34%,transparent);box-shadow:0 0 0 3px color-mix(in srgb,var(--ok-ink) 10%,transparent),var(--s2);}
+
+.water-hero{padding:16px 18px 14px;background:linear-gradient(160deg,rgba(29,78,216,.06) 0%,transparent 68%);}
+.water-card.done .water-hero{background:linear-gradient(160deg,color-mix(in srgb,var(--ok-ink) 9%,transparent) 0%,transparent 68%);}
+.water-hdr{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:12px;}
+.water-label{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--t2);display:flex;align-items:center;gap:5px;}
+.water-label::before{content:'';width:5px;height:5px;border-radius:50%;background:var(--blue);display:inline-block;}
+.water-pct-chip{flex-shrink:0;font-size:12px;font-weight:900;color:var(--blue-ink);background:var(--blue2);border:1px solid color-mix(in srgb,var(--blue-ink) 20%,transparent);border-radius:9px;padding:3px 9px;font-variant-numeric:tabular-nums;transition:background .35s,color .35s,border-color .35s;}
+.water-pct-chip.done{background:var(--ok2);color:var(--ok-ink);border-color:color-mix(in srgb,var(--ok-ink) 26%,transparent);}
+
+.water-main{display:flex;align-items:center;gap:16px;}
+/* A glass that fills is the metaphor everyone already has for this. */
+.water-glass{position:relative;width:44px;height:58px;flex-shrink:0;border:2.5px solid color-mix(in srgb,var(--blue-ink) 34%,transparent);border-top:none;border-radius:5px 5px 15px 15px;overflow:hidden;background:color-mix(in srgb,var(--blue) 6%,transparent);}
+.water-glass-fill{position:absolute;left:0;right:0;bottom:0;height:0;background:linear-gradient(180deg,#60A5FA,#1D4ED8);transition:height 1s cubic-bezier(.22,1,.36,1);}
+.water-card.done .water-glass-fill{background:linear-gradient(180deg,#4ade80,#16a34a);}
+/* The surface drifts, so a part-full glass does not look like a static block. */
+.water-glass-wave{position:absolute;left:-50%;right:-50%;top:-5px;height:10px;background:radial-gradient(ellipse at 50% 100%,rgba(255,255,255,.55) 0 40%,transparent 42%) repeat-x;background-size:22px 10px;animation:wGlass 3.4s linear infinite;}
+@keyframes wGlass{to{transform:translateX(22px)}}
+
+.water-figures{flex:1;min-width:0;}
+.water-amount{display:flex;align-items:baseline;gap:5px;}
+.water-num{font-size:36px;font-weight:900;letter-spacing:-2px;color:var(--t0);line-height:1;font-variant-numeric:tabular-nums;}
+.water-num.bump{animation:waterBump .34s cubic-bezier(.22,1,.36,1);}
+.water-unit{font-size:14px;color:var(--t1);font-weight:600;}
+.water-goal-of{font-size:12.5px;color:var(--t2);margin-top:3px;font-weight:600;}
+.water-left{font-size:12px;font-weight:800;color:var(--blue-ink);margin-top:4px;}
+.water-left.done{color:var(--ok-ink);}
+.water-counted{font-size:11px;font-weight:600;color:var(--t2);margin-top:3px;}
+
+.water-wave-wrap{height:7px;background:var(--f1);border-radius:7px;overflow:hidden;margin-top:13px;}
+.water-wave-fill{height:100%;border-radius:7px;background:linear-gradient(90deg,#60A5FA 0%,#1D4ED8 100%);transition:width 1s cubic-bezier(.22,1,.36,1);position:relative;overflow:hidden;}
+.water-card.done .water-wave-fill{background:linear-gradient(90deg,#4ade80,#16a34a);}
 .water-wave-fill::after{content:'';position:absolute;inset:0;background:linear-gradient(90deg,transparent,rgba(255,255,255,.28),transparent);animation:wShimmer 2.2s ease-in-out infinite;}
-@keyframes wShimmer{0%{transform:translateX(-100%)}100%{transform:translateX(300%)}}
-.water-drinks{display:grid;grid-template-columns:repeat(6,1fr);gap:7px;padding:0 18px 14px;}
-.water-btn{display:flex;flex-direction:column;align-items:center;gap:3px;background:var(--bg2);border:1px solid var(--b1);border-radius:14px;padding:11px 5px 9px;cursor:pointer;position:relative;transition:transform .2s cubic-bezier(.22,1,.36,1);will-change:transform;box-shadow:var(--s1),var(--si);}
-.water-btn:active{transform:scale(.78);}
-.water-btn.hit{background:rgba(29,78,216,.07);border-color:rgba(29,78,216,.3);}
-.water-btn-icon{font-size:20px;line-height:1;}
-.water-btn-name{font-size:8px;font-weight:700;color:var(--t2);white-space:nowrap;}
-.water-btn-ml{font-size:8px;color:var(--blue-ink);font-weight:800;}
-.water-count{position:absolute;top:-5px;right:-5px;min-width:16px;height:16px;border-radius:8px;padding:0 4px;background:#1D4ED8;color:#fff;font-size:9px;font-weight:900;display:flex;align-items:center;justify-content:center;border:2px solid var(--bg1);animation:countPop .22s cubic-bezier(.22,1,.36,1);}
+
+/* Three per row, so the names are readable — it used to be six columns of 8px
+   text on a 360px screen. */
+.water-drinks{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;padding:0 18px 8px;}
+.water-btn{position:relative;display:flex;flex-direction:column;align-items:center;gap:3px;background:var(--bg2);border:1px solid var(--b1);border-radius:15px;padding:11px 6px 9px;cursor:pointer;font-family:var(--ff);transition:transform .2s cubic-bezier(.22,1,.36,1),background .2s,border-color .2s;box-shadow:var(--s1),var(--si);}
+.water-btn:active{transform:scale(.94);background:var(--f1);}
+.water-btn.hit{background:color-mix(in srgb,var(--blue) 8%,var(--bg2));border-color:color-mix(in srgb,var(--blue-ink) 26%,transparent);}
+.water-btn-icon{font-size:21px;line-height:1;}
+.water-btn-name{font-size:11px;font-weight:700;color:var(--t1);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%;}
+.water-btn-ml{font-size:10.5px;color:var(--blue-ink);font-weight:800;}
+.water-count{position:absolute;top:-6px;right:-6px;min-width:18px;height:18px;border-radius:9px;padding:0 5px;background:var(--blue);color:#fff;font-size:10px;font-weight:900;display:flex;align-items:center;justify-content:center;border:2px solid var(--bg1);}
+.water-count.pop{animation:countPop .24s cubic-bezier(.22,1,.36,1);}
+
+.water-custom-btn{display:flex;align-items:center;justify-content:center;gap:7px;width:calc(100% - 36px);margin:0 18px 14px;background:transparent;border:1.5px dashed var(--b0);border-radius:14px;padding:11px;font-family:var(--ff);font-size:13px;font-weight:700;color:var(--t1);cursor:pointer;transition:transform .18s cubic-bezier(.22,1,.36,1),background .2s,border-color .2s;}
+.water-custom-btn:active{transform:scale(.97);background:var(--f1);border-color:var(--blue);}
+
+.water-salt-hint{margin:0 18px 12px;padding:8px 12px;background:var(--warn2);border:1px solid color-mix(in srgb,var(--warn-ink) 22%,transparent);border-radius:12px;font-size:11px;font-weight:600;color:var(--warn-ink);display:none;}
+.water-salt-hint.on{display:block;animation:attachIn .3s cubic-bezier(.22,1,.36,1) both;}
+
+/* A vertical timeline: the shape of the day, with room for the time and a
+   delete button. The old horizontal chip strip had neither. */
 .water-timeline{padding:0 18px;border-top:.5px solid var(--b1);}
-.water-timeline-hdr{display:flex;align-items:center;justify-content:space-between;padding:11px 0 8px;}
+.water-timeline-hdr{display:flex;align-items:center;justify-content:space-between;padding:11px 0 6px;}
 .water-timeline-lbl{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.8px;color:var(--t2);}
-.water-undo-btn{background:none;border:none;cursor:pointer;font-size:12px;font-weight:700;color:var(--blue-ink);padding:4px 8px;border-radius:8px;font-family:var(--ff);transition:background .2s cubic-bezier(.4,0,.2,1);}
-.water-undo-btn:active{background:var(--blue2);}
-.water-events{display:flex;gap:6px;overflow-x:auto;padding-bottom:14px;scrollbar-width:none;}
-.water-events::-webkit-scrollbar{display:none;}
-.water-event{display:flex;flex-direction:column;align-items:center;gap:2px;background:rgba(29,78,216,.06);border-radius:12px;padding:8px 10px;flex-shrink:0;border:1px solid rgba(29,78,216,.10);animation:countPop .25s cubic-bezier(.22,1,.36,1) both;}
-.water-event-icon{font-size:16px;}
-.water-event-ml{font-size:10px;font-weight:800;color:var(--blue-ink);}
-.water-event-t{font-size:9px;color:var(--t2);}
+.water-undo-btn{background:none;border:none;cursor:pointer;font-size:12px;font-weight:700;color:var(--blue-ink);padding:4px 8px;border-radius:8px;font-family:var(--ff);transition:background .2s cubic-bezier(.4,0,.2,1),transform .16s;}
+.water-undo-btn:active{background:var(--blue2);transform:scale(.94);}
+.water-events{display:flex;flex-direction:column;padding-bottom:12px;}
+.water-event{display:flex;align-items:center;gap:9px;padding:8px 0 8px 12px;position:relative;animation:rowIn .3s cubic-bezier(.22,1,.36,1) both;}
+/* The rail plus a node per entry, so the list reads as a sequence in time. */
+.water-event::before{content:'';position:absolute;left:3px;top:0;bottom:0;width:1.5px;background:var(--b1);}
+.water-event:first-child::before{top:50%;}
+.water-event:last-of-type::before{bottom:50%;}
+.water-event::after{content:'';position:absolute;left:0;top:50%;margin-top:-3.5px;width:7px;height:7px;border-radius:50%;background:var(--blue);box-shadow:0 0 0 2px var(--bg1);}
+.water-event-t{font-size:11px;font-weight:800;color:var(--t2);font-variant-numeric:tabular-nums;flex-shrink:0;min-width:34px;}
+.water-event-icon{font-size:15px;flex-shrink:0;}
+.water-event-name{flex:1;min-width:0;font-size:12.5px;font-weight:600;color:var(--t1);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.water-event-ml{font-size:12px;font-weight:800;color:var(--blue-ink);flex-shrink:0;font-variant-numeric:tabular-nums;}
+.water-event-more{font-size:11px;font-weight:700;color:var(--t3);padding:4px 0 2px 12px;}
 .water-empty-hint{font-size:12px;color:var(--t2);padding:10px 0 14px;text-align:center;}
-.water-salt-hint{margin:0 18px 12px;padding:8px 12px;background:var(--warn2);border:1px solid rgba(180,83,9,.2);border-radius:12px;font-size:11px;font-weight:600;color:var(--warn-ink);display:none;}
+
+/* ── Custom amount sheet ─────────────────────────────────────────── */
+.wc-body{padding:18px 20px calc(20px + env(safe-area-inset-bottom));}
+.wc-read{display:flex;align-items:baseline;justify-content:center;gap:6px;}
+.wc-val{font-size:46px;font-weight:900;letter-spacing:-2px;color:var(--t0);line-height:1;font-variant-numeric:tabular-nums;}
+.wc-unit{font-size:17px;font-weight:700;color:var(--t1);}
+.wc-slider{width:100%;margin:16px 0 4px;accent-color:var(--blue);}
+.wc-lbl{font-size:10px;font-weight:700;letter-spacing:.7px;text-transform:uppercase;color:var(--t2);margin:14px 0 8px;}
+.wc-presets{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:18px;}
+.wc-preset{background:var(--f1);border:1.5px solid transparent;border-radius:13px;padding:11px 6px;font-family:var(--ff);font-size:14px;font-weight:800;color:var(--t0);cursor:pointer;font-variant-numeric:tabular-nums;transition:transform .18s cubic-bezier(.22,1,.36,1),background .2s,border-color .2s,color .2s;}
+.wc-preset:active{transform:scale(.94);}
+.wc-preset.on{background:var(--blue2);border-color:var(--blue);color:var(--blue-ink);}
 .water-salt-hint.on{display:block;}
 
 /* AI */

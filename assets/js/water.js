@@ -50,6 +50,8 @@ function _updateMiniWater(dateStr) {
   const labelEl = document.getElementById('miniWaterLabel');
   if (fillEl) fillEl.style.width = pct + '%';
   if (labelEl) labelEl.textContent = total + ' / ' + goal + ' ' + t('water_ml');
+  // Home and Progress are one tracker: when the card turns green, so does this.
+  if (row) row.classList.toggle('done', total >= goal);
   // Past-day view is read-only — the button still opens Progress, but
   // dim it slightly so it doesn't look like "today" data.
   if (row) row.style.opacity = isToday ? '1' : '.6';
@@ -99,10 +101,7 @@ function addWater(drinkId) {
     if(!saveLog()) log.shift();
     rH();
   }
-  const _prevW = getWaterToday().reduce((s,x)=>s+(x.ml||0),0) - drink.ml;
-  const _wGoal = getWaterGoal().goal;
-  if(_prevW + drink.ml >= _wGoal && _prevW < _wGoal){ HFX.success(); SFX.play('water_goal'); }
-  else { HFX.success(); SFX.play('water_add'); }
+  _waterFeedback(getWaterToday(), drink.ml);
   rWater();
 }
 
@@ -162,73 +161,83 @@ function unlinkWaterForEntry(item) {
   try { if (isWaterOn()) rWater(); } catch(e) {}
 }
 
-// Custom water amount via slider modal
+// ── Custom amount ─────────────────────────────────────────────────
+// A real bottom sheet, like every other sheet in the app. It used to be built
+// imperatively from one long inline-style string, with its own scrim, radius and
+// handle, which is why it did not look like anything else here.
+const WATER_PRESETS = [100, 200, 250, 330, 500, 750];
+
 function openWaterCustom(){
+  const ov = document.getElementById('waterCustomOv');
+  if (!ov) return;
   HFX.light(); SFX.play('sheet_open');
-  let ov = document.getElementById('waterCustomOv');
-  if (!ov) {
-    ov = document.createElement('div');
-    ov.id = 'waterCustomOv';
-    ov.className = 'modal-ov';
-    ov.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.45);display:flex;align-items:flex-end;justify-content:center;z-index:9000;-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px);opacity:0;transition:opacity .22s';
-    ov.innerHTML = `
-      <div id="waterCustomCard" style="width:100%;max-width:480px;background:var(--bg1);border-top-left-radius:24px;border-top-right-radius:24px;padding:22px 22px calc(22px + env(safe-area-inset-bottom));transform:translateY(20px);transition:transform .26s cubic-bezier(.22,.68,0,1);box-shadow:var(--s4)">
-        <div style="display:flex;justify-content:center;margin-bottom:14px"><div style="width:42px;height:4px;border-radius:2px;background:var(--t3)"></div></div>
-        <div style="font-size:18px;font-weight:800;color:var(--t0);margin-bottom:4px">${t('water_custom')}</div>
-        <div style="font-size:13px;color:var(--t1);margin-bottom:18px">${t('water_drink')}</div>
-        <div style="display:flex;align-items:baseline;justify-content:center;gap:6px;margin-bottom:8px">
-          <div id="waterCustomVal" style="font-size:48px;font-weight:900;color:var(--t0);letter-spacing:-1.5px">250</div>
-          <div style="font-size:18px;color:var(--t1);font-weight:700">${t('water_ml')}</div>
-        </div>
-        <input id="waterCustomSlider" type="range" min="50" max="1000" step="10" value="250" style="width:100%;margin:6px 0 18px;accent-color:var(--blue,#1D4ED8)">
-        <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:18px">
-          ${[100,200,300,500,750].map(v=>`<button onclick="_setWaterCustom(${v})" style="flex:1;min-width:64px;background:var(--f1);border:none;border-radius:12px;padding:10px;font-size:13px;font-weight:700;color:var(--t0);cursor:pointer">${v}</button>`).join('')}
-        </div>
-        <div style="display:flex;gap:10px">
-          <button class="btn2" onclick="closeWaterCustom()" style="flex:1">${t('cancel')}</button>
-          <button class="btn" onclick="addWaterCustom()" style="flex:1.5">${t('add_in_diary')}</button>
-        </div>
-      </div>`;
-    document.body.appendChild(ov);
-    ov.querySelector('#waterCustomSlider').addEventListener('input', (e)=>{
-      document.getElementById('waterCustomVal').textContent = e.target.value;
-    });
-    ov.addEventListener('click', (e)=>{ if(e.target===ov) closeWaterCustom(); });
-  }
-  requestAnimationFrame(()=>{
-    ov.style.opacity = '1';
-    document.getElementById('waterCustomCard').style.transform = 'translateY(0)';
-  });
+  _syncWaterCustom(250, true);
+  const box = document.getElementById('waterPresets');
+  if (box) box.innerHTML = WATER_PRESETS.map(v =>
+    `<button class="wc-preset" onclick="_setWaterCustom(${v})" data-v="${v}">${v}</button>`).join('');
+  _markWaterPreset(250);
+  ov.classList.add('on');
   lockScroll(true);
 }
-function _setWaterCustom(v){
-  document.getElementById('waterCustomSlider').value = String(v);
-  document.getElementById('waterCustomVal').textContent = String(v);
-  HFX.light(); SFX.play('select');
-}
+
 function closeWaterCustom(){
-  const ov = document.getElementById('waterCustomOv'); if(!ov) return;
+  const ov = document.getElementById('waterCustomOv');
+  if (!ov || !ov.classList.contains('on')) return;
   HFX.light(); SFX.play('sheet_close');
-  ov.style.opacity = '0';
-  document.getElementById('waterCustomCard').style.transform = 'translateY(20px)';
+  ov.classList.remove('on');
   lockScroll(false);
-  setTimeout(()=>{ ov.remove(); }, 240);
 }
+
+// A preset that matches the current value is highlighted, so the row doubles as
+// a readout instead of being write-only.
+function _markWaterPreset(v){
+  document.querySelectorAll('#waterPresets .wc-preset').forEach(b =>
+    b.classList.toggle('on', +b.dataset.v === +v));
+}
+
+function _syncWaterCustom(v, quiet){
+  const val = Math.max(50, Math.min(1000, parseInt(v, 10) || 250));
+  const out = document.getElementById('waterCustomVal');
+  const sl = document.getElementById('waterCustomSlider');
+  if (sl && +sl.value !== val) sl.value = String(val);
+  if (out) out.textContent = String(val);
+  _markWaterPreset(val);
+  if (!quiet) HFX.tick();
+}
+
+function _setWaterCustom(v){
+  HFX.light(); SFX.play('select');
+  _syncWaterCustom(v, true);
+}
+
 function addWaterCustom(){
-  const v = parseInt(document.getElementById('waterCustomSlider').value || '250');
+  const v = parseInt(document.getElementById('waterCustomSlider')?.value || '250', 10);
   const arr = getWaterToday();
   arr.push({ id: 'water', ml: v, t: tnow(), ev: _waterEvId() });
-  S('water_'+ds(), JSON.stringify(arr));
-  const _prevW = arr.reduce((s,x)=>s+(x.ml||0),0) - v;
-  const _wGoal = getWaterGoal().goal;
-  if(_prevW + v >= _wGoal && _prevW < _wGoal){ HFX.success(); SFX.play('water_goal'); }
-  else { HFX.success(); SFX.play('water_add'); }
+  S('water_' + ds(), JSON.stringify(arr));
+  _waterFeedback(arr, v);
   closeWaterCustom();
+  showToast(tf('water_added_toast', { ml: v }));
   rWater();
 }
 
+// Crossing the goal deserves a different sound from an ordinary sip.
+function _waterFeedback(arr, addedMl){
+  const total = arr.reduce((s, x) => s + (x.ml || 0), 0);
+  const goal = getWaterGoal().adjusted;
+  HFX.success();
+  SFX.play(total >= goal && total - addedMl < goal ? 'water_goal' : 'water_add');
+}
+
+// ── Render ────────────────────────────────────────────────────────
+// The card answers three questions in order: how far along am I, what can I add,
+// and what have I drunk. It used to show the same progress twice (a ring and a
+// bar) while the big number counted raw millilitres and the ring counted
+// hydration-adjusted ones — two different quantities side by side, unexplained.
+let _waterLastCounts = '';
+
 function rWater() {
-  if(!U) return;
+  if (!U) return;
   const card = document.getElementById('waterCard');
   // Water tracking is opt-in — hide the Progress widget entirely when it's off.
   if (!isWaterOn()) {
@@ -236,95 +245,138 @@ function rWater() {
     return;
   }
   if (card) card.style.display = '';
-  const { goal, hasSalt, adjusted } = getWaterGoal();
+
+  const { hasSalt, adjusted } = getWaterGoal();
   const arr = getWaterToday();
-  const totalMl = arr.reduce((s,e) => s+e.ml, 0);
-  const hydrated = arr.reduce((s,e) => {
+  const totalMl = arr.reduce((s, e) => s + e.ml, 0);
+  const hydrated = Math.round(arr.reduce((s, e) => {
     const d = DRINKS.find(x => x.id === e.id);
-    return s + e.ml * (d?.hydration||1);
-  }, 0);
-  const pct = Math.min(hydrated / adjusted, 1);
+    return s + e.ml * (d?.hydration ?? 1);
+  }, 0));
+  const pct = adjusted > 0 ? Math.min(hydrated / adjusted, 1) : 0;
+  const done = hydrated >= adjusted;
+  if (card) card.classList.toggle('done', done);
 
-  // Animate number — bump
+  // Big number: what you actually drank, counted up rather than snapping.
   const mlEl = document.getElementById('waterConsumedMl');
-  if(mlEl){mlEl.classList.remove('bump');void mlEl.offsetWidth;mlEl.classList.add('bump');}
-  if(mlEl) {
-    const prev = parseInt(mlEl.dataset.val||0);
-    const target = Math.round(totalMl);
-    mlEl.dataset.val = target;
-    if(prev !== target) {
-      mlEl.style.transform = 'scale(1.15)';
-      setTimeout(()=>{ mlEl.style.transform=''; }, 150);
-    }
-    mlEl.textContent = target;
-  }
+  if (mlEl) _countTo(mlEl, totalMl);
   const glEl = document.getElementById('waterGoalMl');
-  if(glEl) glEl.textContent = adjusted;
+  if (glEl) glEl.textContent = adjusted;
 
-  // Bar
-  const barEl = document.getElementById('waterBar');
-  if(barEl) {
-    barEl.style.width = (pct*100)+'%';
-    if(pct >= 1) barEl.style.background = 'linear-gradient(90deg,#4ade80,#22c55e)';
-    else barEl.style.background = '';
-  }
-
-  // Ring
-  const ringFill = document.getElementById('waterRingFill');
   const pctEl = document.getElementById('waterPct');
-  if(ringFill) ringFill.style.strokeDashoffset = 188.5*(1-pct);
-  if(pctEl) pctEl.textContent = Math.round(pct*100)+'%';
+  if (pctEl) {
+    pctEl.textContent = Math.round(pct * 100) + '%';
+    pctEl.classList.toggle('done', done);
+  }
 
-  // Salt hint
+  // Remaining, or how far past the target — never a bare "100%".
+  const leftEl = document.getElementById('waterLeft');
+  if (leftEl) {
+    const gap = adjusted - hydrated;
+    leftEl.textContent = gap > 0
+      ? tf('water_left', { ml: gap })
+      : (gap < 0 ? tf('water_over', { ml: -gap }) : t('water_goal_reached'));
+    leftEl.classList.toggle('done', gap <= 0);
+  }
+
+  // The honest bit: coffee and juice move the bar less than they move the
+  // number, so say so instead of letting the two look broken.
+  const cntEl = document.getElementById('waterCounted');
+  if (cntEl) {
+    const differs = hydrated !== totalMl;
+    cntEl.hidden = !differs;
+    if (differs) {
+      cntEl.textContent = tf('water_counted', { ml: hydrated });
+      cntEl.title = t('water_counted_hint');
+    }
+  }
+
+  // One progress reading, in two places that agree: the glass and the track.
+  const barEl = document.getElementById('waterBar');
+  if (barEl) barEl.style.width = (pct * 100) + '%';
+  const fillEl = document.getElementById('waterGlassFill');
+  if (fillEl) fillEl.style.height = Math.max(pct * 100, pct > 0 ? 6 : 0) + '%';
+
   const hint = document.getElementById('waterSaltHint');
-  if(hint) {
+  if (hint) {
     hint.classList.toggle('on', hasSalt);
-    hint.textContent = t('water_salt_hint','🧂 Солёная еда — норма воды +20%') + ' (' + adjusted + ' ' + t('water_ml','мл') + ')';
+    hint.textContent = t('water_salt_hint') + ' (' + adjusted + ' ' + t('water_ml') + ')';
   }
 
-  // Drink buttons
+  // Drink buttons. The count badge only pops when a count really changed —
+  // otherwise every unrelated re-render replayed the animation.
   const dc = document.getElementById('waterDrinks');
-  if(dc) {
-    const items = DRINKS.map(d => {
-      const count = arr.filter(e=>e.id===d.id).length;
-      return `<div class="water-btn${count>0?' hit':''}" onclick="addWater('${d.id}')">
-        ${count>0?`<div class="water-count">${count}</div>`:''}
-        <span class="water-btn-icon">${d.icon}</span>
-        <span class="water-btn-name">${d.name}</span>
-        <span class="water-btn-ml">+${d.ml}</span>
-      </div>`;
+  if (dc) {
+    const counts = DRINKS.map(d => arr.filter(e => e.id === d.id).length);
+    const changed = counts.join(',') !== _waterLastCounts;
+    _waterLastCounts = counts.join(',');
+    dc.innerHTML = DRINKS.map((d, i) => {
+      const n = counts[i];
+      return `<button class="water-btn${n > 0 ? ' hit' : ''}" onclick="addWater('${d.id}')"
+          aria-label="${esc(d.name)} +${d.ml} ${esc(t('water_ml'))}">
+          ${n > 0 ? `<span class="water-count${changed ? ' pop' : ''}">${n}</span>` : ''}
+          <span class="water-btn-icon">${d.icon}</span>
+          <span class="water-btn-name">${esc(d.name)}</span>
+          <span class="water-btn-ml">+${d.ml}</span>
+        </button>`;
     }).join('');
-    const customBtn = `<div class="water-btn" onclick="openWaterCustom()" style="border-style:dashed">
-      <span class="water-btn-icon">➕</span>
-      <span class="water-btn-name">${t('water_custom')}</span>
-      <span class="water-btn-ml" style="opacity:.6">${t('water_ml')}</span>
-    </div>`;
-    dc.innerHTML = items + customBtn;
   }
 
-  // History timeline
+  // A vertical timeline with times reads as the shape of the day; the old
+  // horizontal chip strip had no room for either the time or a delete button.
   const eventsEl = document.getElementById('waterEvents');
-  if(eventsEl) {
-    if(!arr.length) {
-      eventsEl.innerHTML = `<div class="water-empty-hint">${t('water_empty')}</div>`;
+  if (eventsEl) {
+    if (!arr.length) {
+      eventsEl.innerHTML = `<div class="water-empty-hint">${esc(t('water_empty'))}</div>`;
     } else {
-      eventsEl.innerHTML = arr.slice().reverse().slice(0,8).map((e,i) => {
-        const d = DRINKS.find(x=>x.id===e.id)||DRINKS[0];
+      const rows = arr.slice().reverse();
+      const shown = rows.slice(0, 10);
+      eventsEl.innerHTML = shown.map((e, i) => {
+        const d = DRINKS.find(x => x.id === e.id) || DRINKS[0];
         // `fromFood` events belong to a diary record — remove the food instead.
         const del = (e.ev && !e.fromFood)
           ? `<button class="water-event-del" onclick="removeWaterEvent('${esc(e.ev)}')" aria-label="${esc(t('btn_delete'))}" title="${esc(t('btn_delete'))}">✕</button>`
           : '';
-        return `<div class="water-event" style="animation-delay:${i*0.04}s">
+        return `<div class="water-event" style="animation-delay:${i * 35}ms">
+          <span class="water-event-t">${esc(e.t || '')}</span>
           <span class="water-event-icon">${d.icon}</span>
-          <span class="water-event-ml">${e.ml} ${t('water_ml')}</span>
-          <span class="water-event-t">${esc(e.t||'')}</span>
+          <span class="water-event-name">${esc(d.name)}</span>
+          <span class="water-event-ml">${e.ml} ${esc(t('water_ml'))}</span>
           ${del}
         </div>`;
-      }).join('');
+      }).join('')
+        + (rows.length > shown.length
+            ? `<div class="water-event-more">${esc(tf('water_more', { n: rows.length - shown.length }))}</div>`
+            : '');
     }
   }
 
-  // Undo button
   const undoBtn = document.getElementById('waterUndoBtn');
-  if(undoBtn) undoBtn.style.display = arr.length ? 'flex' : 'none';
+  if (undoBtn) undoBtn.style.display = arr.length ? 'flex' : 'none';
+}
+
+// Count a number up to its new value. A total that jumps from 250 to 500 tells
+// you less than one you can watch move.
+function _countTo(el, target){
+  const from = parseInt(el.dataset.val || '0', 10) || 0;
+  el.dataset.val = String(target);
+  // Write the final value first: if the frame callbacks never run (a background
+  // tab, a paused engine) the card still shows the right number.
+  el.textContent = String(target);
+  if (from === target) return;
+  const reduced = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  if (reduced || Math.abs(target - from) > 900 || typeof requestAnimationFrame !== 'function') {
+    el.textContent = String(target);
+    return;
+  }
+  el.classList.remove('bump'); void el.offsetWidth; el.classList.add('bump');
+  const t0 = Date.now(), dur = 420;
+  const step = () => {
+    const k = Math.min((Date.now() - t0) / dur, 1);
+    const eased = 1 - Math.pow(1 - k, 3);
+    el.textContent = String(Math.round(from + (target - from) * eased));
+    if (k < 1) requestAnimationFrame(step);
+    else el.textContent = String(target);
+  };
+  requestAnimationFrame(step);
 }

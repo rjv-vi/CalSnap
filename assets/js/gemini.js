@@ -229,8 +229,8 @@ function setModelFilter(key){
   HFX.tick(); SFX.play('select');
   _renderModelChips();
   if (!same) _renderModelList({ animate: true });
-  // Coming back to the top makes the new set readable from its first row.
-  document.getElementById('mdlList')?.scrollIntoView({ block: 'nearest' });
+  // No scrollIntoView here: the list is already on screen, and asking the browser
+  // to bring it into view scrolled the whole sheet down instead.
 }
 
 // Grouped list: recommended first, then the rest, then the models that are not
@@ -317,28 +317,24 @@ function openModelPicker(){
   _renderModelList({ animate: true });
   ov.classList.add('on');
   lockScroll(true);
-  // The selected row is usually below the fold once the list is this long.
-  requestAnimationFrame(() => {
-    document.querySelector('#mdlList .mdl-row.on')?.scrollIntoView({ block: 'nearest' });
-  });
+  // The sheet deliberately opens at the top. Scrolling to the selected row was
+  // what the card above the list is for, and starting mid-list looks like the
+  // sheet jumped on its own.
 }
 
-// `silent` is for the close that follows a selection — the pick already made its
-// own sound, and stacking a second one on top reads as a glitch.
-function closeModelPicker(opts){
+function closeModelPicker(){
   const ov = document.getElementById('mdlOv');
   if (!ov || !ov.classList.contains('on')) return;
-  if (!opts?.silent) { HFX.light(); SFX.play('sheet_close'); }
+  HFX.light(); SFX.play('sheet_close');
   ov.classList.remove('on');
   lockScroll(false);
 }
 
-// Picking is confirmed on screen before the sheet leaves: the row fills in, the
-// card at the top updates, and only then does the sheet close. Closing instantly
-// left you wondering whether the tap registered.
+// Picking marks the row and updates the card at the top. The sheet stays open, so
+// you can compare, change your mind, or read the tags of what you just chose —
+// closing it is the ✕, the scrim or Back, never a side effect of choosing.
 function selectModel(id){
   if (!id) return;
-  const already = id === selModel;
   selModel = id;
   S('model', id);
   const label = document.getElementById('smodel');
@@ -355,8 +351,8 @@ function selectModel(id){
   }
   _renderModelNow();
   _lastModelSig = '';                       // the checked row moved
-  if (already) { closeModelPicker({ silent: true }); return; }
-  setTimeout(() => closeModelPicker({ silent: true }), 260);
+  // The pulse is a one-shot; left on, it would replay on any later re-render.
+  if (row) setTimeout(() => row.classList.remove('just-picked'), 320);
 }
 
 // Fatal errors must not be retried with the same key — that only fires more

@@ -167,7 +167,7 @@ async function boot({ lang = 'ru', quota = Infinity, seed = {}, fetchImpl = null
                    'MEAL_KEYS', 'MEAL_WINDOW_DEFAULTS', 'hmToMins', 'minsToHm',
                    'getMealWindows', 'saveMealWindows', 'mealWindowsSummary', 'encodeImage',
                    '_sniffMime', '_b64Head', 'dataUrlMime', '_jpegPayload', 'IMG_RAW_OK',
-                   'MDL_FILTERS', '_mdlFilter'];
+                   'MDL_FILTERS', '_mdlFilter', 'WATER_PRESETS'];
   const expose = doc.createElement('script');
   expose.textContent = `for (const n of ${JSON.stringify(LEXICAL)}) {
     try { window[n] = eval(n); } catch(e) {}
@@ -711,19 +711,31 @@ console.log('CalSnap smoke tests\n');
   window.clearModelSearch();
   eq('clearing restores every row', window.document.querySelectorAll('#mdlList .mdl-row').length, rows.length);
 
-  // Picking confirms on the row, updates the card, and leaves the sheet open
-  // just long enough to be seen.
+  // Picking confirms on the row and updates the card — and leaves the sheet open.
   window.selectModel('gemini-2.5-flash');
   eq('the choice is stored', window.__read('selModel'), 'gemini-2.5-flash');
   const picked = window.document.querySelector('#mdlList .mdl-row.on');
   ok('the picked row is marked', !!picked && /2\.5 Flash/i.test(picked.textContent), picked?.textContent);
   ok('and marked for assistive tech', picked.getAttribute('aria-checked') === 'true');
-  ok('the row confirms the tap before closing', picked.classList.contains('just-picked'));
+  ok('the row pulses to confirm the tap', picked.classList.contains('just-picked'));
   ok('only one row is checked', window.document.querySelectorAll('#mdlList .mdl-row.on').length === 1);
   ok('the card at the top followed', /2\.5 Flash/i.test(window.document.querySelector('#mdlNow').textContent));
-  ok('the sheet is still open for that beat', window.document.getElementById('mdlOv').classList.contains('on'));
-  await new Promise(r => setTimeout(r, 320));
-  ok('then it closes on its own', !window.document.getElementById('mdlOv').classList.contains('on'));
+  ok('the settings row followed too', /2\.5 Flash/i.test(window.document.getElementById('smodel').textContent));
+  await new Promise(r => setTimeout(r, 360));
+  ok('the sheet does NOT close by itself', window.document.getElementById('mdlOv').classList.contains('on'));
+  ok('and the one-shot pulse is cleared', !picked.classList.contains('just-picked'));
+
+  // Selection is an outline, not a fill — `--acc` is the text colour, so a filled
+  // row came out solid white in the dark theme.
+  const mdlCss = readFileSync(path.join(ROOT, 'assets/css/screens.css'), 'utf8');
+  ok('the selected row is not filled with the accent',
+     !/\.mdl-row\.on\{background:var\(--acc\)/.test(mdlCss));
+  ok('it is outlined instead', /\.mdl-row\.on\{[^}]*border-color:var\(--acc\)/.test(mdlCss));
+
+  // Nothing in the picker moves the scroll position: switching a filter used to
+  // scroll the whole sheet down, and opening it jumped mid-list.
+  ok('the picker never scrolls itself',
+     !/scrollIntoView\(/.test(readFileSync(path.join(ROOT, 'assets/js/gemini.js'), 'utf8')));
   window.close();
 }
 
@@ -2163,7 +2175,102 @@ console.log('CalSnap smoke tests\n');
   window.close();
 }
 
-// ── 71. The nav pill has one geometry and moves on the compositor ──
+// ── 71. The water card reads as one coherent progress ──────────────
+{
+  const PROFILE = JSON.stringify({ name: 'A', kcal: 2000, goal: 'maintain', w: 70, h: 180, age: 30, gen: 'm', pr: 100, ft: 60, cb: 200 });
+  const { window } = await boot({ lang: 'en', seed: { u: PROFILE, wts: '[]', log: '[]', water_enabled: '1' } });
+  const doc = window.document;
+  const goal = window.getWaterGoal().adjusted;
+
+  window.rWater();
+  ok('the empty timeline says so', /water-empty-hint/.test(doc.getElementById('waterEvents').innerHTML));
+  eq('nothing to undo yet', doc.getElementById('waterUndoBtn').style.display, 'none');
+  ok('drinks are three to a row',
+     /grid-template-columns:repeat\(3,1fr\)/.test(readFileSync(path.join(ROOT, 'assets/css/base.css'), 'utf8')
+       .match(/\.water-drinks\{[^}]*\}/)[0]));
+
+  // Plain water: the number and the counted amount agree, so the note stays away.
+  window.addWater('water');
+  ok('the glass fills', parseFloat(doc.getElementById('waterGlassFill').style.height) > 0,
+     doc.getElementById('waterGlassFill').style.height);
+  ok('the track agrees with it', parseFloat(doc.getElementById('waterBar').style.width) > 0);
+  ok('remaining is stated, not just a percentage', /to go/i.test(doc.getElementById('waterLeft').textContent),
+     doc.getElementById('waterLeft').textContent);
+  ok('no hydration note for plain water', doc.getElementById('waterCounted').hidden);
+  ok('the timeline shows the time', /water-event-t/.test(doc.getElementById('waterEvents').innerHTML));
+  ok('and the drink name', /water-event-name/.test(doc.getElementById('waterEvents').innerHTML));
+  ok('undo is offered now', doc.getElementById('waterUndoBtn').style.display !== 'none');
+
+  // Coffee hydrates at 0.6, so the raw total and the counted total diverge —
+  // and the card has to say so rather than letting the two look broken.
+  window.addWater('coffee');
+  const counted = doc.getElementById('waterCounted');
+  ok('the discrepancy is explained', !counted.hidden && /counted/i.test(counted.textContent), counted.textContent);
+  ok('and there is a hint behind it', !!counted.title);
+  const raw = window.getWaterToday().reduce((s, e) => s + e.ml, 0);
+  const numEl = doc.getElementById('waterConsumedMl');
+  eq('the big number is the raw amount', numEl.dataset.val, String(raw));
+  // The final value is painted before the count-up starts, so a tab that never
+  // runs its frame callbacks still shows the right total.
+  eq('and it is on screen immediately', numEl.textContent, String(raw));
+
+  // Reaching the target flips the card into its done state.
+  for (let i = 0; i < 20; i++) window.addWater('water');
+  ok('the card celebrates', doc.getElementById('waterCard').classList.contains('done'));
+  ok('the percentage chip too', doc.getElementById('waterPct').classList.contains('done'));
+  ok('and it says how far past the target', /over|reached/i.test(doc.getElementById('waterLeft').textContent),
+     doc.getElementById('waterLeft').textContent);
+  ok('the glass cannot overflow', parseFloat(doc.getElementById('waterGlassFill').style.height) <= 100);
+  ok('long histories are truncated with a count',
+     /water-event-more/.test(doc.getElementById('waterEvents').innerHTML));
+
+  // The badge only pops when a count really changed.
+  ok('a fresh count pops', /water-count pop/.test(doc.getElementById('waterDrinks').innerHTML));
+  window.rWater();
+  ok('an unchanged one does not', !/water-count pop/.test(doc.getElementById('waterDrinks').innerHTML));
+  ok('the goal is what the profile implies', goal >= 1500 && goal <= 3500, String(goal));
+  // Home mirrors the same state, so the two views never disagree.
+  window.rH();
+  ok('the Home mini row celebrates too', doc.getElementById('miniWaterRow').classList.contains('done'));
+  window.close();
+}
+
+// ── 72. The custom-amount sheet is a real sheet ────────────────────
+{
+  const PROFILE = JSON.stringify({ name: 'A', kcal: 2000, goal: 'maintain', w: 70, h: 180, age: 30, gen: 'm', pr: 100, ft: 60, cb: 200 });
+  const { window } = await boot({ lang: 'en', seed: { u: PROFILE, wts: '[]', water_enabled: '1' } });
+  const doc = window.document;
+  const ov = doc.getElementById('waterCustomOv');
+  ok('it lives in the markup, not in a JS string', !!ov);
+  ok('it is the standard sheet component', !!ov.querySelector('.sheet .sh-handle') && !!ov.querySelector('.sh-close'));
+
+  window.openWaterCustom();
+  ok('it opens by class like every other sheet', ov.classList.contains('on'));
+  eq('presets rendered', doc.querySelectorAll('#waterPresets .wc-preset').length, window.__read('WATER_PRESETS').length);
+  eq('starts at 250', doc.getElementById('waterCustomVal').textContent, '250');
+  ok('and the matching preset is highlighted',
+     doc.querySelector('#waterPresets .wc-preset.on')?.dataset.v === '250');
+
+  window._setWaterCustom(500);
+  eq('a preset sets the value', doc.getElementById('waterCustomVal').textContent, '500');
+  eq('and the slider follows', doc.getElementById('waterCustomSlider').value, '500');
+  ok('the highlight moves', doc.querySelector('#waterPresets .wc-preset.on')?.dataset.v === '500');
+  window._syncWaterCustom(9999);
+  eq('out-of-range values are clamped', doc.getElementById('waterCustomVal').textContent, '1000');
+
+  window._setWaterCustom(330);
+  window.addWaterCustom();
+  ok('the sheet closed', !ov.classList.contains('on'));
+  const arr = window.getWaterToday();
+  eq('one event was logged', arr.length, 1);
+  eq('with the chosen amount', arr[0].ml, 330);
+  ok('and it is deletable', !!arr[0].ev);
+  ok('the overlay stack knows about it',
+     window.__read('OVERLAYS').some(o => o.sel === '#waterCustomOv'));
+  window.close();
+}
+
+// ── 73. The nav pill has one geometry and moves on the compositor ──
 {
   const src = readFileSync(path.join(ROOT, 'assets/js/init.js'), 'utf8');
   ok('there is a single padding constant', /const NAV_PILL_PAD = /.test(src));
@@ -2175,7 +2282,7 @@ console.log('CalSnap smoke tests\n');
   ok('the segmented pill already did', /\.tabs-pill\{[^}]*transition:\s*transform/.test(css));
 }
 
-// ── 72. Every t()/tf() key in the source exists in both languages ─
+// ── 74. Every t()/tf() key in the source exists in both languages ─
 {
   const { window } = await boot({ lang: 'en' });
   const files = readdirSync(path.join(ROOT, 'assets/js')).filter(f => f.endsWith('.js'));

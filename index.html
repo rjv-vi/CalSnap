@@ -371,40 +371,41 @@
 
   <!-- WATER BALANCE — moved here from home -->
   <div class="water-card card-enter card-enter-d3" id="waterCard">
-    <!-- Hero section -->
+    <!-- Hero: one progress reading, not two. The glass shows the day at a
+         glance; the numbers underneath say exactly where you are. -->
     <div class="water-hero">
-      <div class="water-row1">
-        <div class="water-left">
-          <div class="water-label" data-i18n="water_label">Водный баланс</div>
+      <div class="water-hdr">
+        <div class="water-label" data-i18n="water_label">Водный баланс</div>
+        <div class="water-pct-chip" id="waterPct">0%</div>
+      </div>
+      <div class="water-main">
+        <div class="water-glass" id="waterGlass" aria-hidden="true">
+          <div class="water-glass-fill" id="waterGlassFill"><span class="water-glass-wave"></span></div>
+        </div>
+        <div class="water-figures">
           <div class="water-amount">
-            <div class="water-num" id="waterConsumedMl">0</div>
-            <div class="water-unit" data-i18n="water_ml">мл</div>
+            <span class="water-num" id="waterConsumedMl">0</span>
+            <span class="water-unit" data-i18n="water_ml">мл</span>
           </div>
           <div class="water-goal-of"><span data-i18n="water_of">из</span> <span id="waterGoalMl">2000</span> <span data-i18n="water_ml">мл</span></div>
-        </div>
-        <!-- Ring -->
-        <div class="water-ring">
-          <svg viewBox="0 0 72 72">
-            <circle class="water-ring-bg" cx="36" cy="36" r="30"/>
-            <circle class="water-ring-fill" id="waterRingFill" cx="36" cy="36" r="30"
-              stroke-dasharray="188.5" stroke-dashoffset="188.5"/>
-          </svg>
-          <div class="water-ring-pct">
-            <span id="waterPct">0%</span>
-            <span data-i18n="water_goal_word">цель</span>
-          </div>
+          <div class="water-left" id="waterLeft"></div>
+          <!-- Only shown when a drink hydrates less than plain water, so the
+               track and the big number can never silently disagree. -->
+          <div class="water-counted" id="waterCounted" hidden></div>
         </div>
       </div>
-      <!-- Wave progress bar -->
-      <div class="water-wave-wrap">
-        <div class="water-wave-fill" id="waterBar" style="width:0%"></div>
-      </div>
+      <div class="water-wave-wrap"><div class="water-wave-fill" id="waterBar" style="width:0%"></div></div>
     </div>
-    <!-- Drink buttons -->
-    <div class="water-drinks" id="waterDrinks"></div>
-    <!-- Salt hint -->
+
     <div class="water-salt-hint" id="waterSaltHint"></div>
-    <!-- Timeline -->
+
+    <!-- Drinks: three per row so the names are legible, instead of six columns
+         of 8px text. -->
+    <div class="water-drinks" id="waterDrinks"></div>
+    <button class="water-custom-btn" onclick="openWaterCustom()">
+      <span aria-hidden="true">➕</span> <span data-i18n="water_custom">Свой объём</span>
+    </button>
+
     <div class="water-timeline">
       <div class="water-timeline-hdr">
         <div class="water-timeline-lbl" data-i18n="water_history_today">История сегодня</div>
@@ -414,6 +415,7 @@
       </div>
       <div id="waterEvents" class="water-events"></div>
     </div>
+  </div>
   </div>
 
   <div class="heat-card card-enter card-enter-d4">
@@ -681,6 +683,29 @@
         <div class="sr-txt"><div class="sr-t" data-i18n="set_authors">Авторы CalSnap</div><div class="sr-s">RJV</div></div>
         <span class="sr-arr">›</span>
       </div>
+    </div>
+  </div>
+</div>
+
+<!-- CUSTOM WATER AMOUNT -->
+<div class="ov" id="waterCustomOv" role="dialog" aria-modal="true" aria-label="Свой объём" data-i18n-aria="water_custom"
+     onclick="if(event.target===this)closeWaterCustom()">
+  <div class="sheet" style="max-height:80vh">
+    <div class="sh-handle"></div>
+    <div class="sh-hdr">
+      <h3 data-i18n="water_add_title">💧 Свой объём</h3>
+      <button class="sh-close" onclick="closeWaterCustom()" aria-label="Закрыть" data-i18n-aria="btn_close">✕</button>
+    </div>
+    <div class="wc-body">
+      <div class="wc-read">
+        <span class="wc-val" id="waterCustomVal">250</span>
+        <span class="wc-unit" data-i18n="water_ml">мл</span>
+      </div>
+      <input id="waterCustomSlider" class="wc-slider" type="range" min="50" max="1000" step="10" value="250"
+             aria-label="Объём" data-i18n-aria="water_drink" oninput="_syncWaterCustom(this.value)">
+      <div class="wc-lbl" data-i18n="water_pick_preset">Быстрый выбор</div>
+      <div class="wc-presets" id="waterPresets"></div>
+      <button class="btn" onclick="addWaterCustom()" data-i18n="add_in_diary">Добавить</button>
     </div>
   </div>
 </div>

@@ -62,3 +62,32 @@ Updated as work progresses. `[ ]` — queued, `[~]` — in progress, `[x]` — d
 - [x] A pick is confirmed on the row before the sheet closes, and the close no
       longer stacks two sounds
 - [x] `radiogroup` / `radio` / `aria-checked` semantics throughout
+
+## Round 3
+- [x] Model picker: the selected row was *filled* with `--acc` — which is the text
+      colour, so it came out solid white in the dark theme and swallowed the tag
+      pills. It is an outline plus a 9% wash now, and the tags keep their own colours
+- [x] Model picker: switching a filter scrolled the whole sheet down (a
+      `scrollIntoView` on the list); opening it also jumped mid-list. Both gone —
+      the card at the top is what "where am I" is for
+- [x] Model picker: choosing a model no longer closes the sheet. The row pulses,
+      the card updates, and closing stays the ✕ / scrim / Back
+- [x] Water tracker rebuilt — see below
+
+## Water tracker — full rework
+- [x] One progress reading instead of two. The ring counted hydration-adjusted
+      millilitres while the big number counted raw ones — two different quantities
+      side by side with nothing to explain the gap. Now a filling glass and a track
+      that agree, with "учтено N мл" appearing only when a drink hydrates at less
+      than 1.0
+- [x] Remaining amount is stated ("осталось 650 мл" / "сверх нормы 120 мл") rather
+      than a bare percentage
+- [x] Drinks are three to a row with legible 11px names — it was six columns of 8px
+      text on a 360px screen
+- [x] Timeline is vertical with a rail, times, names and per-row delete; it was a
+      horizontal chip strip with no room for any of that
+- [x] Custom amount is a real bottom sheet (handle, standard header, presets that
+      highlight the current value) instead of one long inline-style string
+- [x] Goal-reached state on the card, count-up on the total, softer press (0.94,
+      was a 0.78 squash), and the count badge only pops when a count changed
+- [x] Reduced-motion coverage for every new animation, count-up included

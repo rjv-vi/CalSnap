@@ -146,7 +146,10 @@ body.modal-open { overflow: hidden !important; touch-action: none; }
 .mini-water-row{display:flex;align-items:center;gap:8px;margin-top:12px;padding:8px 12px;background:rgba(59,130,246,.07);border-radius:12px;cursor:pointer;transition:background .15s;}
 .mini-water-row:active{background:rgba(59,130,246,.14);}
 .mini-water-fill-wrap{flex:1;height:5px;background:rgba(59,130,246,.15);border-radius:99px;overflow:hidden;}
-.mini-water-fill{height:100%;background:linear-gradient(90deg,#60a5fa,#3b82f6);border-radius:99px;transition:width .5s cubic-bezier(.22,1,.36,1);}
+.mini-water-fill{height:100%;background:linear-gradient(90deg,#60a5fa,#3b82f6);border-radius:99px;transition:width .5s cubic-bezier(.22,1,.36,1),background .4s;}
+/* Matches the Progress card's goal-reached state, so the two never disagree. */
+.mini-water-row.done .mini-water-fill{background:linear-gradient(90deg,#4ade80,#16a34a);}
+.mini-water-row.done .mini-water-label{color:var(--ok-ink);}
 .mini-water-label{font-size:11px;font-weight:700;color:#3b82f6;white-space:nowrap;}
 
 /* ── EDIT MEAL CHIPS ── */
@@ -350,7 +353,11 @@ body.modal-open { overflow: hidden !important; touch-action: none; }
   animation:rowIn .3s cubic-bezier(.22,1,.36,1) both;}
 .mdl-list.no-anim .mdl-row,.mdl-list.no-anim .mdl-grp{animation:none;}
 .mdl-row:active{transform:scale(.98);background:var(--f1);}
-.mdl-row.on{background:var(--acc);border-color:var(--acc);box-shadow:var(--s2);}
+/* Selection is an outline plus a soft wash, not a fill: `--acc` is the text
+   colour, so a filled row came out solid white in the dark theme and swallowed
+   the tag pills' own colours. */
+.mdl-row.on{background:color-mix(in srgb,var(--acc) 9%,var(--bg1));border-color:var(--acc);
+  box-shadow:0 0 0 3px color-mix(in srgb,var(--acc) 13%,transparent),var(--s1);}
 /* A tap is confirmed on the row before the sheet closes. */
 .mdl-row.just-picked{animation:mdlPick .3s cubic-bezier(.22,1,.36,1);}
 @keyframes mdlPick{0%{transform:scale(1)}45%{transform:scale(1.025)}100%{transform:scale(1)}}
@@ -358,24 +365,21 @@ body.modal-open { overflow: hidden !important; touch-action: none; }
 /* A ring that fills and grows a tick, rather than a bare ✓ appearing. */
 .mdl-radio{position:relative;flex-shrink:0;width:19px;height:19px;margin-top:1px;border-radius:50%;
   border:2px solid var(--b0);transition:border-color .2s,background .2s;}
-.mdl-row.on .mdl-radio{border-color:var(--on-acc);background:var(--on-acc);}
+.mdl-row.on .mdl-radio{border-color:var(--acc);background:var(--acc);}
 .mdl-radio::after{content:'';position:absolute;left:50%;top:50%;width:5px;height:9px;
-  margin:-6px 0 0 -4px;border:2px solid var(--acc);border-top:0;border-left:0;
+  margin:-6px 0 0 -4px;border:2px solid var(--on-acc);border-top:0;border-left:0;
   transform:rotate(45deg) scale(0);transform-origin:center;
   transition:transform .22s cubic-bezier(.34,1.56,.64,1);}
 .mdl-row.on .mdl-radio::after{transform:rotate(45deg) scale(1);}
 
 .mdl-main{flex:1;min-width:0;display:block;}
 .mdl-name{display:block;font-size:14.5px;font-weight:800;color:var(--t0);letter-spacing:-.2px;line-height:1.3;}
-.mdl-row.on .mdl-name{color:var(--on-acc);}
 .mdl-tags{display:flex;flex-wrap:wrap;gap:5px;margin-top:7px;}
 .mdl-tag{font-size:10px;font-weight:800;letter-spacing:.2px;padding:3px 7px;border-radius:7px;
   white-space:nowrap;background:var(--f1);color:var(--t1);border:1px solid var(--b2);}
 .mdl-tag.good{background:var(--ok2);color:var(--ok-ink);border-color:color-mix(in srgb,var(--ok-ink) 22%,transparent);}
 .mdl-tag.warn{background:var(--warn2);color:var(--warn-ink);border-color:color-mix(in srgb,var(--warn-ink) 22%,transparent);}
 .mdl-tag.bad{background:var(--err2);color:var(--err-ink);border-color:color-mix(in srgb,var(--err-ink) 22%,transparent);}
-.mdl-row.on .mdl-tag{background:color-mix(in srgb,var(--on-acc) 14%,transparent);color:var(--on-acc);
-  border-color:color-mix(in srgb,var(--on-acc) 26%,transparent);}
 
 .mdl-empty{text-align:center;padding:34px 20px 30px;animation:emptyIn .3s cubic-bezier(.22,1,.36,1) both;}
 .mdl-empty-ico{font-size:30px;opacity:.5;}

@@ -81,7 +81,7 @@ function resetScrollLock(){
 // closes it, ordered top-down by z-index, so back / Escape peel one layer at a
 // time and only exit once nothing is open.
 const OVERLAYS = [
-  { sel: '#waterCustomOv', open: el => !!el,                                   close: () => closeWaterCustom() },
+  { sel: '#waterCustomOv', open: el => el.classList.contains('on'),            close: () => closeWaterCustom() },
   { sel: '#editFoodOv',    open: el => el.classList.contains('on'),            close: () => closeEditFd() },
   { sel: '#cfrmOv',        open: el => el.classList.contains('on'),            close: () => cfrmCancel() },
   { sel: '#picSrcOv',      open: el => el.classList.contains('on'),            close: () => closePicSrc() },
