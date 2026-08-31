@@ -188,7 +188,9 @@ body.modal-open { overflow: hidden !important; touch-action: none; }
 .pq-ico{position:relative;width:38px;height:38px;flex-shrink:0;border-radius:12px;background:var(--warn2);display:flex;align-items:center;justify-content:center;font-size:19px;}
 .pq-card.working .pq-ico{animation:pqBreathe 2.2s ease-in-out infinite;}
 @keyframes pqBreathe{0%,100%{transform:scale(1)}50%{transform:scale(1.07)}}
-.pq-badge{position:absolute;top:-5px;right:-6px;min-width:17px;height:17px;padding:0 4px;border-radius:9px;background:var(--err);color:#fff;font-size:10.5px;font-weight:800;line-height:17px;text-align:center;box-shadow:0 1px 4px rgba(0,0,0,.28);animation:popIn .26s cubic-bezier(.22,1,.36,1) both;}
+.pq-badge{position:absolute;top:-5px;right:-6px;min-width:17px;height:17px;padding:0 4px;border-radius:9px;background:var(--err);color:#fff;font-size:10.5px;font-weight:800;line-height:17px;text-align:center;box-shadow:0 1px 4px rgba(0,0,0,.28);}
+/* Only when the number really changed — it used to pop on every state render. */
+.pq-badge.pop{animation:popIn .26s cubic-bezier(.22,1,.36,1) both;}
 .pq-title{font-size:14px;font-weight:800;color:var(--t0);letter-spacing:-.2px;}
 .pq-sub{font-size:12px;color:var(--t2);margin-top:2px;line-height:1.35;}
 .pq-sub.bad{color:var(--err);font-weight:700;}
@@ -219,7 +221,11 @@ body.modal-open { overflow: hidden !important; touch-action: none; }
 
 .pq-thumb-wrap{position:relative;width:40px;height:40px;flex-shrink:0;}
 .pq-thumb{width:40px;height:40px;border-radius:11px;object-fit:cover;background:var(--f1);display:flex;align-items:center;justify-content:center;font-size:18px;}
-.pq-thumb-spin{position:absolute;inset:-3px;border-radius:14px;border:2px solid transparent;border-top-color:var(--warn);border-right-color:var(--warn);animation:spin .9s linear infinite;}
+/* A spinner has to be a circle: rotating a rounded *square* sweeps its corners
+   through the frame, which reads as the ring wobbling off-centre. The thumbnail
+   is dimmed behind it so a white ring stays visible over any photo. */
+.pq-thumb-wrap.busy .pq-thumb{filter:brightness(.55) saturate(.7);}
+.pq-thumb-spin{position:absolute;top:50%;left:50%;width:20px;height:20px;margin:-10px 0 0 -10px;border-radius:50%;border:2px solid rgba(255,255,255,.32);border-top-color:#FFF;animation:spin .8s linear infinite;}
 .pq-info{flex:1;min-width:0;}
 .pq-when{font-size:13px;font-weight:700;color:var(--t0);}
 .pq-kind{font-size:11px;opacity:.75;}
@@ -276,6 +282,7 @@ body.modal-open { overflow: hidden !important; touch-action: none; }
 .ai-list-note{font-size:11.5px;color:var(--t3);line-height:1.5;padding:6px 2px 0;}
 
 /* ── Model picker rows ───────────────────────────────────────────── */
+#mdlList.no-anim .mdl-row,#mdlList.no-anim .mdl-grp{animation:none;}
 .mdl-row{width:100%;display:flex;align-items:center;gap:12px;text-align:left;font-family:var(--ff);background:var(--bg1);border:1.5px solid var(--b1);border-radius:16px;padding:13px 14px;cursor:pointer;box-shadow:var(--s1);transition:transform .18s cubic-bezier(.22,1,.36,1),background .18s,border-color .18s;animation:rowIn .28s cubic-bezier(.22,1,.36,1) both;}
 .mdl-row:active{transform:scale(.98);background:var(--f1);}
 .mdl-row.on{background:var(--acc);border-color:var(--acc);}
@@ -314,9 +321,12 @@ body.modal-open { overflow: hidden !important; touch-action: none; }
    scrolling a list of fifty models. */
 .mdl-top{position:sticky;top:0;z-index:2;background:var(--bg1);border-bottom:1px solid var(--b1);padding:18px 20px 12px;}
 .mdl-search-wrap{display:flex;align-items:center;gap:8px;margin:12px 0 0;padding:0 10px;background:var(--f1);border:1px solid var(--b1);border-radius:14px;transition:border-color .2s,background .2s;}
-.mdl-search-wrap:focus-within{border-color:var(--acc);background:var(--bg1);}
+.mdl-search-wrap:focus-within{border-color:var(--acc);background:var(--bg1);outline:2px solid color-mix(in srgb,var(--acc) 42%,transparent);outline-offset:1px;}
 .mdl-search-ico{flex-shrink:0;font-size:13px;opacity:.65;}
-.mdl-search{flex:1;min-width:0;border:none;background:transparent;outline:none;font-family:var(--ff);font-size:14px;font-weight:600;color:var(--t0);padding:11px 0;-webkit-appearance:none;}
+.mdl-search{flex:1;min-width:0;border:none;background:transparent;font-family:var(--ff);font-size:14px;font-weight:600;color:var(--t0);padding:11px 0;-webkit-appearance:none;}
+/* The input is a bare text line inside a decorated pill, so the focus ring
+   belongs on the pill — on the input itself it floated in the middle of it. */
+.mdl-search:focus,.mdl-search:focus-visible{outline:none;}
 .mdl-search::-webkit-search-cancel-button{display:none;}
 .mdl-search::placeholder{color:var(--t3);font-weight:500;}
 .mdl-search-x{flex-shrink:0;width:24px;height:24px;border:none;border-radius:50%;background:var(--b1);color:var(--t1);font-size:11px;font-family:var(--ff);cursor:pointer;transition:transform .16s;}

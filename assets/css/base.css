@@ -7,6 +7,10 @@
   -webkit-text-size-adjust:100%;text-size-adjust:100%;
   -webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale;
 }
+/* A class that sets `display` outranks the UA rule for the `hidden` attribute,
+   so `el.hidden = true` silently did nothing on anything styled `display:flex`
+   (the offline queue chip, for one). Make the attribute authoritative. */
+[hidden] { display:none !important; }
 /* Same accent across browsers, neutralize Samsung/MIUI auto-tints */
 html { accent-color: var(--acc); -webkit-text-size-adjust:100%; text-size-adjust:100%; }
 /* Disable iOS auto-zoom on focus by ensuring 16px+ on form fields */
@@ -182,6 +186,12 @@ input,textarea,select{font-family:var(--ff);}
 .btn:active{transform:scale(.96);box-shadow:var(--s1);}
 .btn2{width:100%;background:var(--f1);color:var(--t0);border:1px solid var(--b0);border-radius:var(--r3);padding:15px;font-size:16px;font-weight:600;cursor:pointer;font-family:var(--ff);margin-top:10px;transition:transform .18s cubic-bezier(.22,1,.36,1),opacity .18s;box-shadow:var(--si);}
 .btn2:active{transform:scale(.97);opacity:.75;}
+/* A primary button that cannot be pressed has to look like it: the meal-times
+   sheet disables Save while the windows are out of order, and without this the
+   button looked live and simply did nothing. Declared after the :active rules so
+   a disabled button does not still shrink under the finger. */
+.btn:disabled,.btn2:disabled{opacity:.45;cursor:default;box-shadow:none;}
+.btn:disabled:active,.btn2:disabled:active{transform:none;opacity:.45;}
 
 /* GOAL/ACTIVITY/GENDER */
 .goal-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:24px;}
@@ -579,7 +589,9 @@ canvas{display:block;max-width:100%;}
 .ai-attach{display:none;align-items:center;gap:10px;background:var(--bg1);border:1px solid var(--b1);border-radius:16px;padding:8px 10px;box-shadow:var(--s1);animation:attachIn .28s cubic-bezier(.22,1,.36,1) both;}
 @keyframes attachIn{from{opacity:0;transform:translateY(8px) scale(.97)}to{opacity:1;transform:none}}
 .ai-attach.on{display:flex;}
-.ai-attach-strip{display:flex;gap:6px;flex-shrink:0;max-width:62%;overflow-x:auto;overflow-y:hidden;scrollbar-width:none;-webkit-overflow-scrolling:touch;padding:5px 2px 0;margin:-5px -2px 0;}
+/* The remove badge overhangs each thumbnail by 5px, so the scroller carries
+   matching padding — otherwise scrolling to either end clips the ✕. */
+.ai-attach-strip{display:flex;gap:6px;flex-shrink:0;max-width:62%;overflow-x:auto;overflow-y:hidden;scrollbar-width:none;-webkit-overflow-scrolling:touch;padding:6px 6px 0;margin:-6px -6px 0;}
 .ai-attach-strip::-webkit-scrollbar{display:none;}
 .ai-attach-thumb{position:relative;width:42px;height:42px;flex-shrink:0;animation:attachIn .3s cubic-bezier(.22,1,.36,1) both;}
 .ai-attach-thumb img{width:42px;height:42px;border-radius:11px;object-fit:cover;display:block;background:var(--f1);}

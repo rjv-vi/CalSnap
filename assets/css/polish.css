@@ -29,15 +29,23 @@ html.boot *, html.boot *::before, html.boot *::after { transition:none !importan
   }
 }
 
-/* Visible focus rings (accessibility + premium look). Skip on mouse interactions. */
+/* Visible focus rings (accessibility + premium look). Skip on mouse interactions.
+   The ring deliberately does NOT set its own border-radius: an outline follows
+   the element's real corners, so forcing 6px drew a rounded *square* around
+   circular buttons (the quantity ±, the sheet close ✕) and around pills. */
 :focus-visible {
   outline:2px solid var(--acc);
   outline-offset:2px;
-  border-radius:6px;
 }
 input:focus-visible, textarea:focus-visible, select:focus-visible {
   outline:2px solid var(--acc);
   outline-offset:1px;
+}
+/* Rows that live inside a card with `overflow:hidden` — an outward ring is
+   clipped by the card, so it is drawn just inside the row instead. */
+.st-row:focus-visible, .ml-row:focus-visible, .notif-row:focus-visible,
+.export-btn:focus-visible, .cfrm-btn:focus-visible, .ai-list-row:focus-visible {
+  outline-offset:-3px;
 }
 
 /* Buttons: refined hover/active feedback for desktop + Android tablets */
@@ -176,6 +184,9 @@ html.is-fullscreen .daily-ai-body {
 /* Offline queue + API key rows */
 @keyframes rowIn { from { opacity:0; transform:translateY(8px) scale(.985); } to { opacity:1; transform:none; } }
 .pq-row, .key-row { animation: rowIn .3s cubic-bezier(.22,1,.36,1) both; }
+/* A re-render caused by progress, not by a new entry, must not replay the
+   entrance for every row. */
+.pq-list.no-anim .pq-row { animation: none; }
 .pq-row:nth-child(2), .key-row:nth-child(2) { animation-delay:.04s; }
 .pq-row:nth-child(3), .key-row:nth-child(3) { animation-delay:.08s; }
 .pq-row:nth-child(4), .key-row:nth-child(4) { animation-delay:.12s; }

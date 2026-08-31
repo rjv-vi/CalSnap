@@ -262,15 +262,34 @@ console.log('CalSnap smoke tests\n');
   const seedU = JSON.stringify({ name: 'Alex', age: 30, gen: 'm', h: 180, w: 80,
                                  goal: 'lose', act: 1.55, kcal: 2000, pr: 144, ft: 55, cb: 200, prefs: ['vegan'], allerg: 'peanuts' });
   const en = await boot({ lang: 'en', seed: { u: seedU, log: '[]', wts: '[]' } });
-  const pEn = en.window._aiBuildSystemPrompt();
+  const pEn = en.window._aiBuildSystemPrompt('English');
   ok('EN prompt asks for an English reply', /Reply in English/.test(pEn), pEn.slice(0, 120));
   ok('EN prompt has no Cyrillic', !/[А-Яа-яЁё]/.test(pEn));
   ok('EN prompt carries user preferences', /Preferences: .*Vegan/i.test(pEn));
+
+  // The reply follows the language of the message, not the app setting: writing
+  // Russian to an English-configured app must not come back in English.
+  const pEnRu = en.window._aiBuildSystemPrompt('Russian');
+  ok('an English UI still answers a Russian message in Russian',
+     /Reply in Russian/.test(pEnRu), pEnRu.slice(0, 200));
+  const pEnUnknown = en.window._aiBuildSystemPrompt('');
+  ok('with nothing to go on it mirrors whatever comes in',
+     /SAME language/.test(pEnUnknown) && /use English/.test(pEnUnknown), pEnUnknown.slice(0, 200));
+
+  const detect = en.window._detectMsgLang;
+  eq('Cyrillic is detected', detect('сколько калорий в банане?'), 'Russian');
+  eq('Latin is detected', detect('how many calories in a banana?'), 'English');
+  eq('mostly-Russian mixed text is Russian', detect('сколько ккал в Coca-Cola?'), 'Russian');
+  eq('an empty message has no language', detect(''), '');
+  eq('digits and emoji have no language', detect('200 🍎 300'), '');
   en.window.close();
 
   const ru = await boot({ lang: 'ru', seed: { u: seedU, log: '[]', wts: '[]' } });
-  const pRu = ru.window._aiBuildSystemPrompt();
-  ok('RU prompt asks for a Russian reply', /Отвечай по-русски/.test(pRu));
+  const pRu = ru.window._aiBuildSystemPrompt('Russian');
+  ok('RU prompt asks for a Russian reply', /Отвечай на языке: Russian/.test(pRu), pRu.slice(0, 200));
+  const pRuEn = ru.window._aiBuildSystemPrompt('English');
+  ok('and answers an English message in English', /Отвечай на языке: English/.test(pRuEn));
+  ok('the Russian prompt is still built in Russian', /ИНСТРУКЦИИ/.test(pRuEn));
   ru.window.close();
 }
 
@@ -1966,6 +1985,8 @@ console.log('CalSnap smoke tests\n');
   inp.value = '13:00';
   window.onMealTimeInput('lunch');
   ok('and clears again', !window.document.getElementById('mealWarn').classList.contains('on'));
+  ok('and the disabled Save is visibly disabled in CSS',
+     /\.btn:disabled/.test(readFileSync(path.join(ROOT, 'assets/css/base.css'), 'utf8')));
   window.resetMealTimes();
   eq('reset restores the default', window.document.getElementById('mlInp_breakfast').value, '06:00');
   window.saveMealTimes();
@@ -2033,6 +2054,13 @@ console.log('CalSnap smoke tests\n');
   ok('the row carries its id for the exit animation', /data-qid="q/.test(card.innerHTML));
   ok('the header badges the count', /pq-badge/.test(card.innerHTML));
   ok('each row has a status dot', /pq-dot/.test(card.innerHTML));
+  ok('a new row animates in', !window.document.querySelector('.pq-list').classList.contains('no-anim'));
+  ok('and the badge pops for the new count', /pq-badge pop/.test(card.innerHTML));
+
+  // A re-render that only changes state must not replay every entrance.
+  window.__read('_queueSig = ""'); window.renderQueue();
+  ok('an unchanged list does not re-animate', window.document.querySelector('.pq-list').classList.contains('no-anim'));
+  ok('and the badge does not pop again', !/pq-badge pop/.test(window.document.getElementById('pendingCard').innerHTML));
 
   const max = window.__read('QUEUE_MAX_ATTEMPTS');
   for (let i = 0; i < max; i++) await window.processQueue({});
@@ -2052,6 +2080,8 @@ console.log('CalSnap smoke tests\n');
   const chip = window.document.getElementById('offlQueue');
   window.showOfflineModal();
   ok('no chip with an empty queue', chip.hidden);
+  ok('and the hidden attribute really hides it',
+     /\[hidden\]\s*\{\s*display:none/.test(readFileSync(path.join(ROOT, 'assets/css/base.css'), 'utf8')));
   await window.enqueuePhoto('data:image/jpeg;base64,QUJD', '');
   window.showOfflineModal();
   ok('the chip appears once something is queued', !chip.hidden);
@@ -2061,7 +2091,46 @@ console.log('CalSnap smoke tests\n');
   window.close();
 }
 
-// ── 70. Every t()/tf() key in the source exists in both languages ─
+// ── 70. Identical re-renders do not replay entrance animations ────
+{
+  const PROFILE = JSON.stringify({ name: 'A', kcal: 2000, goal: 'maintain', w: 80, h: 180, age: 30, gen: 'm', pr: 100, ft: 60, cb: 200 });
+  const { window } = await boot({ lang: 'en', seed: { u: PROFILE, wts: '[]' } });
+  window.rP();
+  const grid = window.document.getElementById('hgrid');
+  const dots = window.document.getElementById('wkd');
+  const firstCell = grid.firstElementChild;
+  const firstDot = dots.firstElementChild;
+  ok('the heat map rendered', !!firstCell && grid.children.length === 28, String(grid.children.length));
+  eq('the week has seven dots', dots.children.length, 7);
+
+  // A second pass with nothing changed must leave the very same nodes in place —
+  // replacing them restarts every stagger, which is what made the streak dots
+  // and the heat map pop again on an unrelated update.
+  window.rP();
+  ok('heat-map cells are the same nodes', window.document.getElementById('hgrid').firstElementChild === firstCell);
+  ok('week dots are the same nodes', window.document.getElementById('wkd').firstElementChild === firstDot);
+
+  // Real data changes still redraw.
+  window.__read(`log.push({food:'X',kcal:900,prot:10,fat:10,carb:10,time:'12:00',date:ds()}); saveLog();`);
+  window.rP();
+  ok('new data replaces them', window.document.getElementById('hgrid').firstElementChild !== firstCell
+     || window.document.getElementById('hgrid').lastElementChild.className !== firstCell.className);
+  window.close();
+}
+
+// ── 71. The nav pill has one geometry and moves on the compositor ──
+{
+  const src = readFileSync(path.join(ROOT, 'assets/js/init.js'), 'utf8');
+  ok('there is a single padding constant', /const NAV_PILL_PAD = /.test(src));
+  ok('no second hard-coded padding survives', !/width \* 0\.08|width \* 0\.1\b/.test(src));
+  ok('the pill moves by transform, not by left',
+     !/pill\.style\.left/.test(src), (src.match(/pill\.style\.left.*/) || [''])[0]);
+  const css = readFileSync(path.join(ROOT, 'assets/css/components.css'), 'utf8');
+  ok('and its transition follows', /#nav-pill\{[^}]*transition:transform/.test(css));
+  ok('the segmented pill already did', /\.tabs-pill\{[^}]*transition:\s*transform/.test(css));
+}
+
+// ── 72. Every t()/tf() key in the source exists in both languages ─
 {
   const { window } = await boot({ lang: 'en' });
   const files = readdirSync(path.join(ROOT, 'assets/js')).filter(f => f.endsWith('.js'));

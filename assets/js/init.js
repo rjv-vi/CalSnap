@@ -25,13 +25,26 @@ function _initPill(pillId, tabsId){
   _movePill(pillId, active, true);
 }
 
+// One geometry for the nav pill, wherever it is set from. Tapping a tab and
+// dragging the pill used to apply different padding (8% vs 10%), so the same tab
+// left the pill in two slightly different places depending on how you got there.
+const NAV_PILL_PAD = 0.1;
+function _navPillGeom(btn){
+  const r = btn.getBoundingClientRect();
+  return { x: r.left + r.width * NAV_PILL_PAD, w: r.width * (1 - NAV_PILL_PAD * 2) };
+}
+// Moved with a transform rather than `left`: animating `left` runs on the main
+// thread, so the pill visibly lagged behind — and trailed diagonally when width
+// animated alongside it.
+function _setNavPill(pill, x, w){
+  pill.style.transform = 'translateX(' + x + 'px)';
+  pill.style.width = w + 'px';
+}
 function _moveNavPill(activeBtn){
   const pill = document.getElementById('nav-pill');
   if(!pill || !activeBtn) return;
-  const br = activeBtn.getBoundingClientRect();
-  const pad = br.width * 0.08;
-  pill.style.left = (br.left + pad) + 'px';
-  pill.style.width = (br.width - pad*2) + 'px';
+  const g = _navPillGeom(activeBtn);
+  _setNavPill(pill, g.x, g.w);
 }
 
 
@@ -114,14 +127,13 @@ function initNavDrag(){
   const nbs = Array.from(document.querySelectorAll('.nb'));
   if(!nav || !pill) return;
   let dragging = false, startBtn = null;
-  const SPRING = 'left .38s cubic-bezier(.22,1,.36,1), width .38s cubic-bezier(.22,1,.36,1)';
-  const PAD = 0.1; // 10% padding each side
+  const SPRING = 'transform .38s cubic-bezier(.22,1,.36,1), width .38s cubic-bezier(.22,1,.36,1)';
+  const PAD = NAV_PILL_PAD;
 
   function setPillToBtn(btn, instant){
-    const r = btn.getBoundingClientRect();
+    const g = _navPillGeom(btn);
     if(instant) pill.style.transition = 'none';
-    pill.style.left = (r.left + r.width * PAD) + 'px';
-    pill.style.width = (r.width * (1 - PAD*2)) + 'px';
+    _setNavPill(pill, g.x, g.w);
     if(instant) requestAnimationFrame(()=>{ pill.style.transition = SPRING; });
   }
 
@@ -149,8 +161,9 @@ function initNavDrag(){
       const bC = b.left + b.width / 2;
       if(x >= aC && x <= bC){
         const t = (x - aC) / (bC - aC);
-        pill.style.left = ((a.left + a.width*PAD) + (b.left - a.left) * t) + 'px';
-        pill.style.width = ((a.width*(1-PAD*2)) + (b.width - a.width) * t) + 'px';
+        _setNavPill(pill,
+          (a.left + a.width*PAD) + (b.left - a.left) * t,
+          (a.width*(1-PAD*2)) + (b.width - a.width) * t);
         return;
       }
     }

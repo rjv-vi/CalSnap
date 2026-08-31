@@ -190,6 +190,9 @@ function _renderModelList(filter){
   const group = (key, items) => items.length
     ? `<div class="mdl-grp">${esc(t(key))}<span>${items.length}</span></div>` + items.map(_modelRowHtml).join('')
     : '';
+  // Replaying the entrance animation on every keystroke makes the list flicker,
+  // so it only plays for the unfiltered list the sheet opens with.
+  list.classList.toggle('no-anim', !!f);
   list.innerHTML = group('mdl_grp_recommended', rec) + group('mdl_grp_rest', rest);
   const x = document.getElementById('mdlSearchX');
   if (x) x.hidden = !f;

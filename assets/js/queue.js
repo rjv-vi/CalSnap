@@ -237,6 +237,11 @@ function _queueReason(rec){
 }
 
 let _queueSig = '';
+// What the previous render drew, so a rebuild that only changes *state* (which
+// item is being analysed) does not replay every row's entrance animation, and
+// the header badge only pops when the number actually changed.
+let _queueLastIds = '';
+let _queueLastCount = -1;
 function renderQueue(){
   // A deferred trigger can land after the document is gone (page teardown, or
   // a closed test window), and `document` is undefined by then.
@@ -260,6 +265,12 @@ function renderQueue(){
   card.style.display = '';
   card.classList.toggle('working', _queueRunning);
   const stuck = q.filter(r => r.failed).length;
+  // Same rows as last time → this render is a state change, not an arrival.
+  const ids = q.map(r => r.id).join(',');
+  const sameRows = ids === _queueLastIds;
+  const countChanged = q.length !== _queueLastCount;
+  _queueLastIds = ids;
+  _queueLastCount = q.length;
 
   const btn = _queueRunning
     ? `<button class="pq-btn work" disabled><span class="pq-spin" aria-hidden="true"></span>${esc(t('queue_working'))}</button>`
@@ -294,7 +305,7 @@ function renderQueue(){
           ? `<span class="pq-state work"><span class="pq-dot work"></span>${esc(t('queue_state_working'))}</span>`
           : `<span class="pq-state"><span class="pq-dot"></span>${esc(blocked || t('queue_state_waiting'))}${tries}</span>`);
     return `<div class="pq-row${rec.failed ? ' bad' : ''}${active ? ' active' : ''}" data-qid="${esc(rec.id)}">
-      <div class="pq-thumb-wrap">${thumb}${active ? '<span class="pq-thumb-spin" aria-hidden="true"></span>' : ''}</div>
+      <div class="pq-thumb-wrap${active ? ' busy' : ''}">${thumb}${active ? '<span class="pq-thumb-spin" aria-hidden="true"></span>' : ''}</div>
       <div class="pq-info">
         <div class="pq-when">${esc(when)}${kind !== 'photo' ? ` <span class="pq-kind">${KIND_ICON[kind] || ''}</span>` : ''}</div>
         ${label ? `<div class="pq-desc">${esc(label)}</div>` : ''}
@@ -314,7 +325,7 @@ function renderQueue(){
 
   card.innerHTML = `
     <div class="pq-hdr">
-      <div class="pq-ico">📸<span class="pq-badge">${q.length}</span></div>
+      <div class="pq-ico">📸<span class="pq-badge${countChanged ? ' pop' : ''}">${q.length}</span></div>
       <div style="flex:1;min-width:0">
         <div class="pq-title">${esc(tf('queue_title', { n: q.length }))}</div>
         <div class="pq-sub${stuck && !_queueRunning ? ' bad' : ''}">${esc(sub)}</div>
@@ -322,7 +333,7 @@ function renderQueue(){
       ${btn}
     </div>
     ${prog}
-    <div class="pq-list">${rows}</div>`;
+    <div class="pq-list${sameRows ? ' no-anim' : ''}">${rows}</div>`;
   hydrateImages(card);
 }
 

@@ -25,6 +25,20 @@ function mealMeta(){
 // Backward-compat getter (some legacy code references MEAL_META object)
 const MEAL_META = new Proxy({}, { get(_,k){ return mealMeta()[k]; } });
 
+// Write markup into a container only when it actually differs from what is
+// already there. Re-rendering identical HTML restarts every entrance animation
+// inside it, which is why the streak dots and the heat map used to pop again
+// every time an unrelated number changed.
+const _renderSigs = new Map();
+function setHtmlIfChanged(el, html){
+  if (!el) return false;
+  const key = el.id;
+  if (key && _renderSigs.get(key) === html) return false;
+  if (key) _renderSigs.set(key, html);
+  el.innerHTML = html;
+  return true;
+}
+
 // Run a function the next idle frame (defers non-critical work off the
 // main render path). Falls back to setTimeout when requestIdleCallback
 // is unavailable (Safari).
@@ -531,12 +545,12 @@ function rP(){
   if(_sbl)_sbl.textContent=tf('streak_label_tpl',{days:fmtDaysWord(s)});
   // Week
   const n=new Date(),dns=[t('wd_mon'),t('wd_tue'),t('wd_wed'),t('wd_thu'),t('wd_fri'),t('wd_sat'),t('wd_sun')];
-  document.getElementById('wkd').innerHTML=Array.from({length:7},(_,i)=>{
+  setHtmlIfChanged(document.getElementById('wkd'),Array.from({length:7},(_,i)=>{
     const d=new Date(n);d.setDate(d.getDate()-(6-i));
     const today=d.toDateString()===n.toDateString();
     const has=dlog(ds(d)).length>0;
     return `<div class="wd ${has?'done':today?'today':''}" style="animation-delay:${i*45}ms">${dns[(d.getDay()+6)%7]}</div>`;
-  }).join('');
+  }).join(''));
   // Stats
   const l7=Array.from({length:7},(_,i)=>{const d=new Date(n);d.setDate(d.getDate()-i);return dlog(ds(d));});
   const active=l7.filter(d=>d.length);
@@ -551,7 +565,7 @@ function rP(){
   document.getElementById('pdays').textContent=td;
   // Heatmap — with overeating severity colors
   const hg=document.getElementById('hgrid');
-  hg.innerHTML=Array.from({length:28},(_,i)=>{
+  setHtmlIfChanged(hg,Array.from({length:28},(_,i)=>{
     const d=new Date(n);d.setDate(d.getDate()-(27-i));
     const tk=tot(dlog(ds(d))).k,r=g>0?tk/g:0;
     // 90–110% counts as "on target": a 1% overshoot used to flip the day from
@@ -571,7 +585,7 @@ function rP(){
     // Diagonal-ish stagger: the grid fills in as a wave instead of all at once.
     const pct=g>0?Math.round(r*100):0;
     return `<div class="hcell ${c}" style="animation-delay:${i*11}ms" title="${d.toLocaleDateString(_localeTag())}: ${tk} ${t('unit_kcal')}${tk?' · '+pct+'%':''}"></div>`;
-  }).join('');
+  }).join(''));
   // Weight chart
   rWChart();
   // Water balance
@@ -1355,11 +1369,30 @@ function aiVoiceToggle(){
 }
 
 // ── AI chat ───────────────────────────────────────────────────────
+// Which language a message is written in, as an English language name, or ''
+// when there is nothing to go on (an empty message, a photo with no question,
+// digits and emoji only). Cyrillic is decisive; otherwise Latin letters mean
+// English. Deliberately simple: the point is to spot the common case of writing
+// Russian to an English-configured app, not to build a language classifier.
+function _detectMsgLang(text){
+  const s = String(text || '');
+  const cyr = (s.match(/[А-Яа-яЁё]/g) || []).length;
+  const lat = (s.match(/[A-Za-z]/g) || []).length;
+  if (cyr > lat) return 'Russian';
+  if (lat > cyr) return 'English';
+  return '';
+}
+
 // The whole prompt (persona, section headings, instructions) is built in the
 // UI language. Previously it was hard-coded Russian and ended with
 // "Отвечай по-русски", so the assistant kept replying in Russian even after
 // the user switched the app to English.
-function _aiBuildSystemPrompt(){
+//
+// `replyLang` is the language of the message being answered (see
+// _detectMsgLang). The UI language decides the *scaffolding*, but the reply has
+// to follow the person: writing in Russian to an app set to English and getting
+// English back is the assistant ignoring you.
+function _aiBuildSystemPrompt(replyLang){
   const isEn = LANG === 'en';
   const tl = tlog(), tt = tot(tl);
   const waterEnabled = isWaterOn();
@@ -1438,7 +1471,9 @@ THIS WEEK: ${week7.length?week7.join(', '):NONE}
 ${water7dLine}WEIGHT (latest entries): ${weights}
 
 INSTRUCTIONS:
-- Reply in English, concretely and in a friendly tone
+- ${replyLang
+    ? `Reply in ${replyLang} — the language the user just wrote in — concretely and in a friendly tone`
+    : 'Reply in the SAME language the user wrote in (Russian message → Russian answer), concretely and in a friendly tone; if that is unclear, use English'}
 - Use the user's own data in the answer (name, calories, facts)
 - Give precise advice (specific dishes, gram amounts, timing)
 - If asked what to eat, suggest real dishes with calorie figures
@@ -1464,7 +1499,9 @@ ${waterTodayLine}
 ${water7dLine}ВЕС (последние записи): ${weights}
 
 ИНСТРУКЦИИ:
-- Отвечай по-русски, конкретно, дружески
+- ${replyLang
+    ? `Отвечай на языке: ${replyLang} — именно на нём написано сообщение пользователя. Конкретно, дружески`
+    : 'Отвечай на ТОМ ЖЕ языке, на котором написал пользователь (написал по-английски — отвечай по-английски), конкретно, дружески; если непонятно — по-русски'}
 - Используй данные пользователя в ответе (имя, калории, факты)
 - Давай точные советы (конкретные блюда, граммовки, время)
 - Если спрашивают что съесть — предлагай реальные блюда с калориями
@@ -1509,7 +1546,8 @@ async function aiSend(){
   aiClearPhoto();
   aiPush('user', txt, imgIds.length ? { imgIds } : undefined);
 
-  const sys = _aiBuildSystemPrompt();
+  // The reply follows the language of this message, not the app's setting.
+  const sys = _aiBuildSystemPrompt(_detectMsgLang(txt));
   // Conversation memory — only include prior turns when the user has opted in,
   // since this meaningfully increases token usage per request.
   const history = isChatMemoryOn()
