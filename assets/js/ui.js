@@ -98,8 +98,7 @@ function rSet(){
         : tf('set_api_pool',{ready:_ready,total:_pool.length}));
   const _mname=ALL_MODELS.find(m=>m.id===selModel)?.name||selModel;
   document.getElementById('smodel').textContent=_mname;
-  const dark=document.documentElement.getAttribute('data-theme')==='dark';
-  const tog=document.getElementById('themeToggle');if(tog)tog.classList.toggle('on',dark);
+  _renderThemeRow();
   const sfxTog=document.getElementById('sfxToggle');if(sfxTog)sfxTog.classList.toggle('on',SFX.isEnabled());
   const hfxTog=document.getElementById('hfxToggle');if(hfxTog)hfxTog.classList.toggle('on',HFX.isOn());
   const waterTog=document.getElementById('waterTrackingToggle');if(waterTog)waterTog.classList.toggle('on',isWaterOn());
@@ -401,6 +400,8 @@ function clrAll(){
     try { IMG.keys().then(ks=>ks.forEach(k=>IMG.del(k))); } catch(e) {}
     log=[];wts=[];U=null;key='';
     try { S('api_keys','[]'); } catch(e) {}
+    // Back to the first-install default (the key was just deleted above).
+    try { selModel = DEFAULT_MODEL; S('model', DEFAULT_MODEL); } catch(e) {}
     try { aiConvo.length=0; } catch(e) {}
     try { selDay=null; } catch(e) {}
     try { _clearNotifTimers(); } catch(e) {}
@@ -412,17 +413,50 @@ function clrAll(){
   });
 }
 
-function toggleTheme(){
-  const dark=document.documentElement.getAttribute('data-theme')==='dark';
-  const next=dark?'light':'dark';
-  document.documentElement.setAttribute('data-theme',next);
-  S('theme',next);
-  document.getElementById('themeToggle')?.classList.toggle('on',next==='dark');
-  // Обновляем meta theme-color (Android URL bar / iOS PWA status)
-  const tcm=document.getElementById('tc-meta');
-  if(tcm) tcm.setAttribute('content', next==='dark' ? '#0F0E0C' : '#F2F0EB');
-  // Возвращающий рендер UI с новой темой
-  try { rH && rH(); rSet && rSet(); } catch(e){}
+// ── Theme: light / dark / system ─────────────────────────────────
+// "System" is a real stored choice, not just "no choice yet": the app must be
+// able to follow the OS after the user has already picked something explicit.
+const THEME_ORDER = ['light', 'dark', 'system'];
+const themePref = () => {
+  const v = G('theme', '');
+  return THEME_ORDER.includes(v) ? v : 'system';
+};
+const systemPrefersDark = () => {
+  try { return window.matchMedia('(prefers-color-scheme: dark)').matches; }
+  catch(e) { return false; }
+};
+const resolvedTheme = (pref) => {
+  const p = pref || themePref();
+  return p === 'system' ? (systemPrefersDark() ? 'dark' : 'light') : p;
+};
+
+function applyTheme(pref, opts){
+  const resolved = resolvedTheme(pref);
+  document.documentElement.setAttribute('data-theme', resolved);
+  const tcm = document.getElementById('tc-meta');
+  if (tcm) tcm.setAttribute('content', resolved === 'dark' ? '#0F0E0C' : '#F2F0EB');
+  _renderThemeRow();
+  if (!opts || opts.rerender !== false) {
+    // The weight chart is drawn on a canvas, so it has to be repainted by hand.
+    try { rH && rH(); } catch(e) {}
+    try { if (document.getElementById('prog')?.classList.contains('active')) rP(); } catch(e) {}
+  }
+}
+
+function _renderThemeRow(){
+  const pref = themePref();
+  const val = document.getElementById('sthemeVal');
+  if (val) val.textContent = t('theme_' + pref);
+  const ico = document.getElementById('themeIco');
+  if (ico) ico.textContent = pref === 'light' ? '☀️' : pref === 'dark' ? '🌙' : '🌗';
+}
+
+function cycleTheme(){
+  const next = THEME_ORDER[(THEME_ORDER.indexOf(themePref()) + 1) % THEME_ORDER.length];
+  S('theme', next);
+  HFX.tick(); SFX.play('toggle');
+  applyTheme(next);
+  showToast(t('theme_' + next));
 }
 
 function toggleSfx(){
@@ -473,14 +507,8 @@ function showErr(id,msg){const e=document.getElementById(id);if(!e)return;e.text
 try {
   const _mq = window.matchMedia('(prefers-color-scheme: dark)');
   if (_mq && _mq.addEventListener) {
-    _mq.addEventListener('change', e => {
-      // Только если у пользователя нет явного выбора темы
-      if (!localStorage.getItem('theme')) {
-        const next = e.matches ? 'dark' : 'light';
-        document.documentElement.setAttribute('data-theme', next);
-        const tcm = document.getElementById('tc-meta');
-        if (tcm) tcm.setAttribute('content', next === 'dark' ? '#0F0E0C' : '#F2F0EB');
-      }
-    });
+    // Follow the OS whenever the preference is "system" (the default), which
+    // now includes users who explicitly chose it after picking light or dark.
+    _mq.addEventListener('change', () => { if (themePref() === 'system') applyTheme('system'); });
   }
 } catch (e) {}

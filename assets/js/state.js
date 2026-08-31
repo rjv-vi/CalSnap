@@ -85,31 +85,54 @@ function _reclaimStorage(){
 
 // Raw log write used by the reclaim path — never recurses into _reclaimStorage.
 function _persistLogRaw(){
-  try {
-    const v = JSON.stringify(log);
-    localStorage.setItem('log', v);
-    _lsCache['log'] = v;
-    return true;
-  } catch(e) { return false; }
+  try { return _writeThrough('log', JSON.stringify(log)); }
+  catch(e) { return false; }
+}
+
+// Storage that silently discards writes cannot be worked around — but the user
+// must be told, once, instead of losing a day's log without a word.
+let _storageBrokenReported = false;
+function _reportStorageBroken(){
+  if (_storageBrokenReported) return;
+  _storageBrokenReported = true;
+  try { if (window._devErrors) window._devErrors.push('localStorage is not persisting writes'); } catch(e) {}
+  try { if (typeof showToast === 'function') showToast(t('toast_storage_broken'), 7000); } catch(e) {}
 }
 
 // Write-through setter. Returns true on success. On quota exhaustion it
 // reclaims space and retries once; if it still fails the in-memory cache is
 // invalidated (rather than poisoned with a value that was never persisted)
 // so the UI cannot keep pretending the data is safe.
+// Verified write. `setItem` succeeding is not proof of persistence: private
+// modes and some Android WebViews accept the call and discard the value, which
+// is indistinguishable from success until the next launch. Reading the key back
+// catches that immediately.
+function _writeThrough(k, str){
+  localStorage.setItem(k, str);
+  if (localStorage.getItem(k) !== str) throw new Error('storage-not-persisting');
+  _lsCache[k] = str;
+  return true;
+}
+
+// Keys worth mirroring into IndexedDB — everything the user would mourn.
+const _DURABLE = /^(u|wts|favs|pending_photos|water_)/;
+
 const S=(k,v)=>{
   const str = v == null ? '' : String(v);
   try {
-    localStorage.setItem(k, str);
-    _lsCache[k] = str;
+    _writeThrough(k, str);
+    if (_DURABLE.test(k)) { try { snapshotSave(); } catch(err) {} }
     return true;
   } catch(e) {
-    if (!_isQuotaError(e)) { delete _lsCache[k]; return false; }
+    if (!_isQuotaError(e)) {
+      delete _lsCache[k];
+      if (e && e.message === 'storage-not-persisting') _reportStorageBroken();
+      return false;
+    }
     const freed = _reclaimStorage();
     if (freed) {
       try {
-        localStorage.setItem(k, str);
-        _lsCache[k] = str;
+        _writeThrough(k, str);
         try { if (typeof showToast === 'function') showToast(t('toast_storage_full'), 4200); } catch(err) {}
         return true;
       } catch(e2) { /* fall through */ }
@@ -130,13 +153,17 @@ const S=(k,v)=>{
 function saveLog(){
   for (let attempt = 0; attempt < 3; attempt++) {
     try {
-      const v = JSON.stringify(log);
-      localStorage.setItem('log', v);
-      _lsCache['log'] = v;
+      _writeThrough('log', JSON.stringify(log));
+      // Mirror into IndexedDB so an evicted or misbehaving localStorage can be
+      // healed on the next launch instead of losing the diary.
+      try { snapshotSave(); } catch(e) {}
       return true;
     } catch(e) {
       delete _lsCache['log'];
-      if (!_isQuotaError(e)) return false;
+      if (!_isQuotaError(e)) {
+        if (e && e.message === 'storage-not-persisting') _reportStorageBroken();
+        return false;
+      }
       if (!_reclaimStorage()) break;
       if (attempt === 0) {
         try { if (typeof showToast === 'function') showToast(t('toast_storage_full'), 4200); } catch(err) {}
@@ -180,6 +207,10 @@ const GL = new Proxy({}, { get(_,k){ return getGL()[k]; }, ownKeys(){ return ['l
 function init(){
   // Re-read U from localStorage in case of stale module-level parse (e.g. after notification permission reload)
   try { const _fresh = JSON.parse(localStorage.getItem('u') || 'null'); if(_fresh && !U) U = _fresh; } catch(e) {}
+  // Ask the browser to stop treating our storage as disposable, then heal
+  // whatever it already discarded. Both are fire-and-forget.
+  try { requestPersistentStorage(); } catch(e) {}
+  try { _healFromSnapshot(); } catch(e) {}
   // Older builds kept a single API key in `key`; fold it into the pool.
   try { migrateLegacyApiKey(); syncActiveKey(); } catch(e) {}
   // Unlock vibration on first user gesture (required by browser policy)
@@ -243,6 +274,26 @@ function init(){
   // Move any legacy inline photos out of localStorage and drop unreferenced
   // IndexedDB blobs. Runs off the critical path.
   onIdle(()=>{ _migrateLegacyImages(); }, 2000);
+  // Keep the IndexedDB mirror current even if nothing is edited this session.
+  onIdle(()=>{ try { snapshotSave(200); } catch(e) {} }, 3000);
+}
+
+// Restore anything the IndexedDB mirror still has but localStorage lost. Runs
+// before the first render for the profile, and re-renders if entries came back.
+async function _healFromSnapshot(){
+  try {
+    const report = await snapshotRestore();
+    if (!report) return;
+    try { rH(); rSet(); } catch(e) {}
+    if (report.entries) showToast(tf('toast_data_restored', { n: report.entries }), 6000);
+    else if (report.profile) showToast(t('toast_profile_restored'), 5000);
+    try { if (window._devErrors) window._devErrors.push('Restored from snapshot: ' + JSON.stringify(report)); } catch(e) {}
+    // A profile that came back means we were showing onboarding — leave it.
+    if (report.profile && U) {
+      document.getElementById('nav').style.display = 'flex';
+      ss('home');
+    }
+  } catch(e) {}
 }
 
 // One-time migration: photos saved by older builds live inline in `log` as
@@ -351,6 +402,7 @@ function onFin(){
   const allerg=document.getElementById('ob_allerg')?.value.trim()||'';
   U={name,dob,age,gen,h,w,goal:obGoal,act:obAct,kcal,pr,ft,cb,prefs,allerg};
   S('u',JSON.stringify(U));
+  try { snapshotSave(200); } catch(e) {}
   HFX.success();SFX.play('ob_finish');
   document.getElementById('nav').style.display='flex';
   ss('home');rH();rSet();

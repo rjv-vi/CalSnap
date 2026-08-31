@@ -8,7 +8,7 @@
 // • Navigation Preload speeds up the very first network-first nav request
 // ═══════════════════════════════════════════════════
 
-const CACHE = 'calsnap-v12';
+const CACHE = 'calsnap-v13';
 const NOTIF_CACHE = 'calsnap-notif';
 const API_CACHE = 'calsnap-api-v1';
 // Hard cap so a single user runaway (lots of barcodes) cannot grow the API

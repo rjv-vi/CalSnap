@@ -1,9 +1,9 @@
 // Применяем тему и язык сразу — до загрузки CSS/CSS, чтобы не было мигания
 (function(){
   try{
+    // 'light' | 'dark' | 'system' (or absent, which means system).
     var t=localStorage.getItem('theme');
-    if(!t){
-      // Авто: уважаем системную тему по умолчанию для нового пользователя
+    if(t!=='light' && t!=='dark'){
       try { t = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'; }
       catch(e){ t='light'; }
     }

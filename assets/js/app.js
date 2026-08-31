@@ -99,7 +99,14 @@ function rH(){
   _updateMiniWater(activeDayStr);
   try { renderQueue(); } catch(e) {}
   const logEl=document.getElementById('hlog');
-  if(!tl.length){logEl.innerHTML=`<div class="empty"><span class="ei">🥗</span><p>${t('h_tap_plus')}</p></div>`;return;}
+  if(!tl.length){
+    const wasEmpty=logEl.dataset.day===activeDayStr&&logEl.dataset.empty==='1';
+    logEl.dataset.day=activeDayStr; logEl.dataset.empty='1';
+    logEl.classList.toggle('no-anim', wasEmpty);
+    logEl.innerHTML=`<div class="empty"><span class="ei">🥗</span><p>${t('h_tap_plus')}</p></div>`;
+    return;
+  }
+  logEl.dataset.empty='0';
 
   // ── Group by meal type ──
   const mealOrder = ['breakfast','lunch','snack','dinner'];
@@ -157,6 +164,12 @@ function rH(){
     });
     html += '</div>';
   });
+  // Replay the entrance animation only when the day actually changed. rH() also
+  // runs for a quantity tweak, a water tap or a theme switch, and re-animating
+  // the whole diary on those looked like a glitch.
+  const sameDay = logEl.dataset.day === activeDayStr;
+  logEl.dataset.day = activeDayStr;
+  logEl.classList.toggle('no-anim', sameDay);
   logEl.innerHTML = html;
   hydrateImages(logEl);
 }
@@ -283,6 +296,7 @@ function delL(i){
   showConfirm('🗑️',t('confirm_delete_title'),`«${item.food||t('food_default_label')}» (${item.kcal||0} ${t('food_kcal_short')})`,t('btn_delete'),()=>{
     HFX.heavy();SFX.play('delete');
     releaseEntryImage(item);
+    unlinkWaterForEntry(item);
     log.splice(i,1);saveLog();rH();
   });
 }
@@ -398,6 +412,7 @@ function delFd(){
   showConfirm('🗑️',t('confirm_delete_diary_title'),`«${item?.food||t('food_default_label')}» (${item?.kcal||0} ${t('food_kcal_short')})`,t('btn_delete'),()=>{
     HFX.heavy();SFX.play('delete');
     releaseEntryImage(item);
+    unlinkWaterForEntry(item);
     log.splice(fdIdx,1);saveLog();
     closeFd();rH();
   });
@@ -507,20 +522,24 @@ function rP(){
   const hg=document.getElementById('hgrid');
   hg.innerHTML=Array.from({length:28},(_,i)=>{
     const d=new Date(n);d.setDate(d.getDate()-(27-i));
-    const tk=tot(dlog(ds(d))).k,r=tk/g;
+    const tk=tot(dlog(ds(d))).k,r=g>0?tk/g:0;
+    // 90–110% counts as "on target": a 1% overshoot used to flip the day from
+    // the strongest accent straight to a red, which read as a failure and made
+    // the whole month harder to scan.
     let c='';
     if(tk>0){
-      if(r>1.5) c='ov3';   // severe: darkest red
-      else if(r>1.25) c='ov2'; // high
-      else if(r>1.1) c='ov1';  // moderate
-      else if(r>1.0) c='ov';   // slight over
-      else if(r>0.9) c='c4';
-      else if(r>0.6) c='c3';
-      else if(r>0.3) c='c2';
-      else c='c1';
+      if(r>1.8)       c='o4';   // way over
+      else if(r>1.5)  c='o3';
+      else if(r>1.25) c='o2';
+      else if(r>1.1)  c='o1';   // slightly over
+      else if(r>0.9)  c='c4';   // on target
+      else if(r>0.6)  c='c3';
+      else if(r>0.3)  c='c2';
+      else            c='c1';
     }
     // Diagonal-ish stagger: the grid fills in as a wave instead of all at once.
-    return `<div class="hcell ${c}" style="animation-delay:${i*11}ms" title="${d.toLocaleDateString(_localeTag())}: ${tk} ${t('unit_kcal')}"></div>`;
+    const pct=g>0?Math.round(r*100):0;
+    return `<div class="hcell ${c}" style="animation-delay:${i*11}ms" title="${d.toLocaleDateString(_localeTag())}: ${tk} ${t('unit_kcal')}${tk?' · '+pct+'%':''}"></div>`;
   }).join('');
   // Weight chart
   rWChart();
@@ -635,12 +654,16 @@ function rWChart(){
   const xi=i=>padL+(i/(pts.length-1))*pW;
   const yv=v=>padT+pH-(v-mnP)/(mxP-mnP)*pH;
   
-  // Get computed color for chart
-  const orangeColor=getComputedStyle(document.documentElement).getPropertyValue('--primary').trim()||'#0A0A0A';
+  // Chart ink. This used to read `--primary`, a custom property that does not
+  // exist in this stylesheet, so it always fell back to near-black #0A0A0A —
+  // invisible on the dark card. Read the real tokens instead.
+  const css=getComputedStyle(document.documentElement);
+  const pick=(name,fb)=>{const v=css.getPropertyValue(name).trim();return v||fb;};
   const isDark=document.documentElement.getAttribute('data-theme')==='dark';
-  const gridColor=isDark?'rgba(255,255,255,.06)':'rgba(0,0,0,.05)';
-  const labelColor=isDark?'rgba(255,255,255,.35)':'rgba(10,10,10,.38)';
-  const cardBg=isDark?'#1A1A1A':'#FFFFFF';
+  const lineColor=pick('--t0', isDark?'#F4F2EE':'#141210');
+  const gridColor=isDark?'rgba(255,255,255,.08)':'rgba(0,0,0,.06)';
+  const labelColor=isDark?'rgba(244,242,238,.48)':'rgba(20,18,16,.46)';
+  const cardBg=pick('--bg1', isDark?'#1A1916':'#FFFFFF');
   
   // Grid Y lines + Y axis labels
   const steps=4;
@@ -679,9 +702,8 @@ function rWChart(){
   
   // Gradient fill
   const grad=ctx.createLinearGradient(0,padT,0,cH-padB);
-  const orangeAlpha=isDark?'rgba(250,250,250,0.10)':'rgba(10,10,10,0.07)';
-  const orangeAlpha0=isDark?'rgba(250,250,250,0)':'rgba(10,10,10,0)';
-  grad.addColorStop(0,orangeAlpha); grad.addColorStop(1,orangeAlpha0);
+  grad.addColorStop(0, isDark?'rgba(244,242,238,0.14)':'rgba(20,18,16,0.09)');
+  grad.addColorStop(1, isDark?'rgba(244,242,238,0)':'rgba(20,18,16,0)');
   
   ctx.beginPath();
   ctx.moveTo(curve[0][0],curve[0][1]);
@@ -695,7 +717,7 @@ function rWChart(){
   ctx.beginPath();
   ctx.moveTo(curve[0][0],curve[0][1]);
   curve.forEach(([x,y])=>ctx.lineTo(x,y));
-  ctx.strokeStyle=orangeColor.indexOf('#')===-1?'#0A0A0A':orangeColor;
+  ctx.strokeStyle=lineColor;
   ctx.lineWidth=2.5; ctx.lineJoin='round'; ctx.lineCap='round';
   ctx.setLineDash([]); ctx.stroke();
   
@@ -707,7 +729,7 @@ function rWChart(){
     ctx.fillStyle=cardBg; ctx.fill();
     // Inner fill
     ctx.beginPath(); ctx.arc(dotX,dotY,3.5,0,Math.PI*2);
-    ctx.fillStyle=orangeColor.indexOf('#')===-1?'#0A0A0A':orangeColor; ctx.fill();
+    ctx.fillStyle=lineColor; ctx.fill();
     
     // Label above/below first and last dot
     if(i===0||i===pts.length-1){
@@ -720,7 +742,7 @@ function rWChart(){
       const d=new Date(p.d);
       const dLbl=d.toLocaleDateString(_localeTag(),{day:'numeric',month:'short'});
       ctx.font=`400 9px -apple-system,BlinkMacSystemFont,sans-serif`;
-      ctx.fillStyle=isDark?'rgba(255,255,255,.2)':'rgba(60,60,67,.3)';
+      ctx.fillStyle=isDark?'rgba(244,242,238,.34)':'rgba(20,18,16,.34)';
       ctx.fillText(dLbl, dotX, cH-padB+14);
     }
   });

@@ -25,11 +25,11 @@ input::placeholder, textarea::placeholder { color: var(--t2); opacity: 1; }
   --t0:#141210;--t1:rgba(20,18,16,.70);--t2:rgba(20,18,16,.52);--t3:rgba(20,18,16,.30);
   --f1:rgba(20,18,16,.065);--f2:rgba(20,18,16,.040);--f3:rgba(20,18,16,.022);
   --b0:rgba(20,18,16,.14);--b1:rgba(20,18,16,.085);--b2:rgba(20,18,16,.045);
-  --streak:#FF5500;--streak-bg:rgba(255,85,0,.10);--streak-b:rgba(255,85,0,.22);
-  --ok:#16A34A;--ok2:rgba(22,163,74,.10);
-  --warn:#B45309;--warn2:rgba(180,83,9,.10);
-  --err:#C62626;--err2:rgba(198,38,38,.10);
-  --blue:#1D4ED8;--blue2:rgba(29,78,216,.10);
+  --streak:#FF5500;--streak-bg:#FFEADF;--streak-b:rgba(255,85,0,.22);
+  --ok:#16A34A;--ok2:#E1F4E8;
+  --warn:#B45309;--warn2:#FAEEDC;
+  --err:#C62626;--err2:#FBE3E3;
+  --blue:#1D4ED8;--blue2:#E3E9FA;
   --s0:0 1px 2px rgba(0,0,0,.04);
   --s1:0 1px 2px rgba(0,0,0,.06),0 2px 6px rgba(0,0,0,.04),0 0 0 .5px rgba(0,0,0,.03);
   --s2:0 2px 4px rgba(0,0,0,.06),0 4px 12px rgba(0,0,0,.07),0 8px 24px rgba(0,0,0,.04),0 0 0 .5px rgba(0,0,0,.04);
@@ -43,8 +43,9 @@ input::placeholder, textarea::placeholder { color: var(--t2); opacity: 1; }
   --on-acc:#FCFBF9;
   --ok-ink:#0F7A38;--warn-ink:#8A4108;--err-ink:#A81D1D;--blue-ink:#1740B0;--streak-ink:#B23B00;--violet-ink:#5B21B6;
   --ring:rgba(20,18,16,.10);
-  --heat-1:rgba(255,85,0,.16);--heat-2:rgba(255,85,0,.34);--heat-3:rgba(255,85,0,.62);--heat-4:var(--streak);
-  --heat-o1:rgba(198,38,38,.22);--heat-o2:rgba(198,38,38,.42);--heat-o3:rgba(198,38,38,.68);--heat-o4:var(--err);
+  --heat-0:#E9E5DE;
+  --heat-1:#FFDCC4;--heat-2:#FFB682;--heat-3:#FB8B3D;--heat-4:#E35B00;
+  --heat-o1:#F7A9A9;--heat-o2:#E86A6A;--heat-o3:#CE3232;--heat-o4:#9B1414;
 }
 [data-theme="light"] {
   color-scheme: only light;
@@ -53,11 +54,11 @@ input::placeholder, textarea::placeholder { color: var(--t2); opacity: 1; }
   --t0:#141210;--t1:rgba(20,18,16,.70);--t2:rgba(20,18,16,.52);--t3:rgba(20,18,16,.30);
   --f1:rgba(20,18,16,.065);--f2:rgba(20,18,16,.040);--f3:rgba(20,18,16,.022);
   --b0:rgba(20,18,16,.14);--b1:rgba(20,18,16,.085);--b2:rgba(20,18,16,.045);
-  --streak:#FF5500;--streak-bg:rgba(255,85,0,.10);--streak-b:rgba(255,85,0,.22);
-  --ok:#16A34A;--ok2:rgba(22,163,74,.10);
-  --warn:#B45309;--warn2:rgba(180,83,9,.10);
-  --err:#C62626;--err2:rgba(198,38,38,.10);
-  --blue:#1D4ED8;--blue2:rgba(29,78,216,.10);
+  --streak:#FF5500;--streak-bg:#FFEADF;--streak-b:rgba(255,85,0,.22);
+  --ok:#16A34A;--ok2:#E1F4E8;
+  --warn:#B45309;--warn2:#FAEEDC;
+  --err:#C62626;--err2:#FBE3E3;
+  --blue:#1D4ED8;--blue2:#E3E9FA;
   --s0:0 1px 2px rgba(0,0,0,.04);
   --s1:0 1px 2px rgba(0,0,0,.06),0 2px 6px rgba(0,0,0,.04),0 0 0 .5px rgba(0,0,0,.03);
   --s2:0 2px 4px rgba(0,0,0,.06),0 4px 12px rgba(0,0,0,.07),0 8px 24px rgba(0,0,0,.04),0 0 0 .5px rgba(0,0,0,.04);
@@ -68,8 +69,9 @@ input::placeholder, textarea::placeholder { color: var(--t2); opacity: 1; }
   --on-acc:#FCFBF9;
   --ok-ink:#0F7A38;--warn-ink:#8A4108;--err-ink:#A81D1D;--blue-ink:#1740B0;--streak-ink:#B23B00;--violet-ink:#5B21B6;
   --ring:rgba(20,18,16,.10);
-  --heat-1:rgba(255,85,0,.16);--heat-2:rgba(255,85,0,.34);--heat-3:rgba(255,85,0,.62);--heat-4:var(--streak);
-  --heat-o1:rgba(198,38,38,.22);--heat-o2:rgba(198,38,38,.42);--heat-o3:rgba(198,38,38,.68);--heat-o4:var(--err);
+  --heat-0:#E9E5DE;
+  --heat-1:#FFDCC4;--heat-2:#FFB682;--heat-3:#FB8B3D;--heat-4:#E35B00;
+  --heat-o1:#F7A9A9;--heat-o2:#E86A6A;--heat-o3:#CE3232;--heat-o4:#9B1414;
 }
 /* Принудительно светлая тема даже если Samsung применяет системную тёмную */
 @media (prefers-color-scheme: dark) {
@@ -80,11 +82,11 @@ input::placeholder, textarea::placeholder { color: var(--t2); opacity: 1; }
     --t0:#141210;--t1:rgba(20,18,16,.70);--t2:rgba(20,18,16,.52);--t3:rgba(20,18,16,.30);
     --f1:rgba(20,18,16,.065);--f2:rgba(20,18,16,.040);--f3:rgba(20,18,16,.022);
     --b0:rgba(20,18,16,.14);--b1:rgba(20,18,16,.085);--b2:rgba(20,18,16,.045);
-    --streak:#FF5500;--streak-bg:rgba(255,85,0,.10);--streak-b:rgba(255,85,0,.22);
-    --ok:#16A34A;--ok2:rgba(22,163,74,.10);
-    --warn:#B45309;--warn2:rgba(180,83,9,.10);
-    --err:#C62626;--err2:rgba(198,38,38,.10);
-    --blue:#1D4ED8;--blue2:rgba(29,78,216,.10);
+    --streak:#FF5500;--streak-bg:#FFEADF;--streak-b:rgba(255,85,0,.22);
+    --ok:#16A34A;--ok2:#E1F4E8;
+    --warn:#B45309;--warn2:#FAEEDC;
+    --err:#C62626;--err2:#FBE3E3;
+    --blue:#1D4ED8;--blue2:#E3E9FA;
     --s0:0 1px 2px rgba(0,0,0,.04);
     --s1:0 1px 3px rgba(0,0,0,.06),0 1px 2px rgba(0,0,0,.04);
     --s2:0 2px 8px rgba(0,0,0,.07),0 4px 16px rgba(0,0,0,.05);
@@ -95,8 +97,9 @@ input::placeholder, textarea::placeholder { color: var(--t2); opacity: 1; }
   --on-acc:#FCFBF9;
   --ok-ink:#0F7A38;--warn-ink:#8A4108;--err-ink:#A81D1D;--blue-ink:#1740B0;--streak-ink:#B23B00;--violet-ink:#5B21B6;
   --ring:rgba(20,18,16,.10);
-  --heat-1:rgba(255,85,0,.16);--heat-2:rgba(255,85,0,.34);--heat-3:rgba(255,85,0,.62);--heat-4:var(--streak);
-  --heat-o1:rgba(198,38,38,.22);--heat-o2:rgba(198,38,38,.42);--heat-o3:rgba(198,38,38,.68);--heat-o4:var(--err);
+  --heat-0:#E9E5DE;
+  --heat-1:#FFDCC4;--heat-2:#FFB682;--heat-3:#FB8B3D;--heat-4:#E35B00;
+  --heat-o1:#F7A9A9;--heat-o2:#E86A6A;--heat-o3:#CE3232;--heat-o4:#9B1414;
   }
 }
 [data-theme="dark"] {
@@ -108,11 +111,11 @@ input::placeholder, textarea::placeholder { color: var(--t2); opacity: 1; }
   --t0:#F4F2EE;--t1:rgba(244,242,238,.74);--t2:rgba(244,242,238,.50);--t3:rgba(244,242,238,.28);
   --f1:rgba(244,242,238,.08);--f2:rgba(244,242,238,.046);--f3:rgba(244,242,238,.026);
   --b0:rgba(244,242,238,.14);--b1:rgba(244,242,238,.085);--b2:rgba(244,242,238,.046);
-  --streak:#FF6618;--streak-bg:rgba(255,102,24,.12);--streak-b:rgba(255,102,24,.28);
-  --ok:#22C55E;--ok2:rgba(34,197,94,.10);
-  --warn:#D97706;--warn2:rgba(217,119,6,.10);
-  --err:#E03535;--err2:rgba(224,53,53,.10);
-  --blue:#3B82F6;--blue2:rgba(59,130,246,.10);
+  --streak:#FF6618;--streak-bg:#33200F;--streak-b:rgba(255,102,24,.28);
+  --ok:#22C55E;--ok2:#162C1E;
+  --warn:#D97706;--warn2:#2F2213;
+  --err:#E03535;--err2:#301818;
+  --blue:#3B82F6;--blue2:#161F35;
   --s1:0 1px 4px rgba(0,0,0,.50),0 1px 2px rgba(0,0,0,.30);
   --s2:0 2px 10px rgba(0,0,0,.60),0 6px 24px rgba(0,0,0,.40);
   --s3:0 4px 24px rgba(0,0,0,.70),0 12px 48px rgba(0,0,0,.50);
@@ -122,8 +125,9 @@ input::placeholder, textarea::placeholder { color: var(--t2); opacity: 1; }
   --on-acc:#141210;
   --ok-ink:#5BE58C;--warn-ink:#F5B45C;--err-ink:#FF8080;--blue-ink:#8FB6FF;--streak-ink:#FF9457;--violet-ink:#C4A5FF;
   --ring:rgba(244,242,238,.16);
-  --heat-1:rgba(255,102,24,.20);--heat-2:rgba(255,102,24,.40);--heat-3:rgba(255,102,24,.68);--heat-4:var(--streak);
-  --heat-o1:rgba(224,53,53,.26);--heat-o2:rgba(224,53,53,.48);--heat-o3:rgba(224,53,53,.74);--heat-o4:var(--err);
+  --heat-0:#2A2622;
+  --heat-1:#4D2C15;--heat-2:#7E4718;--heat-3:#B96420;--heat-4:#FF7A21;
+  --heat-o1:#5E2020;--heat-o2:#942C2C;--heat-o3:#CE3E3E;--heat-o4:#FF6161;
 }
 html[data-theme="light"],html[data-theme="light"] body{color-scheme:only light;}
 html,body{height:100%;overflow:hidden;background:var(--bg0);color:var(--t0);font-family:var(--ff);-webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale;overscroll-behavior:none;font-size:16px;line-height:1.4;letter-spacing:-.005em;forced-color-adjust:none;}
@@ -146,7 +150,12 @@ input,textarea,select{font-family:var(--ff);}
 @keyframes splashOut{to{opacity:0;transform:scale(1.04) translateZ(0)}}
 
 /* ONBOARDING */
-#ob{display:flex;align-items:center;justify-content:center;background:var(--bg0);}
+/* `#ob` is a .screen, but an ID selector out-specifies `.screen{display:none}`,
+   so the onboarding stayed rendered underneath every other screen for the whole
+   session — visible for a frame whenever a screen faded in. It must follow the
+   same show/hide contract as its siblings. */
+#ob{display:none;align-items:center;justify-content:center;background:var(--bg0);}
+#ob.active{display:flex;}
 .ob-inner{width:100%;max-width:390px;padding:calc(env(safe-area-inset-top,44px) + 20px) 28px calc(env(safe-area-inset-bottom,0px) + 52px);}
 .ob-logo{text-align:center;margin-bottom:44px;}
 .ob-logo .icon{font-size:68px;display:block;margin-bottom:16px;filter:drop-shadow(0 12px 32px rgba(255,85,0,.4));animation:obFloat 3.2s ease-in-out infinite;}
@@ -360,9 +369,15 @@ input,textarea,select{font-family:var(--ff);}
 .heat-card{margin:0 14px 12px;background:var(--bg1);border-radius:var(--r4);padding:20px;box-shadow:var(--s2),var(--si);border:.5px solid var(--b0);}
 .heat-card h4{font-size:17px;font-weight:800;margin-bottom:16px;letter-spacing:-.4px;}
 .hgrid{display:grid;grid-template-columns:repeat(7,1fr);gap:4px;}
-.hcell{aspect-ratio:1;border-radius:6px;background:var(--f2);}
+.hcell{aspect-ratio:1;border-radius:6px;background:var(--heat-0);}
+/* Under-goal ramp c1…c4 and over-goal ramp o1…o4. Names line up with the
+   tokens so the mapping is obvious; the old set was offset by one (`ov` →
+   heat-o1, `ov1` → heat-o2 …), which made the code easy to misread. */
 .hcell.c1{background:var(--heat-1)}.hcell.c2{background:var(--heat-2)}.hcell.c3{background:var(--heat-3)}.hcell.c4{background:var(--heat-4)}
-.hcell.ov{background:var(--heat-o1)}.hcell.ov1{background:var(--heat-o2)}.hcell.ov2{background:var(--heat-o3)}.hcell.ov3{background:var(--heat-o4)}
+.hcell.o1{background:var(--heat-o1)}.hcell.o2{background:var(--heat-o2)}.hcell.o3{background:var(--heat-o3)}.hcell.o4{background:var(--heat-o4)}
+/* A hairline keeps neighbouring cells of the same level distinguishable. */
+.hgrid .hcell{box-shadow:inset 0 0 0 .5px rgba(0,0,0,.10)}
+[data-theme="dark"] .hgrid .hcell{box-shadow:inset 0 0 0 .5px rgba(255,255,255,.10)}
 .h-legend{display:flex;align-items:center;gap:6px;margin-top:12px;}
 .h-legend span{font-size:10px;color:var(--t2);font-weight:500;}
 .h-sq{width:10px;height:10px;border-radius:3px;flex-shrink:0;}
@@ -754,3 +769,5 @@ canvas{display:block;max-width:100%;}
 @keyframes countPop{from{transform:scale(.4);opacity:0}to{transform:none;opacity:1}}
 @keyframes shimmer{0%{background-position:200% 0}100%{background-position:-200% 0}}
 @keyframes dropPop{from{transform:scale(0) translateY(4px);opacity:0}to{transform:none;opacity:1}}
+.water-event-del{margin-left:auto;width:24px;height:24px;flex-shrink:0;border:none;border-radius:8px;background:transparent;color:var(--t3);font-size:12px;font-family:var(--ff);cursor:pointer;display:flex;align-items:center;justify-content:center;transition:color .16s,background .16s,transform .16s;}
+.water-event-del:active{transform:scale(.86);background:var(--err2);color:var(--err-ink);}

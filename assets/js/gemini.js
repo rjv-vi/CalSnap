@@ -60,7 +60,17 @@ let ALL_MODELS=[
 const RECOMMENDED_MODEL_IDS = ['gemini-flash-lite-latest','gemini-flash-latest'];
 const isRecommendedModel = (id) => RECOMMENDED_MODEL_IDS.includes(id);
 
-let selModel=localStorage.getItem('model')||'gemini-flash-lite-latest';
+// The recommended model is only ever written on a *fresh install*. After that
+// the stored choice wins unconditionally — including when the live model list
+// from the API no longer advertises it, which used to make the picker fall back
+// to the default and look like the setting had reset itself.
+const DEFAULT_MODEL = 'gemini-flash-lite-latest';
+let selModel = (() => {
+  const stored = (localStorage.getItem('model') || '').trim();
+  if (stored) return stored;
+  try { localStorage.setItem('model', DEFAULT_MODEL); } catch(e) {}
+  return DEFAULT_MODEL;
+})();
 
 // Fetch all available models from Gemini API
 async function fetchGeminiModels(){
@@ -83,8 +93,13 @@ async function fetchGeminiModels(){
       })
       .sort((a,b)=>a.name.localeCompare(b.name));
     if(fresh.length>0){
+      // Keep the user's current model in the list even if the API stopped
+      // advertising it, so the picker never silently loses the selection.
+      if(!fresh.some(m=>m.id===selModel)){
+        const kept=ALL_MODELS.find(m=>m.id===selModel);
+        fresh.unshift(kept?{...kept}:{id:selModel,name:selModel});
+      }
       ALL_MODELS=fresh;
-      console.log('Loaded',fresh.length,'models from API');
     }
   }catch(e){console.log('Model fetch failed:',e.message);}
 }

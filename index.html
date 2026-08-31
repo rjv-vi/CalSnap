@@ -429,7 +429,7 @@
       <div class="h-sq hcell c1"></div><span data-i18n="heat_low">Мало</span>
       <div class="h-sq hcell c3"></div><span data-i18n="heat_norm">Норма</span>
       <div class="h-sq hcell c4"></div><span data-i18n="heat_goal">Цель</span>
-      <div class="h-sq hcell ov2"></div><span data-i18n="heat_over">Перебор</span>
+      <div class="h-sq hcell o2"></div><span data-i18n="heat_over">Перебор</span>
     </div>
   </div>
   <!-- DAILY AI SUMMARY -->
@@ -563,10 +563,10 @@
   <div class="st-sec">
     <div class="st-lbl" data-i18n="set_appearance">Внешний вид</div>
     <div class="st-card">
-      <div class="st-row" onclick="HFX.tick();SFX.play('toggle');toggleTheme()">
-        <div class="sr-ico-wrap slate" style="filter:drop-shadow(0 1px 1px rgba(0,0,0,.4))">🌙</div>
-        <div class="sr-txt"><div class="sr-t" data-i18n="set_dark">Тёмная тема</div></div>
-        <div class="toggle" id="themeToggle"></div>
+      <div class="st-row" onclick="cycleTheme()">
+        <div class="sr-ico-wrap slate" id="themeIco" style="filter:drop-shadow(0 1px 1px rgba(0,0,0,.4))">🌙</div>
+        <div class="sr-txt"><div class="sr-t" data-i18n="set_theme">Тема</div><div class="sr-s" data-i18n="set_theme_sub">Светлая · Тёмная · Системная</div></div>
+        <span class="sr-v" id="sthemeVal">—</span>
       </div>
       <div class="st-row" onclick="HFX.tick();SFX.play('toggle');toggleSfx()">
         <div class="sr-ico-wrap" style="background:var(--acc);filter:drop-shadow(0 1px 1px rgba(0,0,0,.3))">🔊</div>
@@ -652,11 +652,6 @@
   <div class="st-sec">
     <div class="st-lbl" data-i18n="set_about">О приложении</div>
     <div class="st-card">
-      <div class="st-row" onclick="HFX.light();SFX.play('btn_tap');window.open('./widget.html','_blank')">
-        <div class="sr-ico-wrap" style="background:linear-gradient(135deg,#6366f1,#8b5cf6)">📊</div>
-        <div class="sr-txt"><div class="sr-t" data-i18n="set_widgets">Виджеты</div><div class="sr-s" data-i18n="set_widgets_sub">Добавить на рабочий стол</div></div>
-        <span class="sr-arr">›</span>
-      </div>
       <div class="st-row" onclick="HFX.light();SFX.play('sheet_open');openAbout()">
         <div class="sr-ico-wrap" style="background:linear-gradient(135deg,var(--acc),#ff9a3c)">🍎</div>
         <div class="sr-txt"><div class="sr-t" data-i18n="set_authors">Авторы CalSnap</div><div class="sr-s">RJV · Rizan</div></div>

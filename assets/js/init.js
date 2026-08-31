@@ -242,6 +242,14 @@ async function openDevPanel(){
   try{ for(let i=0;i<localStorage.length;i++){const k=localStorage.key(i);lsSize+=(localStorage.getItem(k)||'').length+k.length;} }catch(e){}
   let imgCount='—';
   try{ imgCount=String((await IMG.keys()).length); }catch(e){}
+  let backupInfo='—';
+  try{
+    const snap=await _metaGet('snapshot');
+    if(snap){
+      const n=(JSON.parse(snap.log||'[]')||[]).length;
+      backupInfo=n+' · '+new Date(snap.at).toLocaleString(_localeTag());
+    }
+  }catch(e){}
   const errs=window._devErrors||[];
   const sect=(title,rows)=>`<div style="background:var(--f1);border-radius:12px;padding:12px;display:flex;flex-direction:column;gap:6px">
       <div style="font-weight:700;color:var(--t2);font-size:10px;text-transform:uppercase;letter-spacing:.5px;margin-bottom:2px">${esc(title)}</div>
@@ -261,7 +269,10 @@ async function openDevPanel(){
     ]) +
     sect(t('dev_data'), [
       row(t('dev_storage_used'), (lsSize/1024).toFixed(1)+' KB'),
+      row(t('dev_persisted'), storagePersisted === true ? t('dev_yes')
+        : storagePersisted === 'unsupported' ? t('dev_sw_unsupported') : t('dev_no')),
       row(t('dev_photos'), imgCount),
+      row(t('dev_backup'), backupInfo),
       row(t('dev_notifs'), window.Notification?.permission||'—'),
       `<div style="font-size:10px;color:var(--t2);word-break:break-all">UA: ${esc(navigator.userAgent.substring(0,100))}</div>`,
     ]) +

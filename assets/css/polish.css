@@ -264,3 +264,11 @@ html.is-fullscreen .daily-ai-body {
 @media (prefers-reduced-motion: reduce) {
   .cal-wrap { scroll-behavior: auto; }
 }
+
+/* Suppress the entrance animation when a container is re-rendered in place
+   (quantity tweak, water tap, theme switch) rather than genuinely changing. */
+#hlog.no-anim .meal-group,
+#hlog.no-anim .meal-group-hdr,
+#hlog.no-anim .logitem,
+#hlog.no-anim .empty,
+#hlog.no-anim .empty .ei { animation: none !important; }

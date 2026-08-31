@@ -165,10 +165,17 @@ async function processQueue(opts){
 }
 
 // ── Rendering ─────────────────────────────────────────────────────
+let _queueSig = '';
 function renderQueue(){
   const card = document.getElementById('pendingCard');
   if (!card) return;
   const q = getQueue().slice().sort((a, b) => b.createdAt - a.createdAt);
+  // rH() calls this on every render; rebuilding identical markup would replay
+  // the row entrance animation for no reason.
+  const sig = JSON.stringify([q.map(r => [r.id, r.failed, r.attempts]), _queueRunning, queueBlockedReason(), LANG]);
+  if (sig === _queueSig && card.dataset.built === '1') return;
+  _queueSig = sig;
+  card.dataset.built = q.length ? '1' : '';
   if (!q.length) { card.style.display = 'none'; card.innerHTML = ''; return; }
   card.style.display = '';
   const blocked = queueBlockedReason();

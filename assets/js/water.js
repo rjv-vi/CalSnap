@@ -71,11 +71,19 @@ function getWaterToday(dateStr) {
   try { return JSON.parse(G('water_'+(dateStr||ds()),'[]')); } catch(e) { return []; }
 }
 
+// Every water event carries its own id so the diary entry it created can be
+// found again. Without it, removing a drink from the water card left the
+// calories sitting in the diary forever.
+function _waterEvId(){
+  return 'w' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
+}
+
 function addWater(drinkId) {
   const drink = DRINKS.find(d => d.id === drinkId);
   if(!drink) return;
+  const ev = _waterEvId();
   const arr = getWaterToday();
-  arr.push({ id: drinkId, ml: drink.ml, t: tnow() });
+  arr.push({ id: drinkId, ml: drink.ml, t: tnow(), ev });
   S('water_'+ds(), JSON.stringify(arr));
   // For caloric drinks — also add to food log
   if(drink.kcal > 0) {
@@ -85,7 +93,7 @@ function addWater(drinkId) {
       portion: drink.ml + ' ' + _ml,
       kcal: drink.kcal, prot: drink.prot, fat: drink.fat, carb: drink.carb,
       time: tnow(), date: ds(),
-      isDrink: true, drinkId: drinkId
+      isDrink: true, drinkId: drinkId, waterEv: ev
     };
     log.unshift(entry);
     if(!saveLog()) log.shift();
@@ -106,10 +114,52 @@ function undoLastWater() {
   let idx = -1;
   for(let i=arr.length-1;i>=0;i--){ if(!arr[i].fromFood){ idx=i; break; } }
   if(idx===-1) idx=arr.length-1;
-  arr.splice(idx,1);
-  S('water_'+ds(), JSON.stringify(arr));
+  _removeWaterAt(idx);
   HFX.light(); SFX.play('water_undo');
+}
+
+// Remove one water event and, if that event also created a diary entry, the
+// entry with it. Auto-detected drinks (`fromFood`) work the other way round:
+// the food record owns the water event, so the food stays.
+function _removeWaterAt(idx) {
+  const arr = getWaterToday();
+  const rec = arr[idx];
+  if(!rec) return;
+  arr.splice(idx, 1);
+  S('water_'+ds(), JSON.stringify(arr));
+  if (rec.ev) {
+    const li = log.findIndex(e => e && e.waterEv === rec.ev);
+    if (li >= 0) {
+      releaseEntryImage(log[li]);
+      log.splice(li, 1);
+      saveLog();
+      try { rH(); } catch(e) {}
+    }
+  }
   rWater();
+}
+
+// Delete a single event from the history timeline.
+function removeWaterEvent(ev) {
+  const arr = getWaterToday();
+  const idx = arr.findIndex(e => e && e.ev === ev);
+  if (idx < 0) return;
+  HFX.light(); SFX.play('water_undo');
+  _removeWaterAt(idx);
+}
+
+// Called when a drink is deleted from the diary side: drop its water event too,
+// otherwise the water total keeps counting a drink that is no longer logged.
+function unlinkWaterForEntry(item) {
+  if (!item || !item.waterEv) return;
+  const key = 'water_' + (item.date || ds());
+  let arr = [];
+  try { arr = JSON.parse(G(key, '[]')) || []; } catch(e) { return; }
+  const idx = arr.findIndex(e => e && e.ev === item.waterEv);
+  if (idx < 0) return;
+  arr.splice(idx, 1);
+  S(key, JSON.stringify(arr));
+  try { if (isWaterOn()) rWater(); } catch(e) {}
 }
 
 // Custom water amount via slider modal
@@ -167,7 +217,7 @@ function closeWaterCustom(){
 function addWaterCustom(){
   const v = parseInt(document.getElementById('waterCustomSlider').value || '250');
   const arr = getWaterToday();
-  arr.push({ id: 'water', ml: v, t: tnow() });
+  arr.push({ id: 'water', ml: v, t: tnow(), ev: _waterEvId() });
   S('water_'+ds(), JSON.stringify(arr));
   const _prevW = arr.reduce((s,x)=>s+(x.ml||0),0) - v;
   const _wGoal = getWaterGoal().goal;
@@ -260,10 +310,15 @@ function rWater() {
     } else {
       eventsEl.innerHTML = arr.slice().reverse().slice(0,8).map((e,i) => {
         const d = DRINKS.find(x=>x.id===e.id)||DRINKS[0];
+        // `fromFood` events belong to a diary record — remove the food instead.
+        const del = (e.ev && !e.fromFood)
+          ? `<button class="water-event-del" onclick="removeWaterEvent('${esc(e.ev)}')" aria-label="${esc(t('btn_delete'))}" title="${esc(t('btn_delete'))}">✕</button>`
+          : '';
         return `<div class="water-event" style="animation-delay:${i*0.04}s">
           <span class="water-event-icon">${d.icon}</span>
           <span class="water-event-ml">${e.ml} ${t('water_ml')}</span>
-          <span class="water-event-t">${e.t||''}</span>
+          <span class="water-event-t">${esc(e.t||'')}</span>
+          ${del}
         </div>`;
       }).join('');
     }

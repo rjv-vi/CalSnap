@@ -24,6 +24,17 @@ if (!JSDOM) {
   process.exit(2);
 }
 
+// Optional: a real IndexedDB implementation lets the image store and the
+// snapshot backup be exercised for real instead of only their fallbacks.
+let IDBFactoryImpl = null;
+for (const spec of ['fake-indexeddb', process.env.FAKE_IDB_PATH].filter(Boolean)) {
+  try {
+    const m = await import(spec);
+    IDBFactoryImpl = m.IDBFactory || m.default?.IDBFactory;
+    if (IDBFactoryImpl) break;
+  } catch { /* optional */ }
+}
+
 let pass = 0, fail = 0;
 const failures = [];
 function ok(name, cond, detail) {
@@ -59,7 +70,7 @@ function makeStorage(limitBytes = Infinity) {
   };
 }
 
-async function boot({ lang = 'ru', quota = Infinity, seed = {}, fetchImpl = null, online = true } = {}) {
+async function boot({ lang = 'ru', quota = Infinity, seed = {}, fetchImpl = null, online = true, idb = false } = {}) {
   const raw = readFileSync(path.join(ROOT, 'index.html'), 'utf8');
 
   // Collect the scripts in document order, then strip them from the markup so
@@ -116,7 +127,11 @@ async function boot({ lang = 'ru', quota = Infinity, seed = {}, fetchImpl = null
     get src(){ return this._src; }
   }
   window.Image = StubImage;
-  window.indexedDB = undefined;   // exercise the inline-image fallback path
+  // `idb: true` opts into a real IndexedDB; pass a factory to share one across
+  // simulated reloads. The default exercises the inline-image / no-backup paths.
+  window.indexedDB = idb
+    ? (typeof idb === 'object' ? idb : (IDBFactoryImpl ? new IDBFactoryImpl() : undefined))
+    : undefined;
   window.scrollTo = () => {};
   window.AudioContext = undefined;
   window.webkitAudioContext = undefined;
@@ -143,7 +158,8 @@ async function boot({ lang = 'ru', quota = Infinity, seed = {}, fetchImpl = null
                    'onIdle', 'ALL_MODELS', 'OVERLAYS', 'SFX', 'RECOMMENDED_MODEL_IDS', 'KEY_COOLDOWNS',
                    'QUEUE_MAX_ATTEMPTS', 'GEM_MAX_ATTEMPTS', 'OVERLAYS',
                    'RESET_KEEP_KEYS', 'EMO_RULES', 'isWaterOn', 'isChatMemoryOn', 'isFullscreenPref',
-                   'selDay', 'aiConvo'];
+                   'selDay', 'aiConvo', 'selModel', 'DEFAULT_MODEL', 'THEME_ORDER',
+                   'themePref', 'resolvedTheme', 'systemPrefersDark'];
   const expose = doc.createElement('script');
   expose.textContent = `for (const n of ${JSON.stringify(LEXICAL)}) {
     try { window[n] = eval(n); } catch(e) {}
@@ -436,9 +452,11 @@ console.log('CalSnap smoke tests\n');
   });
   window.clrAll();
   window.cfrmConfirm();
-  for (const k of ['u', 'log', 'wts', 'favs', 'model', 'chat_memory_enabled', 'streak_freezes', 'week_2026_01']) {
+  for (const k of ['u', 'log', 'wts', 'favs', 'chat_memory_enabled', 'streak_freezes', 'week_2026_01']) {
     eq(`reset removes "${k}"`, storage.getItem(k), null);
   }
+  // A full reset is a fresh install, so the recommended model is re-seeded.
+  eq('reset restores the default model', storage.getItem('model'), 'gemini-flash-lite-latest');
   eq('reset keeps the chosen theme', storage.getItem('theme'), 'dark');
   eq('reset keeps the chosen language', storage.getItem('lang'), 'ru');
   eq('in-memory log cleared', window.__read('log').length, 0);
@@ -1118,6 +1136,284 @@ console.log('CalSnap smoke tests\n');
   await frame();
   eq('released after the last layer', went, 1);
   window.close();
+}
+
+// ── 43. Storage that silently drops writes is detected ─────────────
+{
+  const { window } = await boot({});
+  const store = window.localStorage;
+  // Emulate a private-mode WebView: setItem "succeeds" but nothing is kept.
+  const realSet = store.setItem.bind(store);
+  store.setItem = () => {};
+  eq('a discarded write is reported as failure', window.S('probe', 'x'), false);
+  eq('the cache is not poisoned', window.G('probe', 'MISSING'), 'MISSING');
+  window.log.length = 0;
+  window.log.push({ food: 'ghost', kcal: 1, time: '10:00', date: window.ds() });
+  eq('saveLog also reports failure', window.saveLog(), false);
+  store.setItem = realSet;
+  eq('and works again once storage does', window.saveLog(), true);
+  window.close();
+}
+
+// ── 44. THE DATA-LOSS SAFETY NET: heal from the IndexedDB mirror ────
+{
+  const PROFILE = JSON.stringify({ name: 'Иван', kcal: 2100, goal: 'lose', w: 80, h: 180, age: 30, gen: 'm', pr: 144, ft: 58, cb: 230 });
+  const today = new Date().toDateString();
+  const meals = [
+    { food: 'Гречка', portion: '200г', kcal: 132, prot: 5, fat: 1, carb: 26, time: '08:30', date: today },
+    { food: 'Борщ',   portion: '300г', kcal: 165, prot: 8, fat: 6, carb: 22, time: '13:10', date: today },
+  ];
+
+  // One IndexedDB shared across all three "launches" — that is the whole point:
+  // localStorage is wiped, IndexedDB survives.
+  const sharedIdb = IDBFactoryImpl ? new IDBFactoryImpl() : null;
+
+  // Session one: log meals with a real IndexedDB present.
+  const a = await boot({ idb: sharedIdb || false, seed: { u: PROFILE, wts: '[]' } });
+  if (!a.window.indexedDB) {
+    console.log('  (skipped: no IndexedDB implementation available)');
+    a.window.close();
+  } else {
+    a.window.log.length = 0;
+    a.window.log.push(...meals);
+    ok('meals saved', a.window.saveLog());
+    // snapshotSave() is debounced; let it land.
+    await new Promise(r => setTimeout(r, 1800));
+    a.window.close();
+
+    // Session two: localStorage came back empty (evicted), IndexedDB did not.
+    const b = await boot({ idb: sharedIdb });
+    await new Promise(r => setTimeout(r, 600));   // init() heals on its own
+    const healedLog = b.window.__read('log');
+    eq('entries were restored', healedLog.length, 2);
+    ok('names survived', healedLog.some(e => e.food === 'Борщ'), JSON.stringify(healedLog.map(e => e.food)));
+    eq('profile was restored', b.window.__read('U')?.name, 'Иван');
+    eq('restored entries are persisted again', JSON.parse(b.storage.getItem('log') || '[]').length, 2);
+    ok('the user is told it happened', /восстановлено/i.test(b.window.document.getElementById('_toast')?.textContent || ''),
+       b.window.document.getElementById('_toast')?.textContent);
+    b.window.close();
+
+    // Session three: a *partial* loss heals without duplicating what is there.
+    const c = await boot({ idb: sharedIdb, seed: { u: PROFILE, wts: '[]', log: JSON.stringify([meals[0]]) } });
+    await new Promise(r => setTimeout(r, 600));
+    const merged = c.window.__read('log');
+    eq('merged to the full set', merged.length, 2);
+    eq('no duplicates', new Set(merged.map(e => e.food)).size, 2);
+    c.window.close();
+  }
+}
+
+// ── 45. Onboarding never shows through another screen ──────────────
+{
+  const css = readFileSync(path.join(ROOT, 'assets/css/base.css'), 'utf8');
+  // `#ob` is an ID selector, so `display:flex` there out-specifies
+  // `.screen{display:none}` and left the onboarding painted underneath.
+  ok('#ob is hidden by default', /#ob\{display:none/.test(css), (css.match(/#ob\{[^}]*\}/) || [''])[0]);
+  ok('#ob only shows when active', /#ob\.active\{display:flex/.test(css));
+
+  const PROFILE = JSON.stringify({ name: 'A', kcal: 2000, goal: 'maintain', w: 80, h: 180, age: 30, gen: 'm', pr: 100, ft: 60, cb: 200 });
+  const { window } = await boot({ seed: { u: PROFILE, wts: '[]' } });
+  const doc = window.document;
+  ok('onboarding is not active for a returning user', !doc.getElementById('ob').classList.contains('active'));
+  // Switching screens must never leave every screen inactive, even mid-flight.
+  const nbs = [...doc.querySelectorAll('.nb')];
+  for (const id of ['prog', 'sett', 'home']) {
+    window.goS(id, nbs.find(b => (b.getAttribute('onclick') || '').includes(`'${id}'`)) || nbs[0]);
+    const active = [...doc.querySelectorAll('.screen.active')].map(e => e.id);
+    eq(`exactly one screen active after ${id}`, active.length, 1);
+    ok(`onboarding is not it (${id})`, active[0] !== 'ob', active.join(','));
+  }
+  window.close();
+}
+
+// ── 46. Theme has three states and follows the OS on "system" ──────
+{
+  const PROFILE = JSON.stringify({ name: 'A', kcal: 2000, goal: 'maintain', w: 80, h: 180, age: 30, gen: 'm', pr: 100, ft: 60, cb: 200 });
+  const { window, storage } = await boot({ lang: 'en', seed: { u: PROFILE, wts: '[]' } });
+  const doc = window.document;
+  const root = doc.documentElement;
+
+  // No stored preference means "system"; jsdom's matchMedia reports light.
+  eq('defaults to system', window.themePref(), 'system');
+  window.rSet();
+  eq('row shows the mode', doc.getElementById('sthemeVal').textContent, 'System');
+
+  window.cycleTheme();
+  eq('system → light', storage.getItem('theme'), 'light');
+  eq('applied', root.getAttribute('data-theme'), 'light');
+  eq('row updated', doc.getElementById('sthemeVal').textContent, 'Light');
+
+  window.cycleTheme();
+  eq('light → dark', storage.getItem('theme'), 'dark');
+  eq('applied', root.getAttribute('data-theme'), 'dark');
+  eq('meta theme-color follows', doc.getElementById('tc-meta').getAttribute('content'), '#0F0E0C');
+
+  window.cycleTheme();
+  eq('dark → system', storage.getItem('theme'), 'system');
+
+  // With "system" selected, the OS switching to dark must switch the app.
+  window.matchMedia = (q) => ({
+    matches: /prefers-color-scheme:\s*dark/.test(q), media: q,
+    addEventListener(){}, removeEventListener(){}, addListener(){}, removeListener(){},
+  });
+  window.applyTheme('system');
+  eq('follows a dark OS', root.getAttribute('data-theme'), 'dark');
+  eq('and does not overwrite the preference', storage.getItem('theme'), 'system');
+
+  // boot.js must resolve 'system' the same way on a cold start.
+  const bootSrc = readFileSync(path.join(ROOT, 'assets/js/boot.js'), 'utf8');
+  ok('boot resolves anything that is not light/dark via the OS',
+     /t!=='light' && t!=='dark'/.test(bootSrc), bootSrc.slice(0, 200));
+  window.close();
+}
+
+// ── 47. The Widgets settings row is gone ──────────────────────────
+{
+  const html = readFileSync(path.join(ROOT, 'index.html'), 'utf8');
+  ok('no widgets row in settings', !/data-i18n="set_widgets"/.test(html));
+  ok('no widget.html link from settings', !/window\.open\('\.\/widget\.html'/.test(html));
+  const { window } = await boot({});
+  ok('its strings are gone from the dictionary', !('set_widgets' in window.I18N.ru) && !('set_widgets' in window.I18N.en));
+  ok('the binary theme toggle is gone', !window.document.getElementById('themeToggle'));
+  window.close();
+}
+
+// ── 48. The default model is seeded once, then never re-applied ────
+{
+  // Fresh install: the recommended model is written to storage.
+  const a = await boot({});
+  eq('seeded on first run', a.storage.getItem('model'), 'gemini-flash-lite-latest');
+  a.window.close();
+
+  // A stored choice survives, even when the live list no longer offers it.
+  const b = await boot({ seed: { model: 'gemini-2.5-pro' } });
+  eq('stored choice is used', b.window.__read('selModel'), 'gemini-2.5-pro');
+  eq('and is not overwritten', b.storage.getItem('model'), 'gemini-2.5-pro');
+  const models = b.window.__read('ALL_MODELS');
+  b.window.__read("ALL_MODELS.length = 0; ALL_MODELS.push({id:'gemini-3-flash-preview',name:'Gemini 3 Flash Preview'});");
+  // fetchGeminiModels() keeps the selection visible; emulate its merge step.
+  ok('the picker can still show the stored model',
+     b.window._modelDescFor({ id: 'gemini-2.5-pro' }).length > 0);
+  const src = readFileSync(path.join(ROOT, 'assets/js/gemini.js'), 'utf8');
+  ok('the fetched list keeps the selected model', /if\(!fresh\.some\(m=>m\.id===selModel\)\)/.test(src));
+  b.window.close();
+}
+
+// ── 49. Removing a drink removes its diary entry (and vice versa) ──
+{
+  const PROFILE = JSON.stringify({ name: 'A', kcal: 2000, goal: 'maintain', w: 80, h: 180, age: 30, gen: 'm', pr: 100, ft: 60, cb: 200 });
+  const { window, storage } = await boot({ lang: 'en', seed: { u: PROFILE, wts: '[]', water_enabled: '1' } });
+  const today = window.ds();
+
+  window.log.length = 0;
+  window.addWater('milk');            // 120 kcal → also a diary entry
+  eq('drink logged in the diary', window.__read('log').length, 1);
+  let water = JSON.parse(storage.getItem('water_' + today) || '[]');
+  eq('and in the water card', water.length, 1);
+  ok('the two are linked', !!water[0].ev && window.__read('log')[0].waterEv === water[0].ev);
+
+  // Removing it from the water card must clear the calories too.
+  window.removeWaterEvent(water[0].ev);
+  eq('water event removed', JSON.parse(storage.getItem('water_' + today) || '[]').length, 0);
+  eq('diary entry removed with it', window.__read('log').length, 0);
+  eq('and persisted', JSON.parse(storage.getItem('log') || '[]').length, 0);
+
+  // The other direction: deleting the drink from the diary clears the water.
+  window.addWater('milk');
+  water = JSON.parse(storage.getItem('water_' + today) || '[]');
+  eq('logged again', water.length, 1);
+  window.delL(0);
+  window.cfrmConfirm();
+  eq('diary entry gone', window.__read('log').length, 0);
+  eq('water event gone as well', JSON.parse(storage.getItem('water_' + today) || '[]').length, 0);
+
+  // Water-only additions carry an id so they can be removed individually.
+  window.addWater('water');
+  const only = JSON.parse(storage.getItem('water_' + today) || '[]');
+  ok('plain water has an id', !!only[0].ev);
+  eq('and adds nothing to the diary', window.__read('log').length, 0);
+  window.rWater();
+  ok('the timeline offers a delete button',
+     /water-event-del/.test(window.document.getElementById('waterEvents').innerHTML));
+  window.close();
+}
+
+// ── 50. 28-day map is opaque and tolerant of a small overshoot ──────
+{
+  const PROFILE = JSON.stringify({ name: 'A', kcal: 2000, goal: 'maintain', w: 80, h: 180, age: 30, gen: 'm', pr: 100, ft: 60, cb: 200 });
+  const day = (n) => { const d = new Date(); d.setDate(d.getDate() - n); return d.toDateString(); };
+  // One day per bucket, oldest → newest.
+  const kcalFor = { 27: 400, 26: 900, 25: 1500, 24: 2000, 23: 2020, 22: 2400, 21: 2700, 20: 3100, 19: 3800 };
+  const entries = Object.entries(kcalFor).map(([back, kcal]) =>
+    ({ food: 'x', kcal, prot: 0, fat: 0, carb: 0, time: '12:00', date: day(Number(back)) }));
+  const { window } = await boot({ seed: { u: PROFILE, wts: '[]', log: JSON.stringify(entries) } });
+  window.rP();
+  const cells = [...window.document.querySelectorAll('#hgrid .hcell')];
+  eq('28 cells', cells.length, 28);
+  const cls = (back) => cells[27 - back].className.replace('hcell', '').trim();
+  eq('20% of goal → c1', cls(27), 'c1');
+  eq('45% → c2', cls(26), 'c2');
+  eq('75% → c3', cls(25), 'c3');
+  eq('100% → c4 (on target)', cls(24), 'c4');
+  eq('101% is still on target, not red', cls(23), 'c4');
+  eq('120% → o1', cls(22), 'o1');
+  eq('135% → o2', cls(21), 'o2');
+  eq('155% → o3', cls(20), 'o3');
+  eq('190% → o4', cls(19), 'o4');
+  ok('the tooltip shows the percentage', /·\s*101%/.test(cells[27 - 23].getAttribute('title') || ''),
+     cells[27 - 23].getAttribute('title'));
+
+  // Every level, and the semantic chips, must be fully opaque so they read the
+  // same on the page, on a card and inside a sheet.
+  const css = readFileSync(path.join(ROOT, 'assets/css/base.css'), 'utf8');
+  const tokens = ['--heat-0', '--heat-1', '--heat-2', '--heat-3', '--heat-4',
+                  '--heat-o1', '--heat-o2', '--heat-o3', '--heat-o4',
+                  '--ok2', '--warn2', '--err2', '--blue2', '--streak-bg'];
+  for (const tk of tokens) {
+    const vals = [...css.matchAll(new RegExp(tk + ':\\s*([^;]+);', 'g'))].map(m => m[1].trim());
+    ok(`${tk} is defined`, vals.length > 0);
+    ok(`${tk} is opaque everywhere`, vals.every(v => /^#[0-9a-f]{3,8}$/i.test(v) || v.startsWith('var(')),
+       tk + ' = ' + vals.join(' | '));
+  }
+  ok('the legend uses the real cell classes', /h-sq hcell o2/.test(readFileSync(path.join(ROOT, 'index.html'), 'utf8')));
+  window.close();
+}
+
+// ── 51. Re-rendering in place does not replay entrance animations ────
+{
+  const PROFILE = JSON.stringify({ name: 'A', kcal: 2000, goal: 'maintain', w: 80, h: 180, age: 30, gen: 'm', pr: 100, ft: 60, cb: 200 });
+  const { window } = await boot({ seed: { u: PROFILE, wts: '[]', water_enabled: '1' } });
+  const doc = window.document;
+  const hlog = doc.getElementById('hlog');
+  window.log.length = 0;
+  window.log.push({ food: 'Eggs', kcal: 200, prot: 12, fat: 14, carb: 2, time: '08:00', date: window.ds() });
+  window.saveLog();
+
+  // init() already rendered once, so clear the marker to model a first paint.
+  hlog.dataset.day = '';
+  window.rH();
+  ok('first render animates', !hlog.classList.contains('no-anim'));
+  window.rH();
+  ok('a second render of the same day does not', hlog.classList.contains('no-anim'));
+  window.addWater('water');           // unrelated update → still no replay
+  ok('an unrelated update does not re-animate', hlog.classList.contains('no-anim'));
+  window.selectDay(new Date(Date.now() - 86400000).toDateString());
+  ok('switching day animates again', !hlog.classList.contains('no-anim'));
+  window.close();
+}
+
+// ── 52. Durable keys are mirrored, and persistence state is reported ─
+{
+  const state = readFileSync(path.join(ROOT, 'assets/js/state.js'), 'utf8');
+  ok('the durable key list covers profile, weights, favourites, water and queue',
+     /_DURABLE = \/\^\(u\|wts\|favs\|pending_photos\|water_\)/.test(state), (state.match(/_DURABLE = [^;]+/) || [''])[0]);
+  ok('S() mirrors them', /_DURABLE\.test\(k\)/.test(state));
+  ok('saveLog mirrors the diary', /snapshotSave\(\)/.test(state));
+  ok('persistent storage is requested at startup', /requestPersistentStorage\(\)/.test(state));
+  const store = readFileSync(path.join(ROOT, 'assets/js/store.js'), 'utf8');
+  ok('the persistence result is kept for the dev panel', /storagePersisted/.test(store));
+  const init = readFileSync(path.join(ROOT, 'assets/js/init.js'), 'utf8');
+  ok('the dev panel reports it', /dev_persisted/.test(init) && /dev_backup/.test(init));
 }
 
 console.log(`\n${pass} passed, ${fail} failed`);
